@@ -29,7 +29,10 @@ TINY_TRUNK_CFGS = {
         "blocks_per_stage": 1,
     },
     "inception_time": {"depth": 3, "filters": 8, "bottleneck": 8, "stem_stride": 8},
-    "tcn": {"filters": 8, "dilations": [1, 2, 4, 8], "stem_stride": 4},
+    # Dilations must keep the miniature's receptive field ~the full window
+    # (2*(k-1)*sum(d) stride-4 steps); [1..128] covers ~4080 of 4096 samples.
+    "tcn": {"filters": 8, "dilations": [1, 2, 4, 8, 16, 32, 64, 128],
+            "stem_stride": 4},
     "cnn_attention": {
         "conv_filters": [8, 16, 16, 16, 16],
         "model_dim": 16,

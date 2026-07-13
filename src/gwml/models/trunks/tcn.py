@@ -1,4 +1,11 @@
-"""Temporal Convolutional Network trunk — see docs/models/tcn.md."""
+"""Temporal Convolutional Network trunk — see docs/models/tcn.md.
+
+Non-causal variant: our 2 s windows are offline, and causal padding combined
+with global pooling starves most pooled positions of merger information (the
+merger sits at 80-90% of the window) — a structural push toward mean
+collapse. 'same' padding gives every position symmetric context, making
+GAP + GMP a sound readout.
+"""
 
 from __future__ import annotations
 
@@ -11,13 +18,13 @@ from gwml.models.registry import register
 def _tcn_block(x, filters, kernel, dilation, dropout, name):
     shortcut = x
     y = layers.Conv1D(
-        filters, kernel, padding="causal", dilation_rate=dilation, name=f"{name}_conv1"
+        filters, kernel, padding="same", dilation_rate=dilation, name=f"{name}_conv1"
     )(x)
     y = layers.BatchNormalization(name=f"{name}_bn1")(y)
     y = layers.Activation("relu", name=f"{name}_relu1")(y)
     y = layers.SpatialDropout1D(dropout, name=f"{name}_drop1")(y)
     y = layers.Conv1D(
-        filters, kernel, padding="causal", dilation_rate=dilation, name=f"{name}_conv2"
+        filters, kernel, padding="same", dilation_rate=dilation, name=f"{name}_conv2"
     )(y)
     y = layers.BatchNormalization(name=f"{name}_bn2")(y)
     y = layers.Activation("relu", name=f"{name}_relu2")(y)

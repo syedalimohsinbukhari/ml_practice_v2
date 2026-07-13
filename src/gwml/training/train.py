@@ -5,6 +5,7 @@ Usage (via scripts/train.py):  python scripts/train.py configs/resnet1d.yaml
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import keras
@@ -24,6 +25,44 @@ from gwml.training.losses import MultiHeadTrainer
 def load_config(path: str | Path) -> dict:
     with open(path) as f:
         return yaml.safe_load(f)
+
+
+def _run_base_dir(cfg: dict) -> Path:
+    return Path(cfg.get("run_dir", f"runs/{cfg['name']}"))
+
+
+def _timestamp(now: datetime | None = None) -> str:
+    return (now or datetime.now()).strftime("%Y%m%d_%H%M%S")
+
+
+def create_run_dir(cfg: dict, now: datetime | None = None) -> Path:
+    """Create a timestamped run directory under the configured run base."""
+    base_dir = _run_base_dir(cfg)
+    stamp = _timestamp(now)
+
+    for suffix in [""] + [f"_{i:02d}" for i in range(1, 100)]:
+        run_dir = base_dir / f"{stamp}{suffix}"
+        try:
+            run_dir.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            continue
+        return run_dir
+
+    raise RuntimeError(f"could not create a unique run directory under {base_dir}")
+
+
+def latest_run_dir(cfg: dict) -> Path:
+    """Return the newest timestamped run directory, falling back to legacy paths."""
+    base_dir = _run_base_dir(cfg)
+    legacy_weights = base_dir / "best.weights.h5"
+    if legacy_weights.exists():
+        return base_dir
+
+    children = [p for p in base_dir.iterdir() if p.is_dir()] if base_dir.exists() else []
+    if not children:
+        return base_dir
+
+    return max(children, key=lambda p: (p.stat().st_mtime, p.name))
 
 
 def build_trainer(cfg: dict) -> MultiHeadTrainer:
@@ -107,8 +146,8 @@ def run_experiment(config_path: str | Path) -> MultiHeadTrainer:
 
         tf.config.experimental.enable_op_determinism()
 
-    run_dir = Path(cfg.get("run_dir", f"runs/{cfg['name']}"))
-    run_dir.mkdir(parents=True, exist_ok=True)
+    run_dir = create_run_dir(cfg)
+    print(f"run directory: {run_dir}")
 
     dcfg = cfg["data"]
     max_n = dcfg.get("max_samples")

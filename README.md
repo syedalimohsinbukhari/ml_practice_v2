@@ -9,7 +9,7 @@ trunk with configurable output heads and a pluggable model zoo.
 
 | doc | what's in it |
 |-----|--------------|
-| [`PLAN.md`](PLAN.md) | the design document: objectives, decisions and their rationale, milestones |
+| [`PLAN.md`](ml_practice_plan.md) | the design document: objectives, decisions and their rationale, milestones |
 | [`docs/pipeline/overview.md`](docs/pipeline/overview.md) | end-to-end data flow, module map, design invariants |
 | [`docs/pipeline/data.md`](docs/pipeline/data.md) | HDF5 loading, target transforms, dataset construction |
 | [`docs/pipeline/training.md`](docs/pipeline/training.md) | head registry, losses, collapse safeties, callbacks, **full YAML config reference**, run-directory contents |

@@ -83,7 +83,7 @@ Built by `train.py` in this order:
 
 | key | default | meaning |
 |-----|---------|---------|
-| `name` / `run_dir` | — / `runs/<name>` | experiment id, output directory |
+| `name` / `run_dir` | — / `runs/<name>` | experiment id, output base; training writes each run to a timestamped child like `runs/<name>/20260713_153012` |
 | `data.path` | — | HDF5 file |
 | `data.batch_size` | 128 | batch size |
 | `data.max_samples` | null | truncate splits (smoke/debug) |

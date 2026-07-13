@@ -11,9 +11,11 @@ python scripts/evaluate.py configs/resnet1d.yaml --split validation
 # options: --split training|validation, --weights <file>
 ```
 
-Steps: load config → rebuild the model (`build_trainer`) → build variables on
-a dummy batch → `load_weights` (default `<run_dir>/best.weights.h5`) →
-restore `transforms.json` (never re-fit) → write:
+Steps: load config → resolve the latest run directory under `run_dir` (legacy
+flat runs are still accepted) → rebuild the model (`build_trainer`) → build
+variables on a dummy batch → `load_weights` (default
+`<latest_run_dir>/best.weights.h5`) → restore `transforms.json` (never re-fit)
+→ write:
 
 - `metrics_<split>.csv` — MAE and RMSE per active head
   (`gwml/evaluation/metrics.py::evaluate_model`)

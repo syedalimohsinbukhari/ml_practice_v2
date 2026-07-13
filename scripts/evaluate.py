@@ -17,17 +17,18 @@ def main():
     parser.add_argument("--split", default="validation",
                         choices=["training", "validation"])
     parser.add_argument("--weights", default=None,
-                        help="weights file (default: <run_dir>/best.weights.h5)")
+                        help=("weights file "
+                              "(default: <latest_run_dir>/best.weights.h5)"))
     args = parser.parse_args()
 
     from gwml.data.loader import load_arrays
     from gwml.data.transforms import PARAM_COLUMNS, TargetTransforms
     from gwml.evaluation.metrics import evaluate_model
     from gwml.evaluation.plots import residuals_vs_snr, scatter_grid
-    from gwml.training.train import build_trainer, load_config
+    from gwml.training.train import build_trainer, latest_run_dir, load_config
 
     cfg = load_config(args.config)
-    run_dir = Path(cfg.get("run_dir", f"runs/{cfg['name']}"))
+    run_dir = latest_run_dir(cfg)
     weights = args.weights or run_dir / "best.weights.h5"
 
     strain, params = load_arrays(cfg["data"]["path"], args.split,

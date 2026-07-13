@@ -52,18 +52,20 @@ def test_periodic_round_trip_two_pi(head, synthetic_params):
     assert encoded.shape == (100, 2)
     assert np.all(np.abs(encoded) <= 1.0)
     recovered = tr.inverse_head(head, encoded)
-    np.testing.assert_allclose(recovered, raw % (2 * np.pi), atol=1e-10)
+    # (sin, cos) targets are float32, so angles recover to ~1e-7 rad.
+    np.testing.assert_allclose(recovered, raw % (2 * np.pi), atol=1e-6)
 
 
 def test_polarization_angle_has_pi_period(synthetic_params):
     tr = TargetTransforms(heads=["polarization_angle"]).fit(synthetic_params)
     raw = np.array([0.3, 0.3 + np.pi, 0.3 + 2 * np.pi])
     encoded = tr.transform_head("polarization_angle", raw)
-    # psi and psi + pi produce identical strain, so identical encodings.
-    np.testing.assert_allclose(encoded[0], encoded[1], atol=1e-12)
-    np.testing.assert_allclose(encoded[0], encoded[2], atol=1e-12)
+    # psi and psi + pi produce identical strain, so identical encodings
+    # (to float32 precision, since targets are cast for training).
+    np.testing.assert_allclose(encoded[0], encoded[1], atol=1e-6)
+    np.testing.assert_allclose(encoded[0], encoded[2], atol=1e-6)
     recovered = tr.inverse_head("polarization_angle", encoded)
-    np.testing.assert_allclose(recovered, raw % np.pi, atol=1e-10)
+    np.testing.assert_allclose(recovered, raw % np.pi, atol=1e-6)
 
 
 def test_abs_error_is_wrap_aware():

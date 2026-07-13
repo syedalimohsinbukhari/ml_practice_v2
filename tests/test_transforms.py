@@ -13,7 +13,9 @@ def test_round_trip(head, synthetic_params, fitted_transforms):
     raw = synthetic_params[:, PARAM_COLUMNS[head]]
     normalized = fitted_transforms.transform_head(head, raw)
     recovered = fitted_transforms.inverse_head(head, normalized)
-    np.testing.assert_allclose(recovered, raw, rtol=1e-10)
+    # transform_head outputs float32 (training targets), so round trips are
+    # exact only to single precision.
+    np.testing.assert_allclose(recovered, raw, rtol=1e-6)
 
 
 def test_bounded_heads_land_in_unit_interval(synthetic_params, fitted_transforms):

@@ -20,7 +20,13 @@ loss:
   huber_delta: 1.0
   weighting: uncertainty   # or "fixed" with fixed_weights: {mchirp: 1.0, ...}
   snr_weight_alpha: null   # e.g. 1.0 to down-weight low-SNR samples
-  log_var_clamp: 3.0       # |s_h| bound; effective head weight floor exp(-3) ~ 5%
+  # q's weight rides the same clamp ceiling every other head's train loss
+  # eventually reaches (train R2(q) ~0.99, val R2(q) negative — see
+  # q_head_action_plan.md Phase 2 step 8/12): a tighter per-head clamp caps
+  # how far q's weight can run relative to the others.
+  log_var_clamp:
+    default: 3.0            # |s_h| bound; effective head weight range [exp(-3), exp(3)] ~ [5%, 2009%]
+    q: 1.0                  # tighter: weight range [exp(-1), exp(1)] ~ [37%, 272%]
   variance_penalty: 0.0    # e.g. 0.1 adds lambda*(std(pred)-std(true))^2 per head
 
 optim:

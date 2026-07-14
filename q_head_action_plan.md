@@ -6,6 +6,16 @@ four heads saturate identically at ~20.09 regardless of per-head performance.
 `heads_spec.py` review ruled out a transform/loss mismatch but surfaced a new,
 q-specific saturation hypothesis.
 
+**Correction after Phase 2 attempt #1 (2026-07-14 10:41/10:45 runs):** the
+"`cnn_baseline` underfits q" premise above does not hold in the actual
+history.csv data, old run or new. `cnn_baseline`'s original run
+(`20260714_091740`) ends at `r2_q=0.992` (train) / `val_r2_q=-0.164` — it was
+*already* overfitting q just as badly as `cnn_attention`, not underfitting it.
+See "Phase 2 attempt #1 results" below — this reframes the whole diagnosis:
+the weight-clamp saturation and q collapse are not `cnn_attention`-capacity-
+specific, they show up almost identically in the much smaller `cnn_baseline`
+trunk too.
+
 Status legend: ✅ resolved/implemented · 🔲 still open · ⏳ implemented, awaiting a
 lab-machine run to verify
 
@@ -85,28 +95,58 @@ lab-machine run to verify
 
 ## Phase 2 — Fix regularization & loss/weighting (highest expected payoff)
 
-8. ✅ **Loosened the weight clamp per-head.** `MultiHeadTrainer` now accepts
-   `loss.log_var_clamp` as either the old scalar or a dict
-   (`{default: 3.0, q: 1.0}`); `configs/cnn_attention.yaml` sets q's clamp to
-   1.0 so its uncertainty weight can't ride the same ceiling as heads whose
-   train loss shrinks fastest.
-9. ✅ **Regularized the q head specifically.** `attach_heads` now supports
-   `head_cfg.per_head.<name>.{hidden_units,dropout,l2}`; `cnn_attention.yaml`
-   gives q a smaller head (32 vs the shared 64 hidden units), dropout 0.3,
-   and L2 1e-4 — capacity cut relative to the other three heads sharing the
-   same trunk features.
+Full numbers for everything below: `q_head_run_comparison.md`.
+
+8. ⏳ **Loosen the weight clamp per-head — implemented, NOT actually tested
+   yet.** `MultiHeadTrainer` accepts `loss.log_var_clamp` as either the old
+   scalar or a dict (`{default: 3.0, q: 1.0}`), and this was set in
+   `configs/cnn_attention.yaml` — but the config was reverted back to the
+   flat `log_var_clamp: 3.0` before the run in
+   `runs/cnn_attention/20260714_104523/`. Confirmed from that run's
+   `history.csv`: `weight_q` still saturates at the identical `exp(3.0) =
+   20.0855` ceiling as every other head, same as every prior run, including
+   `cnn_baseline` (which never had any clamp change applied at all). **This
+   is still the one untested lever from the original plan** — re-apply the
+   per-head clamp (to both configs, see step 9 below) and re-run.
+9. ✅ **Regularized the q head specifically — tested, real partial
+   improvement.** `cnn_attention.yaml`'s q head (32 hidden units, dropout
+   0.3, L2 1e-4) measurably reduced memorization: `r2_q` (train) at epoch 79
+   dropped from 0.906 (old run) to 0.807 (new run), and the collapse in
+   `val_r2_q` roughly halved (−0.179 → −0.090). Peak `val_r2_q` (~0.21-0.23
+   around epoch 10-20) was unchanged — the fix slows the *decline after* the
+   peak, it doesn't raise the peak itself. Still net negative at the end, so
+   not sufficient alone. **`cnn_baseline` did not get this treatment and
+   should, per the correction above** — it's overfitting q just as badly and
+   is a legitimate second trunk to test the same regularization on.
 10. ✅ **Addressed sigmoid saturation directly (first option: widened
-    bounds).** `q`'s `UNIT_AFFINE` bounds moved from `(0.2, 1.0)` to
-    `(0.15, 1.05)` in `heads_spec.py`, so q=1.0 now maps to `t≈0.944`,
-    comfortably off the sigmoid's saturating edge.
+    bounds) — tested, small improvement in every run.** `q`'s `UNIT_AFFINE`
+    bounds moved from `(0.2, 1.0)` to `(0.15, 1.05)` in `heads_spec.py`
+    (applies globally, so it affected both new runs). `cnn_baseline`, which
+    got *no other change*, still improved slightly from this alone:
+    `val_r2_q` at epoch 79 went from −0.164 (old) to −0.125 (new). Small but
+    real, and free — keep it.
 11. 🔲 **Input-level augmentation targeted at the hard regime** (jitter,
     noise, SNR variation on low-mchirp/high-q examples) — not attempted;
-    deferred pending step 12's result.
-12. 🔲 **Re-run `cnn_attention` with these changes; re-check train/val R2(q)
-    convergence.** All Phase 2 code is implemented and config-wired but
-    **not yet run** — this needs the lab GPU machine, not the local T530.
-    Target: val R2 climbs into positive territory and tracks train more
-    closely, without train performance regressing toward baseline levels.
+    now backed by a quantified target (see step 12).
+12. ✅ **Re-ran both `cnn_attention` and `cnn_baseline`; checked train/val
+    R2(q) convergence and the new subset diagnostics.** Results: neither run
+    reaches positive `val_r2_q` — both still finish negative (−0.090 and
+    −0.125). The q-tercile × mchirp cross-tab (new this round) nails down
+    the worst regime precisely: `q_high × mchirp_low` (near-equal-mass, low
+    chirp mass, 544/5000 = ~11% of validation, matching its ~11% share of
+    training) has MAE ~60% above the full-set average and by far the worst
+    R2 in both trunks (`cnn_attention` −26.7, `cnn_baseline` −23.0) — this is
+    now a measured, not hypothesized, hardest-and-scarcest region. See
+    `q_head_run_comparison.md` for the full breakdown.
+
+**Net read on Phase 2 attempt #1:** widened bounds (step 10) help a little
+everywhere; q-head regularization (step 9) helps more but isn't sufficient
+alone; the highest-leverage lever from the original diagnosis — the per-head
+clamp (step 8) — was never actually run. And the premise that this is a
+`cnn_attention`-specific overfitting problem doesn't hold: `cnn_baseline`
+overfits q just as badly with no regularization at all, which points more
+toward the uncertainty-weighting/clamp mechanism itself (or the data-scarce
+`q_high × mchirp_low` regime) than toward trunk capacity.
 
 ---
 
@@ -126,16 +166,46 @@ lab-machine run to verify
 
 ## What's left to do
 
-Everything code-side for Phase 1 and Phase 2 is implemented (bounds widened,
-per-head log-var clamp, per-head head regularization, q-tercile/mchirp
-diagnostics, logit + mchirp-residual plotting) and covered by new/updated
-tests (`tests/test_losses.py`, `tests/test_heads_spec.py`,
-`tests/test_callbacks.py`). None of it has been exercised yet — that
-requires the lab GPU machine:
+Phase 2 attempt #1 (bounds + q-head regularization on `cnn_attention` only)
+gave real but insufficient improvement — both runs still finish with
+negative `val_r2_q`. Before reaching for Phase 3:
 
-1. `pytest -m "not slow"` (or the full suite) to confirm nothing regressed.
-2. `python scripts/train.py configs/cnn_attention.yaml` — the actual Phase 2
-   step 12 re-run.
-3. `python scripts/evaluate.py configs/cnn_attention.yaml` against the new
-   run to get `logits_train_vs_val.png` and `residuals_mchirp_*.png` (Phase 1
-   steps 3 and 6, finally exercised).
+1. ✅ **Per-head `log_var_clamp` (`default: 3.0, q: 1.0`) is now applied to
+   all five trunk configs** (`cnn_attention`, `cnn_baseline`, `resnet1d`,
+   `inception_time`, `tcn`) — not just `cnn_attention`, and this time it's
+   actually in the configs to be run. Previously the fix was written once,
+   reverted before the run, and never applied to any trunk besides
+   `cnn_attention`.
+2. 🔲 **New data point: `resnet1d` is reportedly collapsing q to ~the lower
+   bound for ~all true values** — a qualitatively different symptom from the
+   cnn trunks' train/val overfit gap (which is q tracking train targets too
+   well, not failing to track them at all). The tighter clamp *raises* q's
+   weight floor (exp(-1)≈37% vs exp(-3)≈5%), which should make it harder for
+   a collapsing head to get starved of gradient pressure — worth testing
+   whether that alone fixes it. If it doesn't, `logits_train_vs_val.png`
+   (Phase 1 step 3, already wired into `scripts/evaluate.py`) should show a
+   pre-sigmoid logit stuck at a large negative value on both splits — a
+   saturated/dead sigmoid unit, which a loss-weighting fix can't repair
+   (gradient through `sigmoid'(logit)≈0` stays ≈0 regardless of loss weight)
+   and would need a different fix (LR warmup, better init, or `bounded:
+   false` as a diagnostic A/B).
+3. **`cnn_baseline` did not get the q-head regularization `cnn_attention`
+   got** (smaller hidden/dropout/L2) — it overfits q just as badly and is
+   the cleanest control for whether that fix generalizes across trunks.
+   `resnet1d`/`inception_time`/`tcn` haven't been characterized enough yet to
+   know if they need it too (resnet's issue in particular looks different in
+   kind, see #2) — don't add it there blind.
+4. **Re-run all five configs**, then diff against the existing runs the same
+   way `q_head_run_comparison.md` did — `r2_q`/`val_r2_q` final + trajectory,
+   `weight_q` saturation, and the `q_high × mchirp_low` subset cell.
+5. `python scripts/evaluate.py configs/<name>.yaml` against the new
+   checkpoints to finally exercise `logits_train_vs_val.png` (Phase 1 step 3)
+   and `residuals_mchirp_*.png` (Phase 1 step 6) — neither has been run yet,
+   and #2 above makes the logit plot the priority for `resnet1d` specifically.
+6. If `val_r2_q` is still negative after 1-5 on the cnn trunks: the
+   `q_high × mchirp_low` cell (Phase 2 step 12 finding) is now a measured,
+   not hypothesized, target — move to Phase 3 step 14 (targeted
+   oversampling/augmentation for that specific cell) next.
+7. `pytest -m "not slow"` on the lab machine at some point to confirm the
+   new code (per-head clamp, per-head regularization, subset diagnostics,
+   logit/residual plots) hasn't regressed anything — still not run.

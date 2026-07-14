@@ -36,8 +36,12 @@ loss:
   # exactly with val_r2_q peaking (~epoch 9-12) and then collapsing negative
   # as weight_q keeps the model pushing on the head with least real signal.
   # A tighter clamp on q alone keeps its weight from running to the same
-  # ceiling as heads whose train loss shrinks fastest.
-  log_var_clamp: 3.0
+  # ceiling as heads whose train loss shrinks fastest — this was set once
+  # already and got reverted to the flat 3.0 before a run, so it's never
+  # actually been tested; see q_head_action_plan.md Phase 2 step 8.
+  log_var_clamp:
+    default: 3.0
+    q: 1.0
   variance_penalty: 0.0    # e.g. 0.1 adds lambda*(std(pred)-std(true))^2 per head
 
 optim:

@@ -67,3 +67,24 @@ snr_weight_alpha)` builds `tf.data.Dataset.from_tensor_slices` over
   per-sample weights `(SNR/10)^α` that the trainer applies to every head's
   loss equally — the "don't burn capacity on unrecoverable labels"
   experiment; leave off by default.
+
+## Targeted oversampling (Phase 3.1)
+
+`run_experiment` supports `data.augmentation.oversample` — a dict mapping
+subset names to integer duplication factors. Before transforms are fitted,
+rows in the named subsets are duplicated the specified number of times.
+Subset masks come from `build_subset_masks()` in `loader.py` (the same
+function used by `DiagnosticSubsetsCallback`). This targets the
+`q_high × mchirp_low` cell (~11% of data, val_r2_q ≈ −22 across all
+trunks) — the physically hardest and most data-starved regime.
+
+```yaml
+data:
+  augmentation:
+    oversample:
+      q_high_mchirp_low: 2   # duplicate these rows 1 extra time
+```
+
+Oversampling happens before `TargetTransforms.fit()`, so z-score statistics
+are computed on the augmented distribution (which is the desired behavior —
+the augmented set is the effective training population).

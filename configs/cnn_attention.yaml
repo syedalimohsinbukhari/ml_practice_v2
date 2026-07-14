@@ -4,6 +4,12 @@ run_dir: runs/cnn_attention
 data:
   path: combined_repackaged.hdf
   batch_size: 128
+  # Targeted oversampling: duplicate rows in the specified subsets before
+  # training. q_high_mchirp_low (~11% of data) is the hardest-and-scarcest
+  # cell across all trunks (val_r2_q ≈ −22). See q_head_action_plan.md.
+  augmentation:
+    oversample:
+      q_high_mchirp_low: 2   # duplicate these rows 1 extra time
 
 model:
   trunk: cnn_attention
@@ -24,6 +30,8 @@ model:
         hidden_units: 32
         dropout: 0.3
         l2: 1.0e-4
+        branch: q_tokens        # q branches from per-token transformer features
+                                # before AttentionPooling (Phase 3.2)
 
 loss:
   huber_delta: 1.0

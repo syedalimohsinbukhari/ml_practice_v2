@@ -4,6 +4,9 @@ run_dir: runs/cnn_baseline
 data:
   path: combined_repackaged.hdf
   batch_size: 128
+  augmentation:
+    oversample:
+      q_high_mchirp_low: 2
 
 model:
   trunk: cnn_baseline
@@ -15,6 +18,15 @@ model:
   head_cfg:
     hidden_units: 64
     bounded: true
+    # cnn_baseline overfits q just as badly as cnn_attention (Phase 2 attempt #2
+    # confirms val_r2_q is positive with the clamp fix alone but slowly declining
+    # 0.193→0.075 over 79 epochs). Per-head regularization on q (same as
+    # cnn_attention's) should flatten the decline. See q_head_action_plan.md.
+    per_head:
+      q:
+        hidden_units: 32
+        dropout: 0.3
+        l2: 1.0e-4
 
 loss:
   huber_delta: 1.0

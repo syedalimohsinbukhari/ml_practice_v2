@@ -8,10 +8,11 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import keras
 import yaml
 
-from gwml.data.loader import load_arrays, make_dataset
+from gwml.data.loader import build_subset_masks, load_arrays, make_dataset
 from gwml.data.transforms import TargetTransforms
 from gwml.models import build_model
 from gwml.training.callbacks import (
@@ -153,6 +154,23 @@ def run_experiment(config_path: str | Path) -> MultiHeadTrainer:
     max_n = dcfg.get("max_samples")
     train_strain, train_params = load_arrays(dcfg["path"], "training", max_n)
     val_strain, val_params = load_arrays(dcfg["path"], "validation", max_n)
+
+    # --- targeted oversampling (Phase 3.1) ---
+    aug_cfg = dcfg.get("augmentation", {}).get("oversample", {})
+    if aug_cfg:
+        masks = build_subset_masks(train_params)
+        for subset_name, factor in aug_cfg.items():
+            mask = masks.get(subset_name)
+            if mask is not None and mask.any() and factor > 1:
+                n_dup = int(mask.sum())
+                dup_strain = train_strain[mask]
+                dup_params = train_params[mask]
+                for _ in range(int(factor) - 1):
+                    train_strain = np.concatenate([train_strain, dup_strain], axis=0)
+                    train_params = np.concatenate([train_params, dup_params], axis=0)
+                print(f"oversample: {subset_name} x{factor} ({n_dup} rows → "
+                      f"{n_dup * factor} rows)")
+    # --- end oversampling ---
 
     transforms = TargetTransforms(heads=cfg["model"].get("heads")).fit(train_params)
     transforms.to_json(run_dir / "transforms.json")

@@ -19,14 +19,21 @@ paired with a plain loss on raw angles" unrepresentable.
 
 1. `build_trunk(trunk, trunk_cfg)` — registry lookup; every trunk returns
    `(input (4096, 2), pooled features)` and starts with `input_bn`
-   (see `../models/<trunk>.md` for each architecture).
+   (see `../models/<trunk>.md` for each architecture). A trunk may optionally
+   return a third element — a dict of extra feature tensors — which heads can
+   connect to via `head_cfg.per_head.<name>.branch` (used by `cnn_attention`
+   to give q pre-pooling transformer features; see Phase 3.2).
 2. `attach_heads(...)` — per active head: `Dense(hidden_units, relu)` →
    optional `Dropout` → `Dense(spec.dim, spec.activation)`, layer named after
    the head. `head_cfg.bounded: false` downgrades sigmoid/tanh outputs to
    linear (an A/B lever; bounded stays on by default). `hidden_units`,
-   `dropout`, and `l2` all default globally but can be overridden for one
-   head via `head_cfg.per_head.<name>` — e.g. to shrink/regularize a head
-   that overfits faster than its trunk-mates.
+   `dropout`, `l2`, `sigmoid_bias`, and `branch` all default globally but can
+   be overridden for one head via `head_cfg.per_head.<name>`:
+   - `hidden_units`/`dropout`/`l2` — regularize a head that overfits
+   - `sigmoid_bias` — nudge the output bias away from zero for sigmoid heads
+     (useful for reviving a saturated/dead sigmoid; Phase 2.5)
+   - `branch` — connect this head to a named extra feature tensor from the
+     trunk instead of the global pooled features (Phase 3.2)
 
 ## `MultiHeadTrainer` — `gwml/training/losses.py`
 
@@ -92,6 +99,7 @@ Built by `train.py` in this order:
 | `data.path` | — | HDF5 file |
 | `data.batch_size` | 128 | batch size |
 | `data.max_samples` | null | truncate splits (smoke/debug) |
+| `data.augmentation.oversample.<subset>` | — | duplication factor for named subsets before transforms are fitted (Phase 3.1) |
 | `model.trunk` | — | registry name (see `../models/`) |
 | `model.trunk_cfg` | `{}` | trunk knobs (per-trunk doc) |
 | `model.heads` | core four | active output heads |
@@ -99,7 +107,8 @@ Built by `train.py` in this order:
 | `model.head_cfg.bounded` | true | sigmoid/tanh output activations |
 | `model.head_cfg.dropout` | 0.0 | dropout after the hidden Dense, applied to every head |
 | `model.head_cfg.l2` | 0.0 | L2 kernel regularizer on both Dense layers, every head |
-| `model.head_cfg.per_head.<name>` | — | overrides `hidden_units`/`dropout`/`l2` for one head only |
+| `model.head_cfg.sigmoid_bias` | 0.0 | bias initializer for sigmoid output heads (Phase 2.5) |
+| `model.head_cfg.per_head.<name>` | — | overrides `hidden_units`/`dropout`/`l2`/`sigmoid_bias`/`branch` for one head only |
 | `loss.huber_delta` | 1.0 | Huber transition point |
 | `loss.weighting` | uncertainty | `uncertainty` \| `fixed` |
 | `loss.fixed_weights` | 1.0 each | only used with `fixed` |

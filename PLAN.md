@@ -118,7 +118,14 @@ Every trunk implements one function and registers itself:
 ```python
 @register("resnet1d")
 def build_trunk(cfg) -> tuple[keras.Input, tf.Tensor]:
-    """Returns (input tensor (4096, 2), pooled feature vector (B, F))."""
+    """Returns (input tensor (4096, 2), pooled feature vector (B, F)).
+
+    A trunk may optionally return a third element: a dict[str, KerasTensor]
+    of extra feature tensors accessible to individual heads via
+    ``head_cfg.per_head.<name>.branch``. ``cnn_attention`` uses this to
+    expose per-token transformer features before attention pooling so q can
+    branch from finer-grained representations (Phase 3.2).
+    """
 ```
 
 `heads.py` takes the feature vector and attaches one small MLP per active
@@ -128,8 +135,11 @@ the head. All heads share `head_cfg`'s global `hidden_units`/`dropout`/`l2`
 by default, but any one head can override them via
 `head_cfg.per_head.<name>` — used to cut capacity on a head that overfits
 faster than its trunk-mates (e.g. `q` on `cnn_attention`) without touching
-the others. Swapping architectures is a one-line config change; heads,
-losses, and evaluation never change.
+the others. Per-head overrides also support `branch` (connects the head to a
+named extra feature tensor from the trunk) and `sigmoid_bias` (nudges the
+output bias away from zero at init — useful for reviving a saturated sigmoid).
+Swapping architectures is a one-line config change; heads, losses, and
+evaluation never change.
 
 ### Trunk candidates
 
@@ -171,6 +181,12 @@ its doc doesn't get merged into the zoo.
 - **SNR-weighted sample loss:** optional config switch (off by default) — weight each
   sample by `(SNR/10)^alpha` to down-weight events whose labels are barely
   recoverable. An experiment, not a default.
+- **Targeted oversampling:** `data.augmentation.oversample.<subset>: <factor>`
+  duplicates rows in named subsets (from `build_subset_masks()` in
+  `loader.py`) before transforms are fitted. Used to up-weight the
+  `q_high × mchirp_low` cell (~11% of data, val_r2_q ≈ −22 across all
+  trunks). No architecture changes — pure array-level duplication before
+  dataset construction. See `q_head_action_plan.md` Phase 3.1.
 - **Not doing:** GradNorm/gradient-balancing schemes — overkill for four well-behaved
   regression heads. Periodic losses (`1 − cos(Δ)` or sin/cos pairs) only become
   relevant if/when angle heads are added; plain MSE on wrapped angles is silently

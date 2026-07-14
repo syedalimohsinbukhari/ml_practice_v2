@@ -36,6 +36,42 @@ def load_arrays(
     return strain, params
 
 
+def build_subset_masks(params: np.ndarray) -> dict[str, np.ndarray]:
+    """Boolean masks for diagnostic subsets and targeted oversampling.
+
+    Same logic used by ``DiagnosticSubsetsCallback`` — extracted here so
+    ``run_experiment`` can reuse it for data augmentation without depending
+    on the callback module.
+    """
+    snr = params[:, PARAM_COLUMNS["snr"]]
+    mchirp = params[:, PARAM_COLUMNS["mchirp"]]
+    mt = params[:, PARAM_COLUMNS["merger_time"]]
+    q = params[:, PARAM_COLUMNS["q"]]
+    s1, s2 = np.quantile(snr, [1 / 3, 2 / 3])
+    q1, q2 = np.quantile(q, [1 / 3, 2 / 3])
+    mchirp_low = mchirp < np.median(mchirp)
+    mchirp_high = ~mchirp_low
+    q_low = q < q1
+    q_high = q >= q2
+    return {
+        "full": np.ones(len(params), dtype=bool),
+        "snr_low": snr < s1,
+        "snr_mid": (snr >= s1) & (snr < s2),
+        "snr_high": snr >= s2,
+        "mchirp_low": mchirp_low,
+        "mchirp_high": mchirp_high,
+        "merger_early": mt < np.median(mt),
+        "merger_late": mt >= np.median(mt),
+        "q_low": q_low,
+        "q_mid": (q >= q1) & (q < q2),
+        "q_high": q_high,
+        "q_low_mchirp_low": q_low & mchirp_low,
+        "q_low_mchirp_high": q_low & mchirp_high,
+        "q_high_mchirp_low": q_high & mchirp_low,
+        "q_high_mchirp_high": q_high & mchirp_high,
+    }
+
+
 def snr_sample_weights(params: np.ndarray, alpha: float) -> np.ndarray:
     """Optional per-sample loss weights (SNR/10)^alpha; see PLAN.md."""
     snr = params[:, PARAM_COLUMNS["snr"]]

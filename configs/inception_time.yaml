@@ -4,6 +4,9 @@ run_dir: runs/inception_time
 data:
   path: combined_repackaged.hdf
   batch_size: 128
+  augmentation:
+    oversample:
+      q_high_mchirp_low: 2
 
 model:
   trunk: inception_time

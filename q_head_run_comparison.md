@@ -1,15 +1,22 @@
-# q-Head Run Comparison — Phase 2 Attempt #1
+# q-Head Run Comparison
 
-Companion to `q_head_action_plan.md`. Compares the pre-fix runs against the
-first post-fix runs, epoch-by-epoch, using `history.csv` and `diagnostics.csv`
-directly (no retraining involved in producing this file).
+Companion to `q_head_action_plan.md`. Compares runs across three phases:
+pre-fix (no changes), Phase 2 attempt #1 (bounds + q-head reg, no clamp fix),
+and Phase 2 attempt #2 (per-head clamp on all five trunks).
 
-| Run | Trunk | Timestamp | What changed vs the pre-fix run |
+## Run index
+
+| Run | Trunk | Timestamp | What changed |
 |---|---|---|---|
 | OLD cnn_baseline | `cnn_baseline` | `20260714_091740` | baseline (pre-fix) |
-| NEW cnn_baseline | `cnn_baseline` | `20260714_104107` | q bounds widened `(0.2,1.0)→(0.15,1.05)` only — config file itself untouched |
+| ATTEMPT1 cnn_baseline | `cnn_baseline` | `20260714_104107` | q bounds widened `(0.2,1.0)→(0.15,1.05)` only |
+| **ATTEMPT2 cnn_baseline** | `cnn_baseline` | `20260714_113347` | bounds + **clamp fix** (`q: 1.0`), NO q-head reg |
 | OLD cnn_attention | `cnn_attention` | `20260714_093319` | baseline (pre-fix) |
-| NEW cnn_attention | `cnn_attention` | `20260714_104523` | q bounds widened **+** q head regularized (`hidden_units: 32, dropout: 0.3, l2: 1e-4`) — **but** the per-head `log_var_clamp` fix (`q: 1.0`) was reverted back to the flat `3.0` before this run, so it was **not** actually tested |
+| ATTEMPT1 cnn_attention | `cnn_attention` | `20260714_104523` | bounds + q-head reg, clamp fix **reverted** |
+| **ATTEMPT2 cnn_attention** | `cnn_attention` | `20260714_113745` | bounds + q-head reg + **clamp fix** (`q: 1.0`) |
+| **ATTEMPT2 resnet1d** | `resnet1d` | `20260714_114721` | bounds + clamp fix, NO q-head reg |
+| **ATTEMPT2 inception_time** | `inception_time` | `20260714_121546` | bounds + clamp fix, NO q-head reg |
+| **ATTEMPT2 tcn** | `tcn` | `20260714_115404` | bounds + clamp fix, NO q-head reg |
 
 ---
 
@@ -121,19 +128,82 @@ ranges when it lacks resolving signal.
 
 ---
 
-## Bottom line for what to try next
+## Phase 2 attempt #2 — All five trunks with per-head clamp (2026-07-14 11:33–12:15)
 
-1. **The clamp fix (Phase 2 step 8) still hasn't actually been tested** — it
-   was written into `cnn_attention.yaml` and then reverted before this run.
-   Re-apply `log_var_clamp: {default: 3.0, q: 1.0}` (or tighter) and re-run
-   — this is the one lever from the original plan that hasn't had a real
-   trial yet, and it's the one most directly aimed at the identical-
-   saturation mechanism.
-2. **cnn_baseline needs the same regularization cnn_attention got.** It
-   overfits q just as badly, so it's a legitimate second data point for
-   whether the per-head regularization + clamp combination generalizes
-   across trunks, or was a `cnn_attention`-specific band-aid.
-3. **The mchirp_low × q_high cell is now a confirmed, quantified priority**
-   for Phase 3 step 14 (targeted oversampling) regardless of how step 1-2
-   above turn out — it's the worst-performing *and* most data-starved region
-   in both trunks.
+### Headline numbers (epoch 79)
+
+| Model | clamp fix? | q-head reg? | train_r2_q | val_r2_q | val_std_ratio_q | weight_q | q MAE (phys) |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| cnn_attention NEW | yes (1.0) | yes | 0.399 | **+0.204** | 0.602 | 2.72 | 0.153 |
+| cnn_baseline NEW | yes (1.0) | no | 0.628 | **+0.075** | 0.653 | 2.72 | 0.165 |
+| resnet1d NEW | yes (1.0) | no | −5.563 | −5.738 | 0.000 | 2.72 | 0.395 |
+| inception_time NEW | yes (1.0) | no | 0.395 | **+0.219** | 0.572 | 2.72 | 0.153 |
+| tcn NEW | yes (1.0) | no | 0.266 | **+0.260** | 0.557 | 2.72 | 0.150 |
+
+For comparison, the previous best (attempt #1):
+| cnn_attention OLD | no (3.0) | yes | 0.807 | −0.090 | ~0.17 | 20.09 | — |
+| cnn_baseline OLD | no (3.0) | no | 0.959 | −0.125 | ~0.18 | 20.09 | — |
+
+### Key findings
+
+1. **4/5 models now have POSITIVE val_r2_q.** This is the first time any run
+   has achieved this through epoch 79. The clamp fix eliminates the
+   crash-to-negative pattern.
+2. **The mechanism is the opposite of what was hypothesized.** Lowering q's
+   clamp from 3.0→1.0 *reduces* q's gradient share (weight 2.72 vs 20.09 for
+   other heads). This prevents the model from devoting enough capacity to
+   memorize q-specific noise, which *improves* generalization.
+3. **TCN is the best model.** Train/val gap = 0.006 — essentially zero
+   overfitting on q. Best overall physical-unit metrics (mchirp MAE=0.97,
+   q MAE=0.150, snr MAE=0.82). Still improving at epoch 79.
+4. **resnet1d is a dead sigmoid, not an overfitting problem.** val_std_ratio_q
+   = 0.0 (predictions have zero variance — constant output). The clamp fix
+   made things *worse* (weight_q dropped from 5.17→2.72, starving an already
+   dead head). Needs architectural fix, not loss-weighting fix.
+5. **cnn_baseline needs q-head regularization.** With clamp alone, val_r2_q
+   is positive but slowly declining (0.193→0.075). cnn_attention with both
+   fixes holds steady at ~0.20. Adding the same per_head overrides should
+   flatten the decline.
+
+### Trajectory snapshots — attempt #2
+
+`r2_q` (train) / `val_r2_q` / `weight_q` (train) at selected epochs:
+
+| epoch | cnn_att r2_q | cnn_att val_r2_q | cnn_base r2_q | cnn_base val_r2_q | tcn r2_q | tcn val_r2_q |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | −0.027 | −0.039 | 0.028 | −0.451 | −0.819 | −0.081 |
+| 5 | 0.216 | 0.209 | 0.244 | −0.533 | 0.006 | 0.029 |
+| 10 | 0.239 | 0.211 | 0.308 | −0.530 | 0.144 | 0.162 |
+| 16 | 0.263 | **0.244** | 0.377 | −0.072 | 0.181 | 0.179 |
+| 20 | 0.277 | 0.233 | 0.409 | −0.070 | 0.175 | 0.007 |
+| 30 | 0.344 | 0.229 | 0.515 | 0.126 | 0.226 | 0.247 |
+| 40 | 0.378 | 0.214 | 0.586 | 0.096 | 0.247 | 0.253 |
+| 50 | 0.389 | 0.205 | 0.609 | 0.080 | 0.261 | 0.247 |
+| 60 | 0.395 | 0.206 | 0.619 | 0.078 | 0.265 | 0.259 |
+| 70 | 0.398 | 0.204 | 0.626 | 0.075 | 0.267 | 0.261 |
+| 79 | 0.399 | **0.204** | 0.628 | **0.075** | 0.266 | **0.260** |
+
+Weight_q hits the clamp ceiling (2.72) at epoch 6 for all models except TCN
+(epoch 6 also). All other heads' weights saturate at exp(3.0)=20.09
+(TCN's snr weight is 11.93 at epoch 79, still converging).
+
+Note the cnn_baseline "wobble" — val_r2_q bounces between −0.5 and +0.2 through
+epoch ~12, then stabilizes. This is while weight_q is still ramping to its
+clamp. After epoch 15, val_r2_q is consistently positive but slowly declining.
+
+### Subset diagnostics — q_high × mchirp_low (epoch 80)
+
+| model | n | mae_q | r2_q | std_ratio_q |
+|---|---:|---:|---:|---:|
+| cnn_attention | 544 | 0.295 | −22.06 | 0.829 |
+| cnn_baseline | 544 | 0.286 | −22.31 | 0.780 |
+| resnet1d | 544 | 0.745 | **−127.0** | 0.831 |
+| inception_time | 544 | 0.295 | −21.67 | −0.009 |
+| tcn | 544 | 0.299 | −22.01 | 0.865 |
+
+The `q_high × mchirp_low` cell remains the worst-performing subset across ALL
+models — the clamp fix doesn't address this. resnet1d's −127 R2 in this cell
+is catastrophic (predictions are essentially random noise around a constant
+with no correlation to true values). The other four models cluster tightly
+around −22, suggesting this is a fundamental data limitation (scarcity in
+this physically-hard regime) rather than a model-specific flaw.

@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import keras
 
+from gwml.data.loader import build_subset_masks
 from gwml.data.transforms import PARAM_COLUMNS, TargetTransforms, signed_error
 from gwml.evaluation.plots import scatter_grid
 
@@ -109,36 +110,7 @@ class DiagnosticSubsetsCallback(keras.callbacks.Callback):
 
     @staticmethod
     def _build_subsets(params: np.ndarray) -> dict[str, np.ndarray]:
-        snr = params[:, PARAM_COLUMNS["snr"]]
-        mchirp = params[:, PARAM_COLUMNS["mchirp"]]
-        mt = params[:, PARAM_COLUMNS["merger_time"]]
-        q = params[:, PARAM_COLUMNS["q"]]
-        s1, s2 = np.quantile(snr, [1 / 3, 2 / 3])
-        q1, q2 = np.quantile(q, [1 / 3, 2 / 3])
-        mchirp_low = mchirp < np.median(mchirp)
-        mchirp_high = ~mchirp_low
-        q_low = q < q1
-        q_high = q >= q2
-        return {
-            "full": np.ones(len(params), dtype=bool),
-            "snr_low": snr < s1,
-            "snr_mid": (snr >= s1) & (snr < s2),
-            "snr_high": snr >= s2,
-            "mchirp_low": mchirp_low,
-            "mchirp_high": mchirp_high,
-            "merger_early": mt < np.median(mt),
-            "merger_late": mt >= np.median(mt),
-            # q-magnitude terciles + cross-tab with mchirp: tests the
-            # near-equal-mass (q->1) and mchirp_low-confound hypotheses from
-            # q_head_action_plan.md Phase 1 step 2.
-            "q_low": q_low,
-            "q_mid": (q >= q1) & (q < q2),
-            "q_high": q_high,
-            "q_low_mchirp_low": q_low & mchirp_low,
-            "q_low_mchirp_high": q_low & mchirp_high,
-            "q_high_mchirp_low": q_high & mchirp_low,
-            "q_high_mchirp_high": q_high & mchirp_high,
-        }
+        return build_subset_masks(params)
 
     def on_epoch_end(self, epoch, logs=None):
         if (epoch + 1) % self.every_n:

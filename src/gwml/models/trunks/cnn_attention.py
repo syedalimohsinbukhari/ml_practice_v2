@@ -78,5 +78,11 @@ def build(cfg: dict):
     for b in range(num_blocks):
         x = _encoder_block(x, dim, num_heads, ff_dim, dropout, name=f"encoder_{b}")
 
+    # Per-token transformer output before attention pooling — available as a
+    # branch point for heads that benefit from finer-grained features (e.g. q,
+    # whose mass-ratio information may live in subtle relative timing/amplitude
+    # differences that global attention pooling averages away). See
+    # q_head_action_plan.md Phase 3 step 13 / Phase 3.2.
+    tokens = x  # (B, T, dim)
     features = AttentionPooling(name="attn_pool")(x)
-    return inputs, features
+    return inputs, features, {"q_tokens": tokens}

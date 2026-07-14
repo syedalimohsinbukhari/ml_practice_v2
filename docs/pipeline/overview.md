@@ -36,7 +36,9 @@ strain (N, 4096, 2) float32        params (N, 10) float64
                              │
                              ▼
         scripts/evaluate.py                              [evaluation.md]
-          metrics_<split>.csv  scatter_<split>.png  residuals_snr_<split>.png
+          metrics_<split>.csv  scatter_<split>.png
+          residuals_snr_<split>.png  residuals_mchirp_<split>.png
+          logits_train_vs_val.png
 ```
 
 ## Module map
@@ -76,6 +78,11 @@ strain (N, 4096, 2) float32        params (N, 10) float64
 pytest -m "not slow"                      # quick suite, ~a minute
 pytest                                    # + overfit-one-batch per trunk
 python scripts/train.py configs/smoke.yaml    # pre-flight: callbacks fire
-python scripts/train.py configs/resnet1d.yaml
-python scripts/evaluate.py configs/resnet1d.yaml --split validation
+python scripts/run_all.py configs/resnet1d.yaml   # train + plot_run + evaluate
 ```
+
+`scripts/run_all.py` chains `train.py` → `plot_run.py` → `evaluate.py` for one
+config, stopping immediately if a step fails — the plots and eval metrics for
+a run are never missing because a step got skipped. Each script still runs
+fine standalone (e.g. `plot_run.py`/`evaluate.py` against an old run without
+retraining); `run_all.py` is just the no-forgetting default.

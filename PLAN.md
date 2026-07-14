@@ -82,7 +82,8 @@ src/gwml/
 │   └── train.py         # fit loop: callbacks, checkpoints, CSV/TensorBoard logs
 └── evaluation/
     ├── metrics.py       # per-head MAE/RMSE in physical units
-    └── plots.py         # pred-vs-true scatter, residual-vs-SNR, residual-vs-mchirp
+    └── plots.py         # pred-vs-true scatter, residual-vs-SNR/mchirp,
+                          # pre-sigmoid logit histograms (train vs val)
 
 docs/models/             # one MD file per trunk: what it is + selection rationale
 ├── cnn_baseline.md
@@ -105,7 +106,9 @@ configs/                 # one YAML per experiment (model, lr, batch, loss weigh
 tests/                   # pytest suite (run on the lab machine, not locally)
 scripts/
 ├── train.py             # python scripts/train.py configs/resnet1d.yaml
-└── evaluate.py          # loads checkpoint, writes metrics + plots for a split
+├── plot_run.py          # history.csv + diagnostics.csv -> summary PNGs
+├── evaluate.py          # loads checkpoint, writes metrics + plots for a split
+└── run_all.py           # train -> plot_run -> evaluate, one config, fail-fast
 ```
 
 ## Model contract (the pluggable part)
@@ -118,9 +121,15 @@ def build_trunk(cfg) -> tuple[keras.Input, tf.Tensor]:
     """Returns (input tensor (4096, 2), pooled feature vector (B, F))."""
 ```
 
-`heads.py` takes the feature vector and attaches identical small MLP heads
-(Dense 64 → Dense 1) named `mchirp`, `q`, `merger_time`, `snr`. Swapping
-architectures is a one-line config change; heads, losses, and evaluation never change.
+`heads.py` takes the feature vector and attaches one small MLP per active
+head (Dense `hidden_units` → Dense `spec.dim`, 1 for scalar heads like
+`mchirp`/`q`/`merger_time`/`snr`, 2 for periodic sin/cos pairs), named after
+the head. All heads share `head_cfg`'s global `hidden_units`/`dropout`/`l2`
+by default, but any one head can override them via
+`head_cfg.per_head.<name>` — used to cut capacity on a head that overfits
+faster than its trunk-mates (e.g. `q` on `cnn_attention`) without touching
+the others. Swapping architectures is a one-line config change; heads,
+losses, and evaluation never change.
 
 ### Trunk candidates
 
@@ -173,7 +182,12 @@ its doc doesn't get merged into the zoo.
     diagnostics CSV — collapse reads as r2 → 0, std_ratio → 0, no eyeballing
     needed. The learnable log-variances are clamped to ±`log_var_clamp`
     (default 3.0) so uncertainty weighting can never push a head's effective
-    weight below exp(−3) ≈ 5% and entrench collapse.
+    weight below exp(−3) ≈ 5% and entrench collapse. `log_var_clamp` accepts
+    a per-head override (`{default: 3.0, <head>: tighter}`) — needed because
+    a head whose *train* loss shrinks fastest (whether from real learning or
+    overfitting) can otherwise ride the same weight ceiling every other head
+    eventually reaches, erasing the scheme's per-head signal entirely; see
+    `q_head_action_plan.md`.
   - *Config-optional (off by default):* `loss.variance_penalty` adds
     `λ·(std(pred) − std(true))²` per head to directly punish shrinking
     prediction spread; `optim.warmup_epochs` ramps the LR linearly to dodge
@@ -201,7 +215,12 @@ its doc doesn't get merged into the zoo.
    - SNR terciles (low 7–9.7, mid 9.7–12.3, high 12.3–15) — errors should order
      cleanly by SNR;
    - mchirp low/high halves — checks mass-range bias;
-   - merger-time early/late halves — checks time-localization bias.
+   - merger-time early/late halves — checks time-localization bias;
+   - q terciles (`q_low`/`q_mid`/`q_high`) and their cross-tab with mchirp
+     low/high (`q_{low,high}_mchirp_{low,high}`) — isolates the
+     near-equal-mass / low-chirp-mass regime, which was both the
+     worst-performing and most data-scarce cell in every run tested so far
+     (see `q_head_action_plan.md`).
 3. **LR schedule** — `ReduceLROnPlateau` on val loss as the default "decrease after a
    while" mechanism (factor, patience, min_lr in config); a fixed step-decay schedule
    available as the config alternative.

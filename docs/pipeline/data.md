@@ -29,7 +29,8 @@ in the trunks if BatchNorm's moving averages ever misbehave.)
 ## Target transforms — `gwml/data/transforms.py`
 
 `TargetTransforms(heads)` executes whatever the head registry declares
-(`heads_spec.md` below is authoritative; summary):
+(`gwml/heads_spec.py` is the single source of truth — see `training.md`'s
+"Head registry" section; summary):
 
 | kind | heads | forward | inverse |
 |------|-------|---------|---------|

@@ -24,12 +24,16 @@ trunk with configurable output heads and a pluggable model zoo.
 uv sync                                        # deps from pyproject.toml
 pytest -m "not slow"                           # quick test suite
 python scripts/train.py configs/smoke.yaml     # pre-flight end-to-end check
-python scripts/train.py configs/resnet1d.yaml  # real run
-python scripts/evaluate.py configs/resnet1d.yaml --split validation
+python scripts/run_all.py configs/resnet1d.yaml  # train + plot_run + evaluate
 ```
 
+`scripts/run_all.py` chains `train.py` → `plot_run.py` → `evaluate.py` for one
+config so none of the three gets forgotten; each also runs standalone if you
+only need one step (e.g. re-plotting or re-evaluating an existing run).
+
 Outputs land in `runs/<name>/` — checkpoints, per-epoch history, live
-scatter PNGs, diagnostics CSV, TensorBoard logs.
+scatter PNGs, diagnostics CSV, TensorBoard logs, history/diagnostics summary
+plots (`plot_run.py`), and evaluation metrics/plots (`evaluate.py`).
 
 > Local development note: code is written/checked on a CPU-only machine;
 > tests and training run on the lab GPU machine only.

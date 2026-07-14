@@ -21,9 +21,10 @@ puts `src/` on `sys.path` (no editable install needed) and defines:
 | file | guards against |
 |------|----------------|
 | `test_transforms.py` | broken round-trips (`inverse(transform(y)) ≈ y`), targets outside [0,1] for bounded heads, wrong shapes/dtypes, non-standardized z-scores, JSON persistence drift, silent use before `fit()` |
-| `test_heads_spec.py` | registry accepting junk (`injection_time`, duplicates, unknowns), periodic encode/decode errors (incl. ψ's π-periodicity: ψ and ψ+π must encode identically), non-wrap-aware errors, wrong output dims for dynamic head sets |
+| `test_heads_spec.py` | registry accepting junk (`injection_time`, duplicates, unknowns), periodic encode/decode errors (incl. ψ's π-periodicity: ψ and ψ+π must encode identically), non-wrap-aware errors, wrong output dims for dynamic head sets, `head_cfg.per_head` overrides not applied (hidden_units/dropout) or leaking into other heads |
 | `test_registry.py` | a trunk failing to build, missing the `input_bn` contract, unnamed/mis-shaped outputs, sigmoid bounds not holding under extreme inputs |
-| `test_losses.py` | missing/extra log-vars, unknown weighting keys, non-finite losses, uncertainty-at-init ≠ unit fixed weights, collapse metrics absent, clamp not applied, variance penalty inert, SNR weights non-monotonic, warmup touching the LR after handoff |
+| `test_losses.py` | missing/extra log-vars, unknown weighting keys, non-finite losses, uncertainty-at-init ≠ unit fixed weights, collapse metrics absent, clamp (scalar and per-head dict) not applied, variance penalty inert, SNR weights non-monotonic, warmup touching the LR after handoff |
+| `test_callbacks.py` | `DiagnosticSubsetsCallback` subset construction: q terciles mutually exclusive and exhaustive, q×mchirp cross-tab cells consistent with their marginals |
 | `test_data_integrity.py` (needs HDF5) | shape drift vs `structure.md`, NaN/Inf in strain or params, params outside documented ranges, detector channel order swapped |
 | `test_overfit.py` (slow, needs HDF5) | the deep check: every trunk must drive loss to <10% of its initial value on 32 real samples in 200 epochs. Failure means the *pipeline* (not the architecture) is broken — normalization, target routing, loss wiring |
 

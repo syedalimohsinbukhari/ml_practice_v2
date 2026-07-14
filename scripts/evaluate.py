@@ -24,7 +24,11 @@ def main():
     from gwml.data.loader import load_arrays
     from gwml.data.transforms import PARAM_COLUMNS, TargetTransforms
     from gwml.evaluation.metrics import evaluate_model
-    from gwml.evaluation.plots import residuals_vs_snr, scatter_grid
+    from gwml.evaluation.plots import (
+        residuals_vs_param,
+        scatter_grid,
+        sigmoid_logit_hist,
+    )
     from gwml.training.train import build_trainer, latest_run_dir, load_config
 
     cfg = load_config(args.config)
@@ -45,13 +49,36 @@ def main():
     print(df.to_string())
     print(f"\nwritten: {out_csv}")
 
-    pred = transforms.inverse(trainer.predict(strain, batch_size=256, verbose=0))
+    raw_pred = trainer.predict(strain, batch_size=256, verbose=0)
+    pred = transforms.inverse(raw_pred)
     true = transforms.physical_targets(params)
     scatter_grid(true, pred, transforms.heads,
                  run_dir / f"scatter_{args.split}.png")
-    residuals_vs_snr(true, pred, params[:, PARAM_COLUMNS["snr"]],
-                     transforms.heads,
-                     run_dir / f"residuals_snr_{args.split}.png")
+    residuals_vs_param(true, pred, params[:, PARAM_COLUMNS["snr"]], "SNR",
+                       transforms.heads,
+                       run_dir / f"residuals_snr_{args.split}.png")
+    residuals_vs_param(true, pred, params[:, PARAM_COLUMNS["mchirp"]], "mchirp",
+                       transforms.heads,
+                       run_dir / f"residuals_mchirp_{args.split}.png")
+
+    # Pre-sigmoid logit diagnostic (train vs val) for sigmoid/UNIT_AFFINE
+    # heads (e.g. q) — needs the other split too; see
+    # q_head_action_plan.md Phase 1 step 3.
+    other_split = "validation" if args.split == "training" else "training"
+    other_strain, other_params = load_arrays(
+        cfg["data"]["path"], other_split, cfg["data"].get("max_samples")
+    )
+    other_raw_pred = trainer.predict(other_strain, batch_size=256, verbose=0)
+    other_true = transforms.physical_targets(other_params)
+    train_raw, train_true = (
+        (raw_pred, true) if args.split == "training" else (other_raw_pred, other_true)
+    )
+    val_raw, val_true = (
+        (other_raw_pred, other_true) if args.split == "training" else (raw_pred, true)
+    )
+    sigmoid_logit_hist(train_raw, train_true, val_raw, val_true,
+                       transforms.heads, run_dir / "logits_train_vs_val.png")
+
     print(f"plots written to {run_dir}")
 
 

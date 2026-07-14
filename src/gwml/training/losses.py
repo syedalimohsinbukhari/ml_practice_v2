@@ -15,7 +15,11 @@ the target mean with ~0 variance):
     are tracked as epoch metrics — collapse reads as r2 -> 0, std_ratio -> 0.
   - s_h is clamped to +/- log_var_clamp (default 3.0) via a variable
     constraint, so uncertainty weighting can never drive a head's effective
-    weight below exp(-3) ~ 5% and entrench collapse.
+    weight below exp(-3) ~ 5% and entrench collapse. log_var_clamp accepts a
+    per-head dict ({"default": 3.0, "<head>": tighter_value}) — useful when
+    one head's train loss shrinks fast enough (e.g. via overfitting) to drag
+    every head into the same clamp ceiling, erasing the weighting scheme's
+    per-head signal (see q_head_action_plan.md).
   - Optional variance-matching penalty (``variance_penalty`` > 0): adds
     lambda * (std(pred) - std(true))^2 per head, computed per batch. Off by
     default — large lambda can distort calibration.
@@ -107,14 +111,14 @@ class MultiHeadTrainer(keras.Model):
         self.fixed_weights = {h: float(fixed.get(h, 1.0)) for h in self.head_names}
 
         if self.weighting == "uncertainty":
-            clamp = float(cfg.get("log_var_clamp", 3.0))
+            clamps = self._resolve_clamps(cfg.get("log_var_clamp", 3.0))
             self.log_vars = {
                 h: self.add_weight(
                     name=f"log_var_{h}",
                     shape=(),
                     initializer="zeros",
                     trainable=True,
-                    constraint=ClampConstraint(clamp),
+                    constraint=ClampConstraint(clamps[h]),
                 )
                 for h in self.head_names
             }
@@ -137,6 +141,20 @@ class MultiHeadTrainer(keras.Model):
             }
         else:
             self.weight_trackers = {}
+
+    def _resolve_clamps(self, clamp_cfg) -> dict:
+        """log_var_clamp accepts a scalar (all heads) or a dict of overrides.
+
+        Dict form: {"default": 3.0, "q": 1.0} — heads absent from the dict
+        fall back to "default" (itself defaulting to 3.0). A head with a
+        tighter clamp can't have its uncertainty weight run away to the same
+        ceiling as heads whose train loss shrinks fastest; see
+        q_head_action_plan.md Phase 2 step 8.
+        """
+        if isinstance(clamp_cfg, dict):
+            default = float(clamp_cfg.get("default", 3.0))
+            return {h: float(clamp_cfg.get(h, default)) for h in self.head_names}
+        return {h: float(clamp_cfg) for h in self.head_names}
 
     def call(self, x, training=False):
         return self.base(x, training=training)

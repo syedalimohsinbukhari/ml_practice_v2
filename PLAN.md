@@ -37,7 +37,7 @@ same trunk interface; we start with BatchNorm and can A/B this cheaply.
 | head          | raw range    | transform for training                                                          | head activation   |
 |---------------|--------------|---------------------------------------------------------------------------------|-------------------|
 | `mchirp`      | 8.84 – 43.45 | log, then z-score (MSE in log-space ≈ fractional error — no custom loss needed) | linear            |
-| `q`           | 0.20 – 1.00  | affine map [0.2, 1] → [0, 1]                                                    | sigmoid (bounded) |
+| `q`           | 0.20 – 1.00  | affine map [0.15, 1.05] → [0, 1] (padded off the sigmoid asymptote)             | sigmoid (bounded) |
 | `merger_time` | 1.6 – 1.8 s  | affine map [1.6, 1.8] → [0, 1]                                                  | sigmoid (bounded) |
 | `snr`         | 7.0 – 15.0   | z-score                                                                         | linear            |
 

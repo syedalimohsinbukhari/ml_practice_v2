@@ -101,6 +101,25 @@ def test_trainer_with_custom_heads_computes_finite_loss(synthetic_params):
     assert set(trainer.log_vars) == set(heads)
 
 
+def test_per_head_regularization_overrides():
+    heads = ["mchirp", "q"]
+    head_cfg = {
+        "hidden_units": 64,
+        "per_head": {"q": {"hidden_units": 8, "dropout": 0.3, "l2": 1e-4}},
+    }
+    model = build_model("cnn_baseline", TINY_TRUNK_CFGS["cnn_baseline"],
+                        head_cfg, heads=heads)
+    layer_names = {layer.name for layer in model.layers}
+    assert "q_dropout" in layer_names
+    assert "mchirp_dropout" not in layer_names
+    assert model.get_layer("q_hidden").units == 8
+    assert model.get_layer("mchirp_hidden").units == 64
+
+    x = np.random.default_rng(0).normal(size=(4, WINDOW_LEN, 2)).astype(np.float32)
+    out = model(x, training=False)
+    assert set(out.keys()) == set(heads)
+
+
 def test_default_heads_are_the_core_four():
     assert tuple(DEFAULT_HEADS) == ("mchirp", "q", "merger_time", "snr")
     for name in DEFAULT_HEADS:

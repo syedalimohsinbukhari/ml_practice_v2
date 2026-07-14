@@ -134,6 +134,18 @@ def test_log_vars_are_clamped():
         assert float(constraint(np.float32(-10.0))) == pytest.approx(-3.0)
 
 
+def test_per_head_log_var_clamp():
+    trainer = _tiny_trainer({
+        "weighting": "uncertainty",
+        "log_var_clamp": {"default": 3.0, "q": 1.0},
+    })
+    for head in HEAD_ORDER:
+        limit = 1.0 if head == "q" else 3.0
+        constraint = trainer.log_vars[head].constraint
+        assert float(constraint(np.float32(10.0))) == pytest.approx(limit)
+        assert float(constraint(np.float32(-10.0))) == pytest.approx(-limit)
+
+
 def test_variance_penalty_changes_loss():
     x, y = _fake_batch()
     base = build_model("cnn_baseline", TINY_TRUNK_CFGS["cnn_baseline"],

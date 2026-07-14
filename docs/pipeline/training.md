@@ -21,9 +21,12 @@ paired with a plain loss on raw angles" unrepresentable.
    `(input (4096, 2), pooled features)` and starts with `input_bn`
    (see `../models/<trunk>.md` for each architecture).
 2. `attach_heads(...)` — per active head: `Dense(hidden_units, relu)` →
-   `Dense(spec.dim, spec.activation)`, layer named after the head.
-   `head_cfg.bounded: false` downgrades sigmoid/tanh outputs to linear
-   (an A/B lever; bounded stays on by default).
+   optional `Dropout` → `Dense(spec.dim, spec.activation)`, layer named after
+   the head. `head_cfg.bounded: false` downgrades sigmoid/tanh outputs to
+   linear (an A/B lever; bounded stays on by default). `hidden_units`,
+   `dropout`, and `l2` all default globally but can be overridden for one
+   head via `head_cfg.per_head.<name>` — e.g. to shrink/regularize a head
+   that overfits faster than its trunk-mates.
 
 ## `MultiHeadTrainer` — `gwml/training/losses.py`
 
@@ -65,10 +68,12 @@ Built by `train.py` in this order:
    units, y=x diagonal, wrap-aware MAE annotated.
 2. **`DiagnosticSubsetsCallback`** — same cadence, appends to
    `runs/<name>/diagnostics.csv`. Rows: one per (epoch, subset); subsets are
-   `full`, SNR terciles, mchirp halves, merger-time halves. Columns:
-   `epoch, subset, n, mae_<head>…, r2_<head>…, std_ratio_<head>…` — all
-   physical units, wrap-aware. Errors should order cleanly by SNR; if they
-   don't, be suspicious.
+   `full`, SNR terciles, mchirp halves, merger-time halves, q terciles
+   (`q_low`/`q_mid`/`q_high`), and the q-tercile × mchirp-half cross-tab
+   (`q_{low,high}_mchirp_{low,high}`) that isolates the near-equal-mass /
+   low-chirp-mass regime. Columns: `epoch, subset, n, mae_<head>…,
+   r2_<head>…, std_ratio_<head>…` — all physical units, wrap-aware. Errors
+   should order cleanly by SNR; if they don't, be suspicious.
 3. **`ModelCheckpoint`** — `best.weights.h5` on `val_loss`, weights only.
 4. **`CSVLogger`** (`history.csv`) and **TensorBoard** (`tb/`).
 5. **LR schedule** — `optim.schedule.type: plateau` (default;
@@ -92,10 +97,13 @@ Built by `train.py` in this order:
 | `model.heads` | core four | active output heads |
 | `model.head_cfg.hidden_units` | 64 | per-head MLP width |
 | `model.head_cfg.bounded` | true | sigmoid/tanh output activations |
+| `model.head_cfg.dropout` | 0.0 | dropout after the hidden Dense, applied to every head |
+| `model.head_cfg.l2` | 0.0 | L2 kernel regularizer on both Dense layers, every head |
+| `model.head_cfg.per_head.<name>` | — | overrides `hidden_units`/`dropout`/`l2` for one head only |
 | `loss.huber_delta` | 1.0 | Huber transition point |
 | `loss.weighting` | uncertainty | `uncertainty` \| `fixed` |
 | `loss.fixed_weights` | 1.0 each | only used with `fixed` |
-| `loss.log_var_clamp` | 3.0 | bound on \|s_h\| |
+| `loss.log_var_clamp` | 3.0 | bound on \|s_h\|; accepts `{default: 3.0, <head>: tighter}` to stop one head's weight from riding every other head's clamp ceiling |
 | `loss.variance_penalty` | 0.0 | λ of the spread penalty |
 | `loss.snr_weight_alpha` | null | per-sample `(SNR/10)^α` weights |
 | `optim.lr` | 1e-3 | Adam learning rate |

@@ -75,8 +75,12 @@ HEAD_SPECS: dict[str, HeadSpec] = {
     for s in (
         HeadSpec("mchirp", 0, TransformKind.LOG_ZSCORE,
                  label=r"$\mathcal{M}_c\ [M_\odot]$"),
+        # Bounds padded beyond the true data range (0.2027-0.99998, see
+        # q_head_action_plan.md Phase 1 step 1) so q's top decile — ~7.6% of
+        # training samples sit in true-q>=0.95 — doesn't map to t=1.0, the
+        # sigmoid's exact saturating asymptote where gradients vanish.
         HeadSpec("q", 1, TransformKind.UNIT_AFFINE, label=r"$q$",
-                 activation="sigmoid", bounds=(0.2, 1.0)),
+                 activation="sigmoid", bounds=(0.15, 1.05)),
         HeadSpec("inclination", 2, TransformKind.PERIODIC, label=r"$\iota$ [rad]",
                  dim=2, activation="tanh", period=_TWO_PI),
         HeadSpec("coa_phase", 3, TransformKind.PERIODIC, label=r"$\phi_c$ [rad]",

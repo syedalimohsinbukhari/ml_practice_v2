@@ -30,7 +30,7 @@ optim:
     type: plateau          # or "step" with step_epochs / gamma
     factor: 0.5
     patience: 5
-    min_lr: 1.0e-6
+    min_lr: 1.0e-7
 
 train:
   epochs: 80

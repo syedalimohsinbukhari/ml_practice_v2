@@ -39,7 +39,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gwml.data.transforms import abs_error, signed_error
+from gwml.data.transforms import abs_error
 from gwml.data.sky_transform import angular_separation, radec_to_unit_vector
 from gwml.heads_spec import HEAD_SPECS, TransformKind
 

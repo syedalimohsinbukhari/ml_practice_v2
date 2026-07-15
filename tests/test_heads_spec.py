@@ -33,18 +33,21 @@ def test_resolve_rejects_duplicates_and_empty():
 
 
 def test_resolve_accepts_enum_members():
-    specs = resolve_heads([HeadName.MCHIRP, HeadName.RA])
-    assert [s.name for s in specs] == ["mchirp", "ra"]
+    specs = resolve_heads([HeadName.MCHIRP, HeadName.SKY_POSITION])
+    assert [s.name for s in specs] == ["mchirp", "sky_position"]
 
 
 def test_every_spec_column_matches_structure_md():
     from gwml.heads_spec import PARAM_COLUMNS
 
     for name, spec in HEAD_SPECS.items():
+        # Multi-column heads (e.g. sky_position) use `columns`, not `column`.
+        if spec.column is None:
+            continue
         assert spec.column == PARAM_COLUMNS[name]
 
 
-@pytest.mark.parametrize("head", ["ra", "coa_phase", "inclination"])
+@pytest.mark.parametrize("head", ["coa_phase", "inclination"])
 def test_periodic_round_trip_two_pi(head, synthetic_params):
     tr = TargetTransforms(heads=[head]).fit(synthetic_params)
     raw = np.random.default_rng(3).uniform(0, 2 * np.pi, 100)
@@ -69,7 +72,7 @@ def test_polarization_angle_has_pi_period(synthetic_params):
 
 
 def test_abs_error_is_wrap_aware():
-    err = abs_error("ra", np.array([0.05]), np.array([2 * np.pi - 0.05]))
+    err = abs_error("coa_phase", np.array([0.05]), np.array([2 * np.pi - 0.05]))
     np.testing.assert_allclose(err, [0.1], atol=1e-10)
     # Non-periodic heads keep the plain difference.
     np.testing.assert_allclose(abs_error("snr", np.array([9.0]), np.array([12.0])),
@@ -77,19 +80,23 @@ def test_abs_error_is_wrap_aware():
 
 
 def test_model_builds_with_custom_heads_and_dims():
-    heads = ["mchirp", "ra", "declination"]
+    heads = ["mchirp", "sky_position"]
     model = build_model("cnn_baseline", TINY_TRUNK_CFGS["cnn_baseline"],
                         {"hidden_units": 8}, heads=heads)
     x = np.random.default_rng(0).normal(size=(4, WINDOW_LEN, 2)).astype(np.float32)
     out = model(x, training=False)
-    assert set(out.keys()) == set(heads)
+    # sky_position is a vMF head: it contributes two flat output keys
+    # ({head}_mu_raw, {head}_kappa_raw), not a single key matching its name.
+    assert "mchirp" in out
+    assert "sky_position_mu_raw" in out
+    assert "sky_position_kappa_raw" in out
     assert tuple(out["mchirp"].shape) == (4, 1)
-    assert tuple(out["ra"].shape) == (4, 2)        # sin/cos pair
-    assert tuple(out["declination"].shape) == (4, 1)
+    assert tuple(out["sky_position_mu_raw"].shape) == (4, 3)
+    assert tuple(out["sky_position_kappa_raw"].shape) == (4, 1)
 
 
 def test_trainer_with_custom_heads_computes_finite_loss(synthetic_params):
-    heads = ["mchirp", "ra", "declination"]
+    heads = ["mchirp", "sky_position"]
     base = build_model("cnn_baseline", TINY_TRUNK_CFGS["cnn_baseline"],
                        {"hidden_units": 8}, heads=heads)
     trainer = MultiHeadTrainer(base, {"weighting": "uncertainty"}, heads=heads)
@@ -121,6 +128,13 @@ def test_per_head_regularization_overrides():
 
 
 def test_default_heads_are_the_core_four():
-    assert tuple(DEFAULT_HEADS) == ("mchirp", "q", "merger_time", "snr")
-    for name in DEFAULT_HEADS:
+    assert tuple(DEFAULT_HEADS) == (
+        "mchirp", "merger_time", "snr", "sky_position", "coa_phase"
+    )
+    # sky_position is SPHERICAL_UNIT_VECTOR (not PERIODIC), and coa_phase IS
+    # PERIODIC — verify that at least mchirp, merger_time, and snr are
+    # non-periodic (scalar regression heads).
+    non_periodic = {"mchirp", "merger_time", "snr", "sky_position"}
+    for name in non_periodic:
         assert HEAD_SPECS[name].transform is not TransformKind.PERIODIC
+    assert HEAD_SPECS["coa_phase"].transform is TransformKind.PERIODIC

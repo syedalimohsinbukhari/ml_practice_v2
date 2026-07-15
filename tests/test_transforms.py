@@ -6,11 +6,16 @@ import numpy as np
 import pytest
 
 from gwml.data.transforms import HEAD_ORDER, PARAM_COLUMNS, TargetTransforms
+from gwml.heads_spec import HEAD_SPECS
 
 
 @pytest.mark.parametrize("head", HEAD_ORDER)
 def test_round_trip(head, synthetic_params, fitted_transforms):
-    raw = synthetic_params[:, PARAM_COLUMNS[head]]
+    spec = HEAD_SPECS[head]
+    if spec.columns is not None:
+        raw = synthetic_params[:, list(spec.columns)]  # (N, k)
+    else:
+        raw = synthetic_params[:, spec.column]
     normalized = fitted_transforms.transform_head(head, raw)
     recovered = fitted_transforms.inverse_head(head, normalized)
     # transform_head outputs float32 (training targets), so round trips are
@@ -18,18 +23,22 @@ def test_round_trip(head, synthetic_params, fitted_transforms):
     np.testing.assert_allclose(recovered, raw, rtol=1e-6)
 
 
-def test_bounded_heads_land_in_unit_interval(synthetic_params, fitted_transforms):
-    targets = fitted_transforms.transform(synthetic_params)
+def test_bounded_heads_land_in_unit_interval(synthetic_params):
+    # q is not in DEFAULT_HEADS, but it's the only UNIT_AFFINE head whose
+    # bounds we want to test — build transforms with q included explicitly.
+    tr = TargetTransforms(heads=["q", "merger_time"]).fit(synthetic_params)
+    targets = tr.transform(synthetic_params)
     for head in ("q", "merger_time"):
-        assert targets[head].min() >= 0.0
-        assert targets[head].max() <= 1.0
+        assert targets[head].min() >= 0.0, f"{head} min < 0"
+        assert targets[head].max() <= 1.0, f"{head} max > 1"
 
 
 def test_transform_output_shapes_and_dtype(synthetic_params, fitted_transforms):
     targets = fitted_transforms.transform(synthetic_params)
     n = len(synthetic_params)
     for head in HEAD_ORDER:
-        assert targets[head].shape == (n, 1)
+        spec = HEAD_SPECS[head]
+        assert targets[head].shape == (n, spec.dim)
         assert targets[head].dtype == np.float32
 
 

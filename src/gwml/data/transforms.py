@@ -17,6 +17,7 @@ units.
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +33,32 @@ from gwml.data.sky_transform import radec_to_unit_vector, unit_vector_to_radec
 
 # Backward-compatible default head tuple (the core four).
 HEAD_ORDER = tuple(DEFAULT_HEADS)
+
+# Legacy head names that were replaced by sky_position (see heads_spec.py).
+_LEGACY_SKY_HEADS = {"ra", "declination"}
+
+
+def _migrate_heads(heads: list[str]) -> list[str]:
+    """Replace legacy ``ra`` + ``declination`` with ``sky_position``.
+
+    Old ``transforms.json`` files may contain the pre-migration separate-head
+    names.  The z-score statistics (mean / std) for other heads are still
+    valid; only the head list needs patching.
+    """
+    legacy_found = _LEGACY_SKY_HEADS & set(heads)
+    if not legacy_found:
+        return heads
+    warnings.warn(
+        f"Replacing legacy heads {sorted(legacy_found)} with 'sky_position' "
+        f"in the loaded head list.  Old model checkpoints that were trained "
+        f"with separate ra/declination heads are incompatible with the "
+        f"current sky_position architecture and must be retrained."
+    )
+    # Keep the position of the first legacy head, drop both.
+    first_idx = min(heads.index(h) for h in legacy_found)
+    out = [h for h in heads if h not in _LEGACY_SKY_HEADS]
+    out.insert(first_idx, "sky_position")
+    return out
 
 
 def signed_error(head: str, true: np.ndarray, pred: np.ndarray) -> np.ndarray:
@@ -180,4 +207,5 @@ class TargetTransforms:
     @classmethod
     def from_json(cls, path: str | Path) -> "TargetTransforms":
         payload = json.loads(Path(path).read_text())
-        return cls(heads=payload["heads"], stats=payload["stats"])
+        heads = _migrate_heads(payload["heads"])
+        return cls(heads=heads, stats=payload["stats"])

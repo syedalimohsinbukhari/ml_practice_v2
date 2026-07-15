@@ -78,7 +78,14 @@ def residuals_vs_param(
     edges = np.linspace(param_values.min(), param_values.max(), n_bins + 1)
     centers = 0.5 * (edges[:-1] + edges[1:])
     for ax, head in zip(axes, heads):
-        abs_res = abs_error(head, true[head], pred[head])
+        t, p = true[head], pred[head]
+        # Multi-column heads (e.g. sky_position) need per-sample error
+        # reduction before binning, otherwise np.ravel blows up the
+        # array length to k*N while param_values is only N.
+        if t.ndim == 2 and t.shape[1] > 1:
+            abs_res = np.linalg.norm(t - p, axis=1)  # (N,)
+        else:
+            abs_res = abs_error(head, t, p)
         binned = [
             abs_res[(param_values >= edges[i]) & (param_values < edges[i + 1])].mean()
             if np.any((param_values >= edges[i]) & (param_values < edges[i + 1]))

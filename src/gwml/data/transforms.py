@@ -137,11 +137,29 @@ class TargetTransforms:
             return (theta * spec.period / (2.0 * np.pi)) % spec.period
         if spec.transform is TransformKind.SPHERICAL_UNIT_VECTOR:
             ra, dec = unit_vector_to_radec(v)  # (N, 3) -> (N,), (N,)
-            return np.stack([ra, dec], axis=-1)  # (N, 2) in (ra, dec) order
+            # Return (dec, ra) to match spec.columns = (dec_col, ra_col) order.
+            return np.stack([dec, ra], axis=-1)  # (N, 2) in (dec, ra) order
         raise KeyError(f"unhandled transform {spec.transform}")  # pragma: no cover
 
     def inverse(self, predictions: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-        return {h: self.inverse_head(h, p) for h, p in predictions.items()}
+        # vMF heads (SPHERICAL_UNIT_VECTOR) output two raw tensors
+        # ({head}_mu_raw, {head}_kappa_raw) as flat keys. Postprocess them
+        # into unit vectors before calling inverse_head.
+        out = {}
+        for h in self.heads:
+            spec = HEAD_SPECS[h]
+            if spec.loss == "vmf":
+                mu_key = f"{h}_mu_raw"
+                if mu_key in predictions:
+                    mu_raw = np.asarray(predictions[mu_key], dtype=np.float64)
+                    mu = mu_raw / np.clip(
+                        np.linalg.norm(mu_raw, axis=-1, keepdims=True), 1e-8, None
+                    )
+                    out[h] = self.inverse_head(h, mu)
+                    continue
+            if h in predictions:
+                out[h] = self.inverse_head(h, predictions[h])
+        return out
 
     def physical_targets(self, params: np.ndarray) -> dict[str, np.ndarray]:
         """Extract the active heads' raw target columns without any transform."""

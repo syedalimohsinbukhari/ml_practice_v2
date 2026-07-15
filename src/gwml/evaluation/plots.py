@@ -1,9 +1,31 @@
 """Plotting helpers shared by callbacks and the evaluate script.
 
 Head labels come from the head registry; every function takes the active head
-list so plots adapt to whatever heads a run trains. Periodic heads are shown
-as angles in [0, period) — points near the wrap edge can legitimately sit far
-off the diagonal, which is why the annotated MAE uses the wrap-aware error.
+list so plots adapt to whatever heads a run trains.
+
+Panel layout
+------------
+Most heads produce a single scatter panel.  ``sky_position``
+(SPHERICAL_UNIT_VECTOR) is a multi-column head stored as (N, 2) = (dec, ra);
+``_panel_specs`` expands it into two panels (one per angle component) so that
+dec values in [-pi/2, pi/2] and ra values in [0, 2*pi) aren't interleaved
+into a single misleading bimodal scatter.  The sky_position panels are
+annotated with the physically meaningful mean great-circle angular separation
+(in degrees) rather than a naive per-component MAE.
+
+Periodic heads (coa_phase, inclination, polarization_angle, and
+sky_position's ra component) have their predicted values shifted by a
+multiple of the period so wrap-boundary points render near the diagonal
+instead of at opposite corners.  That shift is purely cosmetic — same value
+modulo the period — and does not change the wrap-aware error.
+
+Residual-vs-param binning
+--------------------------
+``residuals_vs_param`` bins absolute residuals by an external parameter
+(usually SNR or mchirp).  For multi-column heads (sky_position), per-sample
+L2-norm reduction is applied before binning so that the (N, 2) error maps to
+an (N,) array matching the (N,) parameter axis; otherwise ``np.ravel`` would
+blow up the error array to 2N and break boolean-index alignment.
 """
 
 from __future__ import annotations
@@ -17,7 +39,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gwml.data.transforms import abs_error
+from gwml.data.transforms import abs_error, signed_error
+from gwml.data.sky_transform import angular_separation, radec_to_unit_vector
 from gwml.heads_spec import HEAD_SPECS, TransformKind
 
 
@@ -32,6 +55,37 @@ def _grid(n: int):
     return fig, flat[:n]
 
 
+def _wrap_residual(t: np.ndarray, p: np.ndarray, period: float) -> np.ndarray:
+    """true - pred wrapped into [-period/2, period/2]. Same formula as
+    ``gwml.data.transforms.signed_error``'s PERIODIC branch, but usable for
+    a sub-component (e.g. sky_position's ra column) whose *head* isn't
+    itself PERIODIC-typed."""
+    d = t - p
+    return (d + period / 2.0) % period - period / 2.0
+
+
+def _panel_specs(heads: list[str]):
+    """Expand the head list into individual scatter panels.
+
+    Most heads produce one panel. ``sky_position`` (SPHERICAL_UNIT_VECTOR,
+    stored as (N, 2) = (dec, ra) per transforms.inverse_head) produces two
+    panels, one per angle -- np.ravel-ing a (N, 2) array of two physically
+    different quantities into one flat series is the bug this replaces
+    (dec values in [-pi/2, pi/2] and ra values in [0, 2*pi) interleaved on
+    one axis look like bimodal clustering at both extremes, when really
+    it's just two different unrelated quantities overlaid).
+    """
+    specs = []
+    for head in heads:
+        spec = HEAD_SPECS[head]
+        if spec.transform is TransformKind.SPHERICAL_UNIT_VECTOR:
+            specs.append((head, "dec"))
+            specs.append((head, "ra"))
+        else:
+            specs.append((head, None))
+    return specs
+
+
 def scatter_grid(
     true: dict[str, np.ndarray],
     pred: dict[str, np.ndarray],
@@ -39,17 +93,59 @@ def scatter_grid(
     path: str | Path,
     title: str | None = None,
 ) -> None:
-    """Pred-vs-true scatter per head (physical units), y=x diagonal, MAE."""
-    fig, axes = _grid(len(heads))
-    for ax, head in zip(axes, heads):
-        t, p = np.ravel(true[head]), np.ravel(pred[head])
-        lo, hi = float(min(t.min(), p.min())), float(max(t.max(), p.max()))
+    """Pred-vs-true scatter per head (physical units), y=x diagonal, MAE.
+
+    Multi-column heads (currently only sky_position) get one panel per
+    component instead of being flattened together, and are annotated with
+    the physically meaningful mean angular separation (degrees) rather than
+    a naive per-component MAE. Periodic heads (coa_phase, inclination,
+    polarization_angle, and sky_position's ra component) have their
+    predicted values shifted by a multiple of the period so wrap-boundary
+    points (true near 0, pred near period, or vice versa) render near the
+    diagonal instead of at opposite corners of the plot -- that shift is
+    purely cosmetic (same value modulo the period) and does not change the
+    wrap-aware MAE already used elsewhere.
+    """
+    specs = _panel_specs(heads)
+    fig, axes = _grid(len(specs))
+    for ax, (head, sub) in zip(axes, specs):
+        spec = HEAD_SPECS[head]
+        t_full, p_full = true[head], pred[head]
+
+        if sub is not None:
+            # sky_position: t_full/p_full are (N, 2) = (dec, ra)
+            dec_true, ra_true = t_full[:, 0], t_full[:, 1]
+            dec_pred, ra_pred = p_full[:, 0], p_full[:, 1]
+            v_true = radec_to_unit_vector(ra_true, dec_true)
+            v_pred = radec_to_unit_vector(ra_pred, dec_pred)
+            ang_sep_deg = np.degrees(angular_separation(v_true, v_pred))
+            if sub == "dec":
+                t, p, period, axis_label = dec_true, dec_pred, None, "Dec [rad]"
+            else:
+                t, p, period, axis_label = ra_true, ra_pred, 2.0 * np.pi, "RA [rad]"
+            metric_str = f"mean ang. sep = {ang_sep_deg.mean():.2f} deg"
+        else:
+            t, p = np.ravel(t_full), np.ravel(p_full)
+            axis_label = spec.label
+            period = spec.period if spec.transform is TransformKind.PERIODIC else None
+            mae = float(np.mean(abs_error(head, t, p)))
+            metric_str = f"MAE = {mae:.4g}"
+
+        if period is not None:
+            # Shift p into the branch nearest t so wrap-boundary points sit
+            # near the diagonal visually, instead of at opposite corners.
+            p_display = t - _wrap_residual(t, p, period)
+        else:
+            p_display = p
+
+        lo = float(min(t.min(), p_display.min()))
+        hi = float(max(t.max(), p_display.max()))
         ax.plot([lo, hi], [lo, hi], color="gray", lw=1, zorder=1)
-        ax.scatter(t, p, s=4, alpha=0.35, zorder=2)
-        mae = float(np.mean(abs_error(head, t, p)))
-        ax.set_title(f"{HEAD_SPECS[head].label}   MAE = {mae:.4g}")
+        ax.scatter(t, p_display, s=4, alpha=0.35, zorder=2)
+        title_prefix = f"{spec.label} ({sub})" if sub is not None else axis_label
+        ax.set_title(f"{title_prefix}   {metric_str}")
         ax.set_xlabel("true")
-        ax.set_ylabel("predicted")
+        ax.set_ylabel("predicted" + (" (unwrapped)" if period is not None else ""))
     if title:
         fig.suptitle(title)
     fig.tight_layout()

@@ -1,0 +1,19 @@
+{
+  "heads": [
+    "mchirp",
+    "merger_time",
+    "snr",
+    "sky_position",
+    "coa_phase"
+  ],
+  "stats": {
+    "mchirp": {
+      "mean": 3.172114859912541,
+      "std": 0.30260704472026234
+    },
+    "snr": {
+      "mean": 10.967648884493636,
+      "std": 2.324199521295217
+    }
+  }
+}

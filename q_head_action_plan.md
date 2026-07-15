@@ -1,5 +1,13 @@
 # q-Head Diagnosis & Fix Plan
 
+> **2026-07-14: q shelved.** The default head set has been switched from
+> `(mchirp, q, merger_time, snr)` to `(mchirp, merger_time, snr, ra,
+> declination, coa_phase)`. q remains in the registry and can be re-added
+> via config. The work below brought val_r2_q from −0.18 to +0.26 (TCN) and
+> revived resnet1d's dead sigmoid — a ~6 R²-unit improvement. The remaining
+> gap (q_high×mchirp_low cell data scarcity) requires dataset-level fixes
+> beyond the current scope. See `phase2_5_3_run_results.md` for final numbers.
+
 Context: `cnn_baseline` underfits q (train R2 ~0.7-0.85, val R2 ~0). `cnn_attention`
 overfits q (train R2 ~0.95-1.0, val R2 declines to ~ -0.2). Loss weights for all
 four heads saturate identically at ~20.09 regardless of per-head performance.

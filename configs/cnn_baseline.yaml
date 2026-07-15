@@ -4,48 +4,27 @@ run_dir: runs/cnn_baseline
 data:
   path: combined_repackaged.hdf
   batch_size: 128
-  augmentation:
-    oversample:
-      q_high_mchirp_low: 2
 
 model:
   trunk: cnn_baseline
   trunk_cfg: {}          # builder defaults; see docs/models/cnn_baseline.md for knobs
-  # Any subset of: mchirp, q, merger_time, snr, inclination, coa_phase,
-  # polarization_angle, declination, ra. Transform/activation/loss per head
-  # are bound in src/gwml/heads_spec.py and cannot be overridden here.
-  heads: [mchirp, q, merger_time, snr]
+  heads: [ mchirp, merger_time, snr, ra, declination, coa_phase ]
   head_cfg:
     hidden_units: 64
     bounded: true
-    # cnn_baseline overfits q just as badly as cnn_attention (Phase 2 attempt #2
-    # confirms val_r2_q is positive with the clamp fix alone but slowly declining
-    # 0.193→0.075 over 79 epochs). Per-head regularization on q (same as
-    # cnn_attention's) should flatten the decline. See q_head_action_plan.md.
-    per_head:
-      q:
-        hidden_units: 32
-        dropout: 0.3
-        l2: 1.0e-4
 
 loss:
   huber_delta: 1.0
-  weighting: uncertainty   # or "fixed" with fixed_weights: {mchirp: 1.0, ...}
-  snr_weight_alpha: null   # e.g. 1.0 to down-weight low-SNR samples
-  # q's weight rides the same clamp ceiling every other head's train loss
-  # eventually reaches (train R2(q) ~0.99, val R2(q) negative — see
-  # q_head_action_plan.md Phase 2 step 8/12): a tighter per-head clamp caps
-  # how far q's weight can run relative to the others.
-  log_var_clamp:
-    default: 3.0            # |s_h| bound; effective head weight range [exp(-3), exp(3)] ~ [5%, 2009%]
-    q: 1.0                  # tighter: weight range [exp(-1), exp(1)] ~ [37%, 272%]
-  variance_penalty: 0.0    # e.g. 0.1 adds lambda*(std(pred)-std(true))^2 per head
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  variance_penalty: 0.0
 
 optim:
   lr: 1.0e-3
-  warmup_epochs: 0         # e.g. 3 for linear LR warmup against early collapse
+  warmup_epochs: 0
   schedule:
-    type: plateau          # or "step" with step_epochs / gamma
+    type: plateau
     factor: 0.5
     patience: 5
     min_lr: 1.0e-7

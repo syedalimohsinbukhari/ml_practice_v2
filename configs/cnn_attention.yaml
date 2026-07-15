@@ -4,59 +4,29 @@ run_dir: runs/cnn_attention
 data:
   path: combined_repackaged.hdf
   batch_size: 128
-  # Targeted oversampling: duplicate rows in the specified subsets before
-  # training. q_high_mchirp_low (~11% of data) is the hardest-and-scarcest
-  # cell across all trunks (val_r2_q ≈ −22). See q_head_action_plan.md.
-  augmentation:
-    oversample:
-      q_high_mchirp_low: 2   # duplicate these rows 1 extra time
 
 model:
   trunk: cnn_attention
   trunk_cfg: { }          # builder defaults; see docs/models/cnn_attention.md for knobs
-  # Any subset of: mchirp, q, merger_time, snr, inclination, coa_phase,
-  # polarization_angle, declination, ra. Transform/activation/loss per head
-  # are bound in src/gwml/heads_spec.py and cannot be overridden here.
-  heads: [ mchirp, q, merger_time, snr ]
+  # Any subset of registered heads (see src/gwml/heads_spec.py).
+  # Transform/activation/loss per head are bound there and cannot be overridden.
+  heads: [ mchirp, merger_time, snr, ra, declination, coa_phase ]
   head_cfg:
     hidden_units: 64
     bounded: true
-    # q overfits hard on this trunk (train R2 ~0.9, val R2 negative — see
-    # q_head_action_plan.md Phase 2 step 9): a smaller, dropout+L2
-    # regularized head to cut its capacity to memorize relative to the
-    # other three heads sharing the same trunk features.
-    per_head:
-      q:
-        hidden_units: 32
-        dropout: 0.3
-        l2: 1.0e-4
-        branch: q_tokens        # q branches from per-token transformer features
-                                # before AttentionPooling (Phase 3.2)
 
 loss:
   huber_delta: 1.0
   weighting: uncertainty   # or "fixed" with fixed_weights: {mchirp: 1.0, ...}
   snr_weight_alpha: null   # e.g. 1.0 to down-weight low-SNR samples
-  # All four weight_<head> saturate identically at exp(3) by ~epoch 17-19
-  # (q_head_action_plan.md Phase 1 step 4): the uncertainty-weighting
-  # optimum tracks *train* loss, and this trunk drives every head's train
-  # loss down fast enough to hit the shared clamp, which coincides almost
-  # exactly with val_r2_q peaking (~epoch 9-12) and then collapsing negative
-  # as weight_q keeps the model pushing on the head with least real signal.
-  # A tighter clamp on q alone keeps its weight from running to the same
-  # ceiling as heads whose train loss shrinks fastest — this was set once
-  # already and got reverted to the flat 3.0 before a run, so it's never
-  # actually been tested; see q_head_action_plan.md Phase 2 step 8.
-  log_var_clamp:
-    default: 3.0
-    q: 1.0
+  log_var_clamp: 3.0        # |s_h| bound; effective head weight range [exp(-3), exp(3)] ~ [5%, 2009%]
   variance_penalty: 0.0    # e.g. 0.1 adds lambda*(std(pred)-std(true))^2 per head
 
 optim:
   lr: 1.0e-3
-  warmup_epochs: 0         # e.g. 3 for linear LR warmup against early collapse
+  warmup_epochs: 0
   schedule:
-    type: plateau          # or "step" with step_epochs / gamma
+    type: plateau
     factor: 0.5
     patience: 5
     min_lr: 1.0e-7

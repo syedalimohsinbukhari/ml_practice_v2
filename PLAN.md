@@ -32,17 +32,20 @@ training split gives fixed (non-batch-dependent) statistics at inference, which 
 slightly more stable than BatchNorm's moving averages. Both are one line behind the
 same trunk interface; we start with BatchNorm and can A/B this cheaply.
 
-### Targets (4 heads)
+### Targets (6 heads, 8 output dims)
 
-| head          | raw range    | transform for training                                                          | head activation   |
-|---------------|--------------|---------------------------------------------------------------------------------|-------------------|
-| `mchirp`      | 8.84 – 43.45 | log, then z-score (MSE in log-space ≈ fractional error — no custom loss needed) | linear            |
-| `q`           | 0.20 – 1.00  | affine map [0.15, 1.05] → [0, 1] (padded off the sigmoid asymptote)             | sigmoid (bounded) |
-| `merger_time` | 1.6 – 1.8 s  | affine map [1.6, 1.8] → [0, 1]                                                  | sigmoid (bounded) |
-| `snr`         | 7.0 – 15.0   | z-score                                                                         | linear            |
+| head          | raw range    | transform for training                                                          | head activation   | dim |
+|---------------|--------------|---------------------------------------------------------------------------------|-------------------|-----|
+| `mchirp`      | 8.84 – 43.45 | log, then z-score (MSE in log-space ≈ fractional error — no custom loss needed) | linear            | 1 |
+| `merger_time` | 1.6 – 1.8 s  | affine map [1.6, 1.8] → [0, 1]                                                  | sigmoid (bounded) | 1 |
+| `snr`         | 7.0 – 15.0   | z-score                                                                         | linear            | 1 |
+| `ra`          | 0 – 2π rad   | periodic → (sin θ, cos θ)                                                       | tanh              | 2 |
+| `declination` | −π/2 – π/2 rad | affine map [−π/2, π/2] → [0, 1]                                              | sigmoid (bounded) | 1 |
+| `coa_phase`   | 0 – 2π rad   | periodic → (sin θ, cos θ)                                                       | tanh              | 2 |
 
-Bounded sigmoid heads guarantee physical predictions for the two range-limited
-targets and remove an early-epoch failure mode; toggleable per config.
+Bounded sigmoid heads guarantee physical predictions for range-limited
+targets; periodic heads use (sin, cos) pairs so no wraparound discontinuity
+ever reaches the loss. All toggleable per config via `model.heads`.
 
 **Head registry (`src/gwml/heads_spec.py`):** every possible head — the core
 four above plus `inclination`, `coa_phase`, `polarization_angle`,

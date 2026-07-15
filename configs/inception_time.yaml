@@ -4,39 +4,27 @@ run_dir: runs/inception_time
 data:
   path: combined_repackaged.hdf
   batch_size: 128
-  augmentation:
-    oversample:
-      q_high_mchirp_low: 2
 
 model:
   trunk: inception_time
   trunk_cfg: {}          # builder defaults; see docs/models/inception_time.md for knobs
-  # Any subset of: mchirp, q, merger_time, snr, inclination, coa_phase,
-  # polarization_angle, declination, ra. Transform/activation/loss per head
-  # are bound in src/gwml/heads_spec.py and cannot be overridden here.
-  heads: [mchirp, q, merger_time, snr]
+  heads: [ mchirp, merger_time, snr, ra, declination, coa_phase ]
   head_cfg:
     hidden_units: 64
     bounded: true
 
 loss:
   huber_delta: 1.0
-  weighting: uncertainty   # or "fixed" with fixed_weights: {mchirp: 1.0, ...}
-  snr_weight_alpha: null   # e.g. 1.0 to down-weight low-SNR samples
-  # q's weight rides the same clamp ceiling every other head's train loss
-  # eventually reaches — see q_head_action_plan.md Phase 2 step 8/12. A
-  # tighter per-head clamp caps how far q's weight can run relative to the
-  # others (and raises its floor, so it can't be starved if it's collapsing).
-  log_var_clamp:
-    default: 3.0            # |s_h| bound; effective head weight range [exp(-3), exp(3)] ~ [5%, 2009%]
-    q: 1.0                  # tighter: weight range [exp(-1), exp(1)] ~ [37%, 272%]
-  variance_penalty: 0.0    # e.g. 0.1 adds lambda*(std(pred)-std(true))^2 per head
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  variance_penalty: 0.0
 
 optim:
   lr: 1.0e-3
-  warmup_epochs: 0         # e.g. 3 for linear LR warmup against early collapse
+  warmup_epochs: 0
   schedule:
-    type: plateau          # or "step" with step_epochs / gamma
+    type: plateau
     factor: 0.5
     patience: 5
     min_lr: 1.0e-6

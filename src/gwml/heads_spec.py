@@ -100,7 +100,7 @@ HEAD_SPECS: dict[str, HeadSpec] = {
     )
 }
 
-DEFAULT_HEADS = ("mchirp", "q", "merger_time", "snr")
+DEFAULT_HEADS = ("mchirp", "merger_time", "snr", "ra", "declination", "coa_phase")
 
 
 def resolve_heads(names) -> list[HeadSpec]:

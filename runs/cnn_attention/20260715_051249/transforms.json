@@ -1,0 +1,20 @@
+{
+  "heads": [
+    "mchirp",
+    "merger_time",
+    "snr",
+    "ra",
+    "declination",
+    "coa_phase"
+  ],
+  "stats": {
+    "mchirp": {
+      "mean": 3.1651380290550954,
+      "std": 0.3102183232774064
+    },
+    "snr": {
+      "mean": 10.978981366495798,
+      "std": 2.314818808133477
+    }
+  }
+}

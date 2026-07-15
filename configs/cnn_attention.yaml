@@ -10,7 +10,7 @@ model:
   trunk_cfg: { }          # builder defaults; see docs/models/cnn_attention.md for knobs
   # Any subset of registered heads (see src/gwml/heads_spec.py).
   # Transform/activation/loss per head are bound there and cannot be overridden.
-  heads: [ mchirp, merger_time, snr, ra, declination, coa_phase ]
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase ]
   head_cfg:
     hidden_units: 64
     bounded: true

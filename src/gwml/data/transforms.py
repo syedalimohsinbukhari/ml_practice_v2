@@ -3,10 +3,11 @@
 Which transform each head uses is defined once in gwml.heads_spec (the head
 registry); this module executes it for whichever heads a run activates:
 
-  LOG_ZSCORE   log then z-score (stats fitted on the training split)
-  ZSCORE       z-score (stats fitted on the training split)
-  UNIT_AFFINE  fixed documented bounds -> [0, 1]
-  PERIODIC     angle -> (sin, cos) pair; inverse via atan2, result in [0, period)
+  LOG_ZSCORE            log then z-score (stats fitted on the training split)
+  ZSCORE                z-score (stats fitted on the training split)
+  UNIT_AFFINE           fixed documented bounds -> [0, 1]
+  PERIODIC              angle -> (sin, cos) pair; inverse via atan2, result in [0, period)
+  SPHERICAL_UNIT_VECTOR (ra, dec) -> 3D unit vector on S²; deterministic (no fit needed)
 
 Fitted statistics and the active head list are persisted to JSON next to each
 run so evaluation and callbacks can always invert predictions into physical
@@ -27,6 +28,7 @@ from gwml.heads_spec import (  # noqa: F401  (PARAM_COLUMNS re-exported)
     TransformKind,
     resolve_heads,
 )
+from gwml.data.sky_transform import radec_to_unit_vector, unit_vector_to_radec
 
 # Backward-compatible default head tuple (the core four).
 HEAD_ORDER = tuple(DEFAULT_HEADS)
@@ -82,7 +84,11 @@ class TargetTransforms:
         """(N, 10) physical params -> dict of (N, dim) float32 targets."""
         out = {}
         for h in self.heads:
-            raw = params[:, HEAD_SPECS[h].column]
+            spec = HEAD_SPECS[h]
+            if spec.columns is not None:
+                raw = params[:, list(spec.columns)]
+            else:
+                raw = params[:, spec.column]
             out[h] = self.transform_head(h, raw)
         return out
 
@@ -102,6 +108,12 @@ class TargetTransforms:
         elif spec.transform is TransformKind.PERIODIC:
             theta = v * (2.0 * np.pi / spec.period)
             out = np.stack([np.sin(theta), np.cos(theta)], axis=-1)
+        elif spec.transform is TransformKind.SPHERICAL_UNIT_VECTOR:
+            # values is (N, 2) ordered as spec.columns = (dec_col, ra_col)
+            # radec_to_unit_vector expects (ra, dec) in that order.
+            ra = values[:, 1]
+            dec = values[:, 0]
+            out = radec_to_unit_vector(ra, dec)  # (N, 3)
         else:  # pragma: no cover
             raise KeyError(f"unhandled transform {spec.transform}")
         return out.reshape(len(v), spec.dim).astype(np.float32)
@@ -123,6 +135,9 @@ class TargetTransforms:
         if spec.transform is TransformKind.PERIODIC:
             theta = np.arctan2(v[:, 0], v[:, 1])
             return (theta * spec.period / (2.0 * np.pi)) % spec.period
+        if spec.transform is TransformKind.SPHERICAL_UNIT_VECTOR:
+            ra, dec = unit_vector_to_radec(v)  # (N, 3) -> (N,), (N,)
+            return np.stack([ra, dec], axis=-1)  # (N, 2) in (ra, dec) order
         raise KeyError(f"unhandled transform {spec.transform}")  # pragma: no cover
 
     def inverse(self, predictions: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
@@ -130,7 +145,14 @@ class TargetTransforms:
 
     def physical_targets(self, params: np.ndarray) -> dict[str, np.ndarray]:
         """Extract the active heads' raw target columns without any transform."""
-        return {h: params[:, HEAD_SPECS[h].column].copy() for h in self.heads}
+        out = {}
+        for h in self.heads:
+            spec = HEAD_SPECS[h]
+            if spec.columns is not None:
+                out[h] = params[:, list(spec.columns)].copy()
+            else:
+                out[h] = params[:, spec.column].copy()
+        return out
 
     def to_json(self, path: str | Path) -> None:
         Path(path).write_text(

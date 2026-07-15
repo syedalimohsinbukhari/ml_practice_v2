@@ -21,7 +21,7 @@ from __future__ import annotations
 import keras
 from keras import layers
 
-from gwml.heads_spec import DEFAULT_HEADS, resolve_heads
+from gwml.heads_spec import DEFAULT_HEADS, TransformKind, resolve_heads
 
 
 def attach_heads(inputs, features, heads=None, cfg: dict | None = None,
@@ -82,10 +82,24 @@ def attach_heads(inputs, features, heads=None, cfg: dict | None = None,
         if sigmoid_bias != 0.0 and activation == "sigmoid":
             import tensorflow as tf
             bias_init = tf.constant_initializer(sigmoid_bias)
-        outputs[spec.name] = layers.Dense(
-            spec.dim, activation=activation,
-            kernel_regularizer=regularizer,
-            bias_initializer=bias_init,
-            name=spec.name
-        )(x)
+        if spec.transform is TransformKind.SPHERICAL_UNIT_VECTOR:
+            # vMF head: two output tensors jointly consumed by one loss.
+            # Use _ separator (not /) so the key matches the Keras output name.
+            outputs[f"{spec.name}_mu_raw"] = layers.Dense(
+                3, activation="linear",
+                kernel_regularizer=regularizer,
+                name=f"{spec.name}_mu_raw"
+            )(x)
+            outputs[f"{spec.name}_kappa_raw"] = layers.Dense(
+                1, activation="linear",
+                kernel_regularizer=regularizer,
+                name=f"{spec.name}_kappa_raw"
+            )(x)
+        else:
+            outputs[spec.name] = layers.Dense(
+                spec.dim, activation=activation,
+                kernel_regularizer=regularizer,
+                bias_initializer=bias_init,
+                name=spec.name
+            )(x)
     return keras.Model(inputs=inputs, outputs=outputs, name="gw_multihead")

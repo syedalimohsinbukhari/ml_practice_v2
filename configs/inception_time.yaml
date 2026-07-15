@@ -8,7 +8,7 @@ data:
 model:
   trunk: inception_time
   trunk_cfg: {}          # builder defaults; see docs/models/inception_time.md for knobs
-  heads: [ mchirp, merger_time, snr, ra, declination, coa_phase ]
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase ]
   head_cfg:
     hidden_units: 64
     bounded: true

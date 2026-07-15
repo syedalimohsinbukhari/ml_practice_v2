@@ -1,6 +1,7 @@
 """Multi-head loss machinery.
 
-Per-head loss is Huber. Head balancing is either:
+Per-head loss is Huber (default) or closed-form von Mises-Fisher NLL for
+the sky_position head (``loss: "vmf"`` in the head spec). Head balancing is either:
 
   - "uncertainty" (default): Kendall, Gal & Cipolla (2018). Each head gets a
     learnable log-variance s_h; total = sum_h exp(-s_h) * L_h + s_h. The
@@ -34,6 +35,45 @@ import keras
 import tensorflow as tf
 
 from gwml.heads_spec import DEFAULT_HEADS, HEAD_SPECS, resolve_heads
+
+
+def _vmf_kappa_from_raw(kappa_raw):
+    """Unconstrained -> kappa > 0.1 (floor prevents kappa->0 log-singularity)."""
+    return keras.ops.softplus(kappa_raw) + 0.1
+
+
+def vmf_nll_loss(y_true_unitvec, mu_raw, kappa_raw):
+    """Closed-form vMF negative log-likelihood on S^2.
+
+    y_true_unitvec: (B, 3), already unit-norm target vectors.
+    mu_raw:         (B, 3), unnormalized network output.
+    kappa_raw:      (B, 1), unconstrained network output.
+    """
+    mu = mu_raw / keras.ops.maximum(
+        keras.ops.sqrt(keras.ops.sum(keras.ops.square(mu_raw), axis=-1,
+                                     keepdims=True)),
+        1e-8,
+    )
+    kappa = _vmf_kappa_from_raw(kappa_raw)[..., 0]  # (B,)
+
+    cos_sep = keras.ops.sum(mu * y_true_unitvec, axis=-1)  # (B,)
+
+    # stable log(sinh(kappa)) = kappa + log(1 - exp(-2*kappa)) - log(2)
+    log_sinh_kappa = (
+        kappa
+        + keras.ops.log(
+            keras.ops.maximum(1.0 - keras.ops.exp(-2.0 * kappa), 1e-12)
+        )
+        - keras.ops.log(2.0)
+    )
+
+    nll = (
+        -keras.ops.log(kappa)
+        + keras.ops.log(4.0 * 3.141592653589793)
+        + log_sinh_kappa
+        - kappa * cos_sep
+    )
+    return keras.ops.mean(nll)
 
 
 class ClampConstraint(keras.constraints.Constraint):
@@ -95,7 +135,7 @@ class MultiHeadTrainer(keras.Model):
         self.huber = keras.losses.Huber(delta=cfg.get("huber_delta", 1.0))
         # Head -> loss binding comes from the spec registry, never the YAML.
         # Periodic heads are (sin, cos) pairs, so Huber on the pair is correct.
-        loss_table = {"huber": self.huber}
+        loss_table = {"huber": self.huber, "vmf": vmf_nll_loss}
         self.head_loss = {}
         for h in self.head_names:
             kind = HEAD_SPECS[h].loss
@@ -127,13 +167,24 @@ class MultiHeadTrainer(keras.Model):
 
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.head_mae = {
-            h: keras.metrics.Mean(name=f"mae_{h}") for h in self.head_names
+            h: keras.metrics.Mean(name=f"mae_{h}")
+            for h in self.head_names
+            if HEAD_SPECS[h].loss != "vmf"
         }
         self.head_r2 = {
-            h: keras.metrics.R2Score(name=f"r2_{h}") for h in self.head_names
+            h: keras.metrics.R2Score(name=f"r2_{h}")
+            for h in self.head_names
+            if HEAD_SPECS[h].loss != "vmf"
         }
         self.head_std_ratio = {
-            h: StdRatio(name=f"std_ratio_{h}") for h in self.head_names
+            h: StdRatio(name=f"std_ratio_{h}")
+            for h in self.head_names
+            if HEAD_SPECS[h].loss != "vmf"
+        }
+        self.head_kappa = {
+            h: keras.metrics.Mean(name=f"kappa_{h}")
+            for h in self.head_names
+            if HEAD_SPECS[h].loss == "vmf"
         }
         if self.weighting == "uncertainty":
             self.weight_trackers = {
@@ -166,33 +217,52 @@ class MultiHeadTrainer(keras.Model):
             *self.head_mae.values(),
             *self.head_r2.values(),
             *self.head_std_ratio.values(),
+            *self.head_kappa.values(),
             *self.weight_trackers.values(),
         ]
 
     def _total_loss(self, y_true, y_pred, sample_weight=None):
         total = 0.0
         for h in self.head_names:
-            head_loss = self.head_loss[h](
-                y_true[h], y_pred[h], sample_weight=sample_weight
-            )
+            if HEAD_SPECS[h].loss == "vmf":
+                head_loss = self.head_loss[h](
+                    y_true[h],
+                    y_pred[f"{h}_mu_raw"],
+                    y_pred[f"{h}_kappa_raw"],
+                )
+            else:
+                head_loss = self.head_loss[h](
+                    y_true[h], y_pred[h], sample_weight=sample_weight
+                )
             if self.weighting == "uncertainty":
                 s = self.log_vars[h]
                 total = total + tf.exp(-s) * head_loss + s
             else:
                 total = total + self.fixed_weights[h] * head_loss
             if self.variance_penalty > 0.0:
-                spread_gap = tf.math.reduce_std(y_pred[h]) - tf.math.reduce_std(y_true[h])
-                total = total + self.variance_penalty * tf.square(spread_gap)
+                # Skip vMF heads: variance penalty on unit-vector components is
+                # not physically meaningful.
+                if HEAD_SPECS[h].loss != "vmf":
+                    spread_gap = tf.math.reduce_std(y_pred[h]) - tf.math.reduce_std(
+                        y_true[h]
+                    )
+                    total = total + self.variance_penalty * tf.square(spread_gap)
         return total
 
     def _update_metrics(self, loss, y_true, y_pred):
         self.loss_tracker.update_state(loss)
         for h in self.head_names:
-            self.head_mae[h].update_state(
-                tf.reduce_mean(tf.abs(y_true[h] - y_pred[h]))
-            )
-            self.head_r2[h].update_state(y_true[h], y_pred[h])
-            self.head_std_ratio[h].update_state(y_true[h], y_pred[h])
+            if HEAD_SPECS[h].loss == "vmf":
+                # vMF heads: track kappa; per-axis MAE/R²/std_ratio on 3D
+                # unit-vector components are not physically meaningful.
+                kappa = _vmf_kappa_from_raw(y_pred[f"{h}_kappa_raw"])
+                self.head_kappa[h].update_state(tf.reduce_mean(kappa))
+            else:
+                self.head_mae[h].update_state(
+                    tf.reduce_mean(tf.abs(y_true[h] - y_pred[h]))
+                )
+                self.head_r2[h].update_state(y_true[h], y_pred[h])
+                self.head_std_ratio[h].update_state(y_true[h], y_pred[h])
             if self.weight_trackers:
                 self.weight_trackers[h].update_state(tf.exp(-self.log_vars[h]))
 

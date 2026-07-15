@@ -8,7 +8,7 @@ data:
 model:
   trunk: resnet1d
   trunk_cfg: {}          # builder defaults; see docs/models/resnet1d.md for knobs
-  heads: [ mchirp, merger_time, snr, ra, declination, coa_phase ]
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase ]
   head_cfg:
     hidden_units: 64
     bounded: true

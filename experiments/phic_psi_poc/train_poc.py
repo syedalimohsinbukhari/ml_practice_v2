@@ -28,25 +28,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import keras
 import numpy as np
-import yaml
 
 from gwml.data.loader import build_subset_masks, load_arrays, make_dataset
 from gwml.data.transforms import TargetTransforms
 from gwml.models import build_model
-from gwml.training.callbacks import (
-    DiagnosticSubsetsCallback,
-    LiveScatterCallback,
-    WarmupLR,
-)
 from gwml.training.train import (
     _build_callbacks,
-    _timestamp,
     create_run_dir,
     load_config,
 )
 
-from experiments.phic_psi_poc.trainer import SumDiffTrainer
-
+from trainer import SumDiffTrainer
 
 # Heads that MUST be present for the PoC to work
 _REQUIRED_HEADS = ("coa_phase", "polarization_angle", "inclination")

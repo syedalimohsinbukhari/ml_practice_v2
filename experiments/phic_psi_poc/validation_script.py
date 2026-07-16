@@ -41,7 +41,6 @@ from experiments.phic_psi_poc.transform_utils import (
     complex_mul,
     complex_mul_conj,
     normalize_unit,
-    pick_nearest_candidate,
     reconstruct_phic_psi,
 )
 from experiments.phic_psi_poc.curriculum import (
@@ -50,7 +49,6 @@ from experiments.phic_psi_poc.curriculum import (
     project_to_R_delta,
     w_iota_default,
 )
-
 
 _PASS = 0
 _FAIL = 0
@@ -162,8 +160,8 @@ def test_circular_loss():
           f"loss = {loss}")
 
     # L = 2 for opposite vectors (π apart): 1 − cos(π) = 1 − (−1) = 2
-    z1 = np.array([[np.sin(0.0), np.cos(0.0)]])      # angle = 0
-    z2 = np.array([[np.sin(np.pi), np.cos(np.pi)]])   # angle = π
+    z1 = np.array([[np.sin(0.0), np.cos(0.0)]])  # angle = 0
+    z2 = np.array([[np.sin(np.pi), np.cos(np.pi)]])  # angle = π
     loss = circular_loss(z1, z2)
     check("L=2 for opposite vectors (Δθ=π)", np.allclose(loss, 2.0, atol=1e-10),
           f"loss = {loss}")
@@ -209,8 +207,8 @@ def test_reconstruction_roundtrip():
         # ψ PERIODIC encoding: z_ψ = [sin(2ψ), cos(2ψ)] because period=π
         z_2psi = np.array([np.sin(2.0 * psi_true), np.cos(2.0 * psi_true)])
 
-        combo_A = complex_mul(z_phic, z_2psi)       # φc + 2ψ
-        combo_B = complex_mul_conj(z_phic, z_2psi)   # φc − 2ψ
+        combo_A = complex_mul(z_phic, z_2psi)  # φc + 2ψ
+        combo_B = complex_mul_conj(z_phic, z_2psi)  # φc − 2ψ
 
         # Reconstruct candidates
         phic_cands, psi_cands, all_pairs = reconstruct_phic_psi(

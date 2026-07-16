@@ -26,20 +26,18 @@ from __future__ import annotations
 import keras
 import tensorflow as tf
 
+from curriculum import tf_w_iota
 from gwml.heads_spec import HEAD_SPECS
 from gwml.training.losses import (
     ClampConstraint,
     MultiHeadTrainer,
-    StdRatio,
     _vmf_kappa_from_raw,
 )
-
-from experiments.phic_psi_poc.transform_utils import (
+from transform_utils import (
     tf_complex_mul,
     tf_complex_mul_conj,
     tf_normalize_unit,
 )
-from experiments.phic_psi_poc.curriculum import tf_w_iota
 
 
 # ---------------------------------------------------------------------------
@@ -399,7 +397,7 @@ class SumDiffTrainer(MultiHeadTrainer):
             #              the other combo is poor (weight=w_iota)
             # cos ι < 0 → roles swap
             pos_mask = tf.cast(cos_iota >= 0.0, tf.float32)  # 1 where cos≥0
-            neg_mask = 1.0 - pos_mask                          # 1 where cos<0
+            neg_mask = 1.0 - pos_mask  # 1 where cos<0
 
             if self._well_constrained == "combo_A":
                 # combo_A good when cos≥0, poor when cos<0
@@ -412,8 +410,8 @@ class SumDiffTrainer(MultiHeadTrainer):
         else:
             # Fixed assignment (no sign flip)
             if self._well_constrained == "combo_A":
-                w_A = tf.ones_like(w_iota)   # good, no suppression
-                w_B = w_iota                  # poor, curriculum-weighted
+                w_A = tf.ones_like(w_iota)  # good, no suppression
+                w_B = w_iota  # poor, curriculum-weighted
             else:
                 w_B = tf.ones_like(w_iota)
                 w_A = w_iota

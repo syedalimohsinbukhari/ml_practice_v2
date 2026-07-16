@@ -96,12 +96,64 @@ Companion to `phic_psi_implementation_plan_v4.md` and
 
 ## Run Log
 
-### Run A (baseline) — TBD
-- Date:
-- Config:
-- Result:
+### Run A (baseline) — 2026-07-16
+- **Config:** `config_baseline.yaml`
+- **Branch:** `poc/phic-psi-degeneracy`
+- **Machine:** lab GPU
+- **Epochs:** 80
+- **Mode:** baseline (circular loss on individual φc/ψ)
+- **Status:** Training complete. Metrics pending (run `run_full.py` or evaluate manually).
+- **Preliminary diagnostics (epoch 80, full):**
+  - coa_phase MAE=1.572, R²=−0.012 (dead — degeneracy confirmed)
+  - polarization_angle MAE=0.779, R²=0.754 (learnable)
+  - inclination MAE=1.556, R²=0.014 (essentially dead)
+  - mchirp MAE=0.939, R²=0.962
 
-### Run B (PoC) — TBD
-- Date:
-- Config:
-- Result:
+### Run B (PoC) — 2026-07-16
+- **Config:** `config_poc.yaml`
+- **Branch:** `poc/phic-psi-degeneracy`
+- **Machine:** lab GPU
+- **Epochs:** 80
+- **Mode:** poc (combo heads + curriculum weighting, sign-dependent)
+- **Status:** Training complete. Metrics pending (run `run_full.py` or evaluate manually).
+- **Preliminary diagnostics (epoch 80, full):**
+  - coa_phase MAE=1.572, R²=−0.012 (identical to baseline — not directly trained in poc mode)
+  - polarization_angle MAE=0.779, R²=0.754 (identical to baseline — not directly trained)
+  - inclination MAE=1.576, R²=−0.007 (slightly worse than baseline)
+  - mchirp MAE=1.035, R²=0.958 (+10.3% worse than baseline)
+  - **Note:** Individual φc/ψ heads are NOT trained in poc mode — they only
+    receive gradient through combo_A/combo_B. The dead coa_phase is expected.
+    The real comparison needs combo-level circular-loss metrics from evaluation.
+
+### Multi-architecture baselines — pending
+
+Configs created for all five architectures with the full 7-head list
+(mchirp, merger_time, snr, sky_position, coa_phase, polarization_angle,
+inclination), all using `mode: baseline` (circular loss on individual
+φc/ψ — same loss function class as Run B, so the only variable is
+architecture).
+
+| Config | Trunk | To run |
+|--------|-------|--------|
+| `config_tcn.yaml` | tcn | `train_poc.py config_tcn.yaml` |
+| `config_cnn_baseline.yaml` | cnn_baseline | `train_poc.py config_cnn_baseline.yaml` |
+| `config_cnn_attention.yaml` | cnn_attention | `train_poc.py config_cnn_attention.yaml` |
+| `config_inception_time.yaml` | inception_time | `train_poc.py config_inception_time.yaml` |
+| `config_resnet1d.yaml` | resnet1d | `train_poc.py config_resnet1d.yaml` |
+
+### Batch run (all configs at once)
+
+```bash
+python experiments/phic_psi_poc/run_full.py
+```
+
+This chains train_poc → plot_run → evaluate for every `config_*.yaml` in
+the experiments directory (skips smoke configs). Handles both baseline and
+poc modes correctly — builds SumDiffTrainer for evaluation so weight
+loading works regardless of mode.
+
+### Run C (ι=0 slice) — not yet configured
+
+Optional sanity check per plan Sec. 4: fixed `ι=0` dataset slice to
+confirm diff-head collapses to near-zero under guaranteed-exact degeneracy.
+Not urgent — useful for debugging if Run B results are ambiguous.

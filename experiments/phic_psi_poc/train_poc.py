@@ -91,6 +91,9 @@ def build_sumdiff_trainer(cfg: dict) -> SumDiffTrainer:
         trainer_kwargs["well_constrained_combo"] = loss_cfg.get(
             "well_constrained_combo", "combo_A"
         )
+        trainer_kwargs["sign_dependent_combo"] = loss_cfg.get(
+            "sign_dependent_combo", False
+        )
 
     trainer = SumDiffTrainer(
         base,

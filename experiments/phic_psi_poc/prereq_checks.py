@@ -112,108 +112,110 @@ def _check_sign_combination(
           f"(max std(R)={max_R_std:.2e}, max std(δ)={max_delta_std:.2e})")
 
     # --- At non-zero ι, check which combo is better constrained ---
-    # Strategy: for each sky position and moderate ι, sweep φc+2ψ (combo_A)
-    # and φc−2ψ (combo_B), measuring how much (R, δ) varies with each.
-    # The combo with *less* variation is the well-constrained one.
-
-    iota_moderate = np.pi / 4.0  # 45°
+    # CRITICAL (h/t rev2 review): compute correlations SEPARATELY for
+    # cos ι > 0 and cos ι < 0.  Mixing both regimes dilutes the signal
+    # because which combo is well-constrained flips sign with cos ι.
+    # The original plan Step 1.1 says "conditioned on sign(cos ι)" for
+    # exactly this reason.
     n_sweep = 30
 
-    combo_A_corr_R = []
-    combo_A_corr_delta = []
-    combo_B_corr_R = []
-    combo_B_corr_delta = []
+    results_by_sign = {}
+    for sign_label, iota_val in [("cos_ι_>_0", np.pi / 4.0),
+                                  ("cos_ι_<_0", 3.0 * np.pi / 4.0)]:
+        combo_A_corr_R = []
+        combo_A_corr_delta = []
+        combo_B_corr_R = []
+        combo_B_corr_delta = []
 
-    for a, b in sky_coeffs:
-        # Sweep combo_A (φc+2ψ) while holding combo_B (φc−2ψ) fixed
-        combo_B_fixed = rng.uniform(0.0, 4.0 * np.pi)
-        combo_A_vals = np.linspace(0.0, 4.0 * np.pi, n_sweep)
-        R_vals_A = []
-        delta_vals_A = []
-        for cA in combo_A_vals:
-            # Solve: φc = (cA + cB_fixed)/2, 2ψ = (cA − cB_fixed)/2
-            phic = (cA + combo_B_fixed) / 2.0
-            two_psi = (cA - combo_B_fixed) / 2.0
-            psi = two_psi / 2.0
-            sig = detector_signal(psi, phic, iota_moderate, a, b, Phi)
-            R, delta = project_to_R_delta(sig, Phi)
-            R_vals_A.append(R)
-            delta_vals_A.append(delta)
+        for a, b in sky_coeffs:
+            # Sweep combo_A (φc+2ψ) while holding combo_B (φc−2ψ) fixed
+            combo_B_fixed = rng.uniform(0.0, 4.0 * np.pi)
+            combo_A_vals = np.linspace(0.0, 4.0 * np.pi, n_sweep)
+            R_vals_A = []
+            delta_vals_A = []
+            for cA in combo_A_vals:
+                phic = (cA + combo_B_fixed) / 2.0
+                two_psi = (cA - combo_B_fixed) / 2.0
+                psi = two_psi / 2.0
+                sig = detector_signal(psi, phic, iota_val, a, b, Phi)
+                R, delta = project_to_R_delta(sig, Phi)
+                R_vals_A.append(R)
+                delta_vals_A.append(delta)
 
-        R_vals_A = np.array(R_vals_A)
-        delta_vals_A = np.array(delta_vals_A)
-        # Correlation: does combo_A predict R/delta?
-        combo_A_corr_R.append(np.abs(np.corrcoef(combo_A_vals, R_vals_A)[0, 1]))
-        combo_A_corr_delta.append(np.abs(np.corrcoef(combo_A_vals, delta_vals_A)[0, 1]))
+            R_vals_A = np.array(R_vals_A)
+            delta_vals_A = np.array(delta_vals_A)
+            combo_A_corr_R.append(np.abs(np.corrcoef(combo_A_vals, R_vals_A)[0, 1]))
+            combo_A_corr_delta.append(np.abs(np.corrcoef(combo_A_vals, delta_vals_A)[0, 1]))
 
-        # Sweep combo_B (φc−2ψ) while holding combo_A fixed
-        combo_A_fixed = rng.uniform(0.0, 4.0 * np.pi)
-        combo_B_vals = np.linspace(0.0, 4.0 * np.pi, n_sweep)
-        R_vals_B = []
-        delta_vals_B = []
-        for cB in combo_B_vals:
-            phic = (combo_A_fixed + cB) / 2.0
-            two_psi = (combo_A_fixed - cB) / 2.0
-            psi = two_psi / 2.0
-            sig = detector_signal(psi, phic, iota_moderate, a, b, Phi)
-            R, delta = project_to_R_delta(sig, Phi)
-            R_vals_B.append(R)
-            delta_vals_B.append(delta)
+            # Sweep combo_B (φc−2ψ) while holding combo_A fixed
+            combo_A_fixed = rng.uniform(0.0, 4.0 * np.pi)
+            combo_B_vals = np.linspace(0.0, 4.0 * np.pi, n_sweep)
+            R_vals_B = []
+            delta_vals_B = []
+            for cB in combo_B_vals:
+                phic = (combo_A_fixed + cB) / 2.0
+                two_psi = (combo_A_fixed - cB) / 2.0
+                psi = two_psi / 2.0
+                sig = detector_signal(psi, phic, iota_val, a, b, Phi)
+                R, delta = project_to_R_delta(sig, Phi)
+                R_vals_B.append(R)
+                delta_vals_B.append(delta)
 
-        R_vals_B = np.array(R_vals_B)
-        delta_vals_B = np.array(delta_vals_B)
-        combo_B_corr_R.append(np.abs(np.corrcoef(combo_B_vals, R_vals_B)[0, 1]))
-        combo_B_corr_delta.append(np.abs(np.corrcoef(combo_B_vals, delta_vals_B)[0, 1]))
+            R_vals_B = np.array(R_vals_B)
+            delta_vals_B = np.array(delta_vals_B)
+            combo_B_corr_R.append(np.abs(np.corrcoef(combo_B_vals, R_vals_B)[0, 1]))
+            combo_B_corr_delta.append(np.abs(np.corrcoef(combo_B_vals, delta_vals_B)[0, 1]))
 
-    mean_corr_A = np.mean(combo_A_corr_R + combo_A_corr_delta)
-    mean_corr_B = np.mean(combo_B_corr_R + combo_B_corr_delta)
+        mean_corr_A = np.mean(combo_A_corr_R + combo_A_corr_delta)
+        mean_corr_B = np.mean(combo_B_corr_R + combo_B_corr_delta)
 
-    # The well-constrained combo should have *higher* correlation with (R,δ)
-    # (it drives the observables; the poorly-constrained one doesn't)
-    if mean_corr_A > mean_corr_B:
-        well_constrained = "combo_A"
-        poorly_constrained = "combo_B"
-        ratio = mean_corr_A / max(mean_corr_B, 1e-12)
-    else:
-        well_constrained = "combo_B"
-        poorly_constrained = "combo_A"
-        ratio = mean_corr_B / max(mean_corr_A, 1e-12)
+        if mean_corr_A > mean_corr_B:
+            winner = "combo_A"
+            loser = "combo_B"
+            ratio = mean_corr_A / max(mean_corr_B, 1e-12)
+        else:
+            winner = "combo_B"
+            loser = "combo_A"
+            ratio = mean_corr_B / max(mean_corr_A, 1e-12)
 
-    # Check sign flip at cos ι = 0
-    iota_neg = np.pi * 3.0 / 4.0  # cos ι < 0
-    # Quick check: at negative cos ι, does the well-constrained combo change?
-    # For GW signals, the sign of cos ι flips h_cross → this can flip which
-    # combo is well-constrained. Check with a single sky position.
-    a_test, b_test = sky_coeffs[0]
-    combo_A_corr_neg = []
-    combo_B_corr_neg = []
-    for _ in range(10):
-        cB_fixed = rng.uniform(0.0, 4.0 * np.pi)
-        cA_vals = np.linspace(0.0, 4.0 * np.pi, n_sweep)
-        R_vals, delta_vals = [], []
-        for cA in cA_vals:
-            phic = (cA + cB_fixed) / 2.0
-            two_psi = (cA - cB_fixed) / 2.0
-            psi = two_psi / 2.0
-            sig = detector_signal(psi, phic, iota_neg, a_test, b_test, Phi)
-            R, delta = project_to_R_delta(sig, Phi)
-            R_vals.append(R)
-            delta_vals.append(delta)
-        combo_A_corr_neg.append(np.abs(np.corrcoef(cA_vals, np.array(R_vals))[0, 1]))
-        combo_B_corr_neg.append(np.abs(np.corrcoef(cA_vals, np.array(delta_vals))[0, 1]))
+        results_by_sign[sign_label] = {
+            "well_constrained": winner,
+            "poorly_constrained": loser,
+            "ratio": float(ratio),
+            "mean_corr_A": float(mean_corr_A),
+            "mean_corr_B": float(mean_corr_B),
+        }
 
-    sign_flip = bool(np.mean(combo_A_corr_neg) < np.mean(combo_B_corr_neg)) != (well_constrained == "combo_A")
+    # Determine whether the label flips across the cos ι = 0 boundary
+    sign_flip = (
+        results_by_sign["cos_ι_>_0"]["well_constrained"]
+        != results_by_sign["cos_ι_<_0"]["well_constrained"]
+    )
+    # Use the cos ι > 0 result as the primary label (matches the population
+    # where most samples have cos ι > 0 for isotropically oriented binaries)
+    well_constrained = results_by_sign["cos_ι_>_0"]["well_constrained"]
+    poorly_constrained = results_by_sign["cos_ι_>_0"]["poorly_constrained"]
 
-    print(f"  ✓ Well-constrained combo: {well_constrained}")
-    print(f"     (correlation ratio well/poorly = {ratio:.1f}x)")
-    print(f"  ✓ Sign flip at cos ι < 0: {'YES' if sign_flip else 'NO'}")
+    r_pos = results_by_sign["cos_ι_>_0"]
+    r_neg = results_by_sign["cos_ι_<_0"]
+
+    print(f"  cos ι > 0 (ι=π/4):  well-constrained = {r_pos['well_constrained']} "
+          f"(ratio = {r_pos['ratio']:.1f}x)")
+    print(f"  cos ι < 0 (ι=3π/4): well-constrained = {r_neg['well_constrained']} "
+          f"(ratio = {r_neg['ratio']:.1f}x)")
+    print(f"  Sign flip at cos ι = 0: {'YES — label depends on sign(cos ι)' if sign_flip else 'NO'}")
+
+    if sign_flip:
+        print(f"  → Recommendation: condition well_constrained_combo on sign(cos ι)")
+        print(f"    at training time, not a single fixed label.")
+    print(f"  → Primary (cos ι > 0): well_constrained = {well_constrained}")
 
     return {
         "harness_passes": harness_passes,
         "well_constrained_combo": well_constrained,
         "poorly_constrained_combo": poorly_constrained,
-        "correlation_ratio": float(ratio),
         "sign_flip": sign_flip,
+        "results_by_sign": results_by_sign,
     }
 
 
@@ -263,9 +265,10 @@ def main():
 
         result_1_2 = derive_w_iota(n_sky_samples=50, n_iota_points=100)
         print(f"  {result_1_2['fit_info']}")
-        print(f"  w(0) ≈ {result_1_2['w_values'][0]:.3f} (face-on)")
-        print(f"  w(π/2) ≈ {result_1_2['w_values'][-1]:.3f} (edge-on)")
-        print(f"  Fit coeffs: {result_1_2['fit_coeffs']}")
+        # Endpoint values from the interpolated (smooth) curve
+        w_interp = result_1_2["w_interpolated"]
+        print(f"  w(cos²ι=1) ≈ {w_interp[0]:.4f} (face-on, ι≈0)")
+        print(f"  w(cos²ι=0) ≈ {w_interp[-1]:.4f} (edge-on, ι≈π/2)")
     else:
         print("\n── Step 1.2: SKIPPED ──")
 

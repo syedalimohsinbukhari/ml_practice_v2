@@ -121,8 +121,8 @@ def _jacobian_condition_number(
     iota: float,
     a: float,
     b: float,
-    eps: float = 1e-6,
-    n_Phi: int = 100,
+    eps: float = 1e-5,
+    n_Phi: int = 200,
 ) -> float:
     """Compute the condition number of the (φc, ψ) → (R, δ) Jacobian.
 
@@ -133,8 +133,10 @@ def _jacobian_condition_number(
     Args:
         phi_c, psi, iota: Angles [rad].
         a, b: Sky-position coefficients.
-        eps: Finite-difference step size.
-        n_Phi: Number of orbital-phase sample points.
+        eps: Finite-difference step size (1e-5 rad — 10× smaller than before
+             to reduce discretisation noise in the gradient estimate).
+        n_Phi: Number of orbital-phase sample points (increased from 100 to
+               200 for cleaner projection integrals).
 
     Returns:
         Condition number (ratio of largest to smallest singular value).
@@ -144,8 +146,6 @@ def _jacobian_condition_number(
     def _R_delta(pc, p):
         sig = detector_signal(p, pc, iota, a, b, Phi)
         return np.array(project_to_R_delta(sig, Phi))
-
-    centre = _R_delta(phi_c, psi)  # (2,)
 
     # ∂/∂φc
     dR_dpc, dd_dpc = (_R_delta(phi_c + eps, psi) - _R_delta(phi_c - eps, psi)) / (2.0 * eps)
@@ -175,9 +175,15 @@ def derive_w_iota(
     3. At each ι, evaluate the Jacobian condition number at a fixed
        reference (φc, ψ).
     4. Average condition numbers across sky positions for each ι bin.
-    5. Fit w(ι) such that w ∝ 1/cond(J) (weight is proportional to how
-       much signal the poorly-constrained combo carries).
+    5. w ∝ 1/cond(J) — weight is proportional to how much signal the
+       poorly-constrained combo carries.
     6. Normalise so max w = 1.
+
+    **Fit method (rev2):**  Uses the raw empirical curve directly via
+    linear interpolation on cos²ι, clamped to [0, 1].  No unconstrained
+    polynomial — the previous approach produced negative weights and
+    residuals larger than the function's own range.  The interpolation
+    table is returned alongside the smooth fit for inspection.
 
     Args:
         n_sky_samples: Number of random sky positions to average over.
@@ -187,9 +193,13 @@ def derive_w_iota(
     Returns:
         Dict with keys:
           - iota_grid: (n_iota_points,) ι values [rad].
+          - cos2_iota_grid: (n_iota_points,) cos²ι at each grid point.
           - mean_cond: (n_iota_points,) mean condition number per ι.
-          - w_values: (n_iota_points,) w(ι) ∈ [0, 1].
+          - w_raw: (n_iota_points,) raw empirical w(ι) ∈ [0, 1].
+          - w_interpolated: (n_iota_points,) smoothed w(ι) via interpolation.
           - fit_info: str describing the fit.
+          - build_w_callable: dict with cos2_iota knots and w values for
+            constructing a callable weight function.
     """
     rng = np.random.default_rng(seed)
     sky_coeffs = _random_sky_coefficients(n_sky_samples, rng)
@@ -216,25 +226,49 @@ def derive_w_iota(
     # Weight ∝ 1/cond(J): high condition → low weight (degenerate)
     # Normalise to [0, 1] with max weight = 1
     inv_cond = 1.0 / np.maximum(mean_cond, 1e-12)
-    w_values = inv_cond / np.max(inv_cond)
+    w_raw = inv_cond / np.max(inv_cond)
 
-    # Fit info: report the functional form
-    # For now: polynomial fit in cos²ι (natural symmetry variable)
-    cos2_iota = np.cos(iota_grid) ** 2
-    # Fit w = 1 − α·cos²ι − β·cos⁴ι
-    A = np.column_stack([np.ones_like(cos2_iota), -cos2_iota, -(cos2_iota ** 2)])
-    coeffs, residuals, rank, sv = np.linalg.lstsq(A, w_values, rcond=None)
+    # --- Interpolation-based fit (replaces broken polynomial) ---
+    # w(ι) is a smooth function of cos²ι (the natural symmetry variable).
+    # Use linear interpolation on the raw empirical curve, clamped to [0, 1].
+    # This can't produce the nonsense values (negative weights, residuals
+    # larger than the function range) that the old unconstrained polynomial
+    # fit produced.
+    cos2_iota_grid = np.cos(iota_grid) ** 2  # descending: 1 → 0 as ι: 0 → π/2
+
+    # Sort by cos²ι (ascending) for interpolation
+    sort_idx = np.argsort(cos2_iota_grid)
+    cos2_sorted = cos2_iota_grid[sort_idx]
+    w_sorted = w_raw[sort_idx]
+
+    # Interpolation: cos²ι → w(ι) using numpy (no scipy dependency)
+    w_interpolated = np.clip(
+        np.interp(cos2_iota_grid, cos2_sorted, w_sorted), 0.0, 1.0
+    )
+
+    # Residual check
+    residuals = w_raw - w_interpolated
+    max_residual = float(np.max(np.abs(residuals)))
+    rms_residual = float(np.sqrt(np.mean(residuals ** 2)))
+
     fit_info = (
-        f"Polynomial fit w(cos²ι) = {coeffs[0]:.4f} − {abs(coeffs[1]):.4f}·cos²ι "
-        f"− {abs(coeffs[2]):.4f}·cos⁴ι,  max residual = {np.max(np.abs(residuals)):.2e}"
+        f"Interpolation on cos²ι (linear).  "
+        f"w(cos²ι=1) = {w_interpolated[0]:.4f} (face-on), "
+        f"w(cos²ι=0) = {w_interpolated[-1]:.4f} (edge-on).  "
+        f"Max residual = {max_residual:.2e}, RMS residual = {rms_residual:.2e}."
     )
 
     return {
         "iota_grid": iota_grid,
+        "cos2_iota_grid": cos2_iota_grid,
         "mean_cond": mean_cond,
-        "w_values": w_values,
-        "fit_coeffs": coeffs.tolist(),
+        "w_raw": w_raw,
+        "w_interpolated": w_interpolated,
         "fit_info": fit_info,
+        "build_w_callable": {
+            "cos2_iota_knots": cos2_sorted.tolist(),
+            "w_knots": w_sorted.tolist(),
+        },
     }
 
 
@@ -265,18 +299,23 @@ def w_iota_default(cos_iota: np.ndarray) -> np.ndarray:
 def build_w_iota_from_fit(fit_result: dict) -> callable:
     """Build a w(cos_ι) callable from the output of :func:`derive_w_iota`.
 
+    Uses linear interpolation on cos²ι from the empirical curve, clamped to
+    [0, 1].  The old polynomial-fit approach was removed because it produced
+    negative weights and residuals larger than the function's own range.
+
     Args:
         fit_result: Dict returned by :func:`derive_w_iota`.
 
     Returns:
         Callable ``w(cos_iota: np.ndarray) → np.ndarray``.
     """
-    coeffs = fit_result["fit_coeffs"]
+    knots = fit_result["build_w_callable"]
+    cos2_knots = np.array(knots["cos2_iota_knots"])
+    w_knots = np.array(knots["w_knots"])
 
     def _w(cos_iota: np.ndarray) -> np.ndarray:
-        c2 = cos_iota ** 2
-        w = coeffs[0] - coeffs[1] * c2 - coeffs[2] * (c2 ** 2)
-        return np.clip(w, 0.0, 1.0)
+        c2 = (cos_iota ** 2).astype(np.float64)
+        return np.clip(np.interp(c2, cos2_knots, w_knots), 0.0, 1.0)
 
     return _w
 

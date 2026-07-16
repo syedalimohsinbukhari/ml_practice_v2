@@ -108,7 +108,14 @@ class SumDiffTrainer(MultiHeadTrainer):
         (the ``1 − cos²ι`` fallback).
     well_constrained_combo : str
         ``"combo_A"`` or ``"combo_B"`` — which combo Step 1.1 found to be
-        well-constrained.  The *other* combo receives the curriculum weight.
+        well-constrained (for cos ι > 0, if sign-dependent).  The *other*
+        combo receives the curriculum weight.
+    sign_dependent_combo : bool
+        If True (Step 1.1 found a sign flip), the well-constrained combo
+        is selected dynamically at batch level based on ``sign(cos_iota)``
+        rather than using a single fixed label.  When cos_iota > 0 the
+        ``well_constrained_combo`` is used as-is; when cos_iota < 0 the
+        opposite combo is treated as well-constrained.
     """
 
     # Heads whose individual losses are removed in "poc" mode.
@@ -122,11 +129,13 @@ class SumDiffTrainer(MultiHeadTrainer):
         mode: str = "poc",
         w_iota_fn: callable | None = None,
         well_constrained_combo: str = "combo_A",
+        sign_dependent_combo: bool = False,
         **kwargs,
     ):
         self._poc_mode = mode
         self._w_iota_fn = w_iota_fn or tf_w_iota
         self._well_constrained = well_constrained_combo
+        self._sign_dependent = sign_dependent_combo
         self._poor_combo = (
             "combo_B" if well_constrained_combo == "combo_A" else "combo_A"
         )
@@ -380,28 +389,44 @@ class SumDiffTrainer(MultiHeadTrainer):
             combo_B_true * combo_B_pred, axis=-1
         )
 
-        # Identify which combo is well- vs poorly-constrained
-        if self._well_constrained == "combo_A":
-            loss_good = loss_A_per_sample
-            loss_poor = loss_B_per_sample
-            s_good = self.log_vars["combo_A"]
-            s_poor = self.log_vars["combo_B"]
+        # Build per-sample weight for each combo.  This encodes BOTH:
+        #   (a) curriculum weighting w(ι) on the poorly-constrained combo
+        #   (b) sign-dependent good/poor assignment when cos ι flips sign
+        w_iota = self._w_iota_fn(cos_iota)  # (N,) ∈ [0, 1]
+
+        if self._sign_dependent:
+            # cos ι ≥ 0 → well_constrained_combo is good (weight=1),
+            #              the other combo is poor (weight=w_iota)
+            # cos ι < 0 → roles swap
+            pos_mask = tf.cast(cos_iota >= 0.0, tf.float32)  # 1 where cos≥0
+            neg_mask = 1.0 - pos_mask                          # 1 where cos<0
+
+            if self._well_constrained == "combo_A":
+                # combo_A good when cos≥0, poor when cos<0
+                w_A = pos_mask + neg_mask * w_iota
+                w_B = neg_mask + pos_mask * w_iota
+            else:
+                # combo_B good when cos≥0, poor when cos<0
+                w_B = pos_mask + neg_mask * w_iota
+                w_A = neg_mask + pos_mask * w_iota
         else:
-            loss_good = loss_B_per_sample
-            loss_poor = loss_A_per_sample
-            s_good = self.log_vars["combo_B"]
-            s_poor = self.log_vars["combo_A"]
+            # Fixed assignment (no sign flip)
+            if self._well_constrained == "combo_A":
+                w_A = tf.ones_like(w_iota)   # good, no suppression
+                w_B = w_iota                  # poor, curriculum-weighted
+            else:
+                w_B = tf.ones_like(w_iota)
+                w_A = w_iota
 
-        # Curriculum weight on the poorly-constrained combo
-        w = self._w_iota_fn(cos_iota)  # (N,) ∈ [0, 1]
-        w_mean = tf.reduce_mean(w)
+        # Per-combo weighted mean loss
+        loss_A_mean = tf.reduce_mean(w_A * loss_A_per_sample)
+        loss_B_mean = tf.reduce_mean(w_B * loss_B_per_sample)
 
-        # Weighted mean loss for each combo
-        loss_good_mean = tf.reduce_mean(loss_good)
-        loss_poor_mean = tf.reduce_mean(w * loss_poor)
+        s_A = self.log_vars["combo_A"]
+        s_B = self.log_vars["combo_B"]
 
-        total = total + tf.exp(-s_good) * loss_good_mean + s_good
-        total = total + tf.exp(-s_poor) * (w_mean * loss_poor_mean) + s_poor
+        total = total + tf.exp(-s_A) * loss_A_mean + s_A
+        total = total + tf.exp(-s_B) * loss_B_mean + s_B
 
         # All other heads (standard losses)
         total = total + self._other_heads_loss(y_true, y_pred, sample_weight)

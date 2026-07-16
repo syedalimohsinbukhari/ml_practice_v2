@@ -34,9 +34,11 @@ loss:
     combo_A: 3.0
     combo_B: 3.0
   variance_penalty: 0.0
-  # From Step 1.1: combo_B (φc−2ψ) is the well-constrained combo.
-  # combo_A (φc+2ψ) gets the curriculum weight w(ι).
+  # From Step 1.1 (rev2): combo_B (φc−2ψ) is well-constrained for cos ι > 0.
+  # The well-constrained label FLIPS sign with cos ι — sign_dependent_combo
+  # enables dynamic per-sample assignment in the trainer.
   well_constrained_combo: combo_B
+  sign_dependent_combo: true
 
 optim:
   lr: 1.0e-3

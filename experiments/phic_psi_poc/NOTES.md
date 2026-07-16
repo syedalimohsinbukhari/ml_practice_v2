@@ -1,7 +1,8 @@
 # φc/ψ Degeneracy PoC — Running Notes
 
 Companion to `phic_psi_implementation_plan_v4.md` and
-`phi_c_psi_degeneracy_poc.md`.
+`phi_c_psi_degeneracy_poc.md`.  Detailed run-by-run results are in
+[`results.md`](results.md).
 
 ## Setup
 
@@ -56,6 +57,23 @@ Companion to `phic_psi_implementation_plan_v4.md` and
   - **Decision unchanged: use w_iota_default (1−cos²ι) for Run B.** The empirical
     curve's low edge-on asymptote (0.12) may be a real physical signal or a Jacobian
     artifact — either way, the default is safer for an initial go/no-go run.
+
+### Resolved (2026-07-16, rev3 — deep grid sweep + bootstrap)
+
+- [Step 1.1] ✓ **rev3: ι sweep confirms physics trend + bootstrap confirms significance.**
+  - Deep grid: 200 sky positions, 50 ι points (25/sign), 5000 bootstrap samples.
+  - The ratio GROWS toward face-on (~1.6× at ι≈0.1) and SHRINKS toward edge-on
+    (~1.1× at ι≈π/2) — exactly the trend physics predicts.
+  - 95% CI excludes 1.0 in both sign regimes → statistically significant.
+  - See `results.md` for the full sweep table and `sweep_1_1_ratio_vs_iota.png`
+    for the plot.
+  - **Verdict: real, modest signal. Proceed with sign_dependent_combo=true.**
+
+- [Step 1.2] ✓ **rev3: sky-averaging confirmed, intermediate shape reported.**
+  - 200 sky positions, 200 ι points, 5-point intermediate shape printed.
+  - w peaks at intermediate ι (~0.8 rad) then drops toward edge-on — unexpected
+    but may reflect real physics (both polarisations at intermediate angles).
+  - **Decision unchanged: use w=1−cos²ι default for Run B.**
 
 - [Step 1.6] ✓ cos ι histogram (run on lab GPU machine, 2026-07-16).
   - Face-on fraction (|cos ι| > 0.9): 28.7%.

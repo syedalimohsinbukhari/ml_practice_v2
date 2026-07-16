@@ -16,10 +16,15 @@ Usage::
 
 Flags::
 
-    --data-path PATH    Path to HDF5 file (default: combined_repackaged.hdf)
-    --skip-histogram    Skip the cos ι histogram (Step 1.6)
-    --skip-sign-check   Skip the sign/combination check (Step 1.1)
-    --skip-w-derivation Skip the w(ι) derivation (Step 1.2)
+    --data-path PATH      Path to HDF5 file (default: combined_repackaged.hdf)
+    --skip-histogram      Skip the cos ι histogram (Step 1.6)
+    --skip-sign-check     Skip the sign/combination check (Step 1.1)
+    --skip-w-derivation   Skip the w(ι) derivation (Step 1.2)
+    --n-sky N             Sky positions for averaging (default: 200)
+    --n-iota-sweep N      ι points per sign regime in Step 1.1 sweep (default: 25)
+    --n-iota-w N          ι points in Step 1.2 w(ι) grid (default: 200)
+    --n-sweep N           Combo values per sky position (default: 50)
+    --n-boot N            Bootstrap samples for CI (default: 5000)
 """
 
 from __future__ import annotations
@@ -42,7 +47,11 @@ sys.path.insert(0, str(Path(_REPO_ROOT) / "src"))
 
 
 def _check_sign_combination(
-    n_sky_samples: int = 200, seed: int = 42
+    n_sky_samples: int = 200,
+    n_iota_sweep: int = 25,
+    n_sweep: int = 50,
+    n_boot: int = 5000,
+    seed: int = 42,
 ) -> dict:
     """Using the toy antenna-response model (Appendix A.5):
 
@@ -54,8 +63,12 @@ def _check_sign_combination(
     5. At non-zero ι, compute which linear combination (φc+2ψ or φc−2ψ)
        correlates more strongly with R, δ.
 
-    Returns dict with keys: harness_passes, well_constrained_combo,
-    correlation_ratio, sign_flip.
+    Args:
+        n_sky_samples: Number of random (a,b) sky-position pairs.
+        n_iota_sweep: ι points PER SIGN REGIME in the sweep (50 total).
+        n_sweep: Combo values swept per sky position per ι.
+        n_boot: Bootstrap resamples for 95% CI.
+        seed: Random seed for reproducibility.
     """
     from experiments.phic_psi_poc.curriculum import (
         _random_sky_coefficients,
@@ -119,7 +132,7 @@ def _check_sign_combination(
     #      shrink as ι→π/2 per the underlying physics.
     #   3. Bootstrap the ratio at the two reference ι values to check
     #      whether 1.2× is statistically distinguishable from 1.0×.
-    n_sweep = 50  # deeper grid: 50 combo values per sky position
+    # n_sweep is now a parameter (was hardcoded to 50)
 
     def _correlations_at_iota(iota_val, rng_local):
         """Compute mean combo_A and combo_B correlations at a single ι."""
@@ -164,10 +177,10 @@ def _check_sign_combination(
     # Physics prediction: the gap between well- and poorly-constrained combos
     # should WIDEN as ι→0 (more degenerate) and CLOSE as ι→π/2 (less degenerate).
     # A ratio that stays flat at ~1.2× across all ι would be suspicious.
-    # Deep grid sweep: 25 points per sign regime (50 total) from near-face-on
+    # Deep grid sweep: n_iota_sweep points per sign regime from near-face-on
     # to near-edge-on.  Avoid the exact poles where finite differences break.
-    sweep_iotas_pos = np.linspace(0.05, np.pi / 2 - 0.02, 25)       # cos ι > 0
-    sweep_iotas_neg = np.linspace(np.pi / 2 + 0.02, np.pi - 0.05, 25)  # cos ι < 0
+    sweep_iotas_pos = np.linspace(0.05, np.pi / 2 - 0.02, n_iota_sweep)       # cos ι > 0
+    sweep_iotas_neg = np.linspace(np.pi / 2 + 0.02, np.pi - 0.05, n_iota_sweep)  # cos ι < 0
 
     sweep_results = []
     for iota_s in sweep_iotas_pos:
@@ -201,7 +214,6 @@ def _check_sign_combination(
 
         # Bootstrap 95% CI on the ratio
         n_sky = len(raw_A)
-        n_boot = 5000
         boot_ratios = np.zeros(n_boot)
         for b in range(n_boot):
             idx = rng.integers(0, n_sky, size=n_sky)
@@ -391,6 +403,32 @@ def main():
         "--skip-w-derivation", action="store_true",
         help="Skip w(ι) derivation (Step 1.2)",
     )
+    # Default rationale: these values balance resolution against runtime.
+    # 200 sky positions × 25 ι points × 50 combo sweeps ≈ 500k evaluations
+    # per sign regime (~1M total for Step 1.1).  Pilot run at 8 points
+    # showed a clean trend; 25 gives ~3× the resolution.  200 bootstrap
+    # sky positions and 200 w(ι) grid points are 4× and 2× the original
+    # values respectively.  All are tunable — see --help.
+    parser.add_argument(
+        "--n-sky", type=int, default=200,
+        help="Sky positions for averaging (default: 200)",
+    )
+    parser.add_argument(
+        "--n-iota-sweep", type=int, default=25,
+        help="ι points per sign regime in Step 1.1 sweep (default: 25)",
+    )
+    parser.add_argument(
+        "--n-iota-w", type=int, default=200,
+        help="ι points in Step 1.2 w(ι) grid (default: 200)",
+    )
+    parser.add_argument(
+        "--n-sweep", type=int, default=50,
+        help="Combo values per sky position (default: 50)",
+    )
+    parser.add_argument(
+        "--n-boot", type=int, default=5000,
+        help="Bootstrap samples for CI (default: 5000)",
+    )
     args = parser.parse_args()
 
     print("=" * 70)
@@ -400,7 +438,12 @@ def main():
     # ---- Step 1.1: Sign / combination check ----
     if not args.skip_sign_check:
         print("\n── Step 1.1: Sign / combination check ──")
-        result_1_1 = _check_sign_combination()
+        result_1_1 = _check_sign_combination(
+            n_sky_samples=args.n_sky,
+            n_iota_sweep=args.n_iota_sweep,
+            n_sweep=args.n_sweep,
+            n_boot=args.n_boot,
+        )
         if not result_1_1["harness_passes"]:
             print("\n  *** ABORT: harness check failed. Fix the analytical model.")
             sys.exit(1)
@@ -412,12 +455,12 @@ def main():
         print("\n── Step 1.2: Curriculum weight derivation ──")
         from experiments.phic_psi_poc.curriculum import derive_w_iota
 
-        n_sky = 200
-        n_iota = 200
-        result_1_2 = derive_w_iota(n_sky_samples=n_sky, n_iota_points=n_iota)
+        result_1_2 = derive_w_iota(
+            n_sky_samples=args.n_sky, n_iota_points=args.n_iota_w
+        )
         # rev3: confirm sky-averaging and ι sampling density
-        print(f"  Sky-averaging: ✓ averaged over {n_sky} random sky-location (a,b) pairs")
-        print(f"  ι grid: {n_iota} points from ι≈0.001 to ι≈π/2")
+        print(f"  Sky-averaging: ✓ averaged over {args.n_sky} random sky-location (a,b) pairs")
+        print(f"  ι grid: {args.n_iota_w} points from ι≈0.001 to ι≈π/2")
         print(f"  {result_1_2['fit_info']}")
         # Endpoint values from the interpolated curve
         w_interp = result_1_2["w_interpolated"]

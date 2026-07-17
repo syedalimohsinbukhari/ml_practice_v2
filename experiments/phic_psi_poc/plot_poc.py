@@ -16,12 +16,7 @@ Examples::
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
-
-# Ensure src/ is on the path so scripts.plot_run can import gwml
-# (same pattern as train_poc.py:27)
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 
 def main() -> None:

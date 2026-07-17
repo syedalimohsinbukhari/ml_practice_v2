@@ -147,10 +147,18 @@ architecture).
 python experiments/phic_psi_poc/run_full.py
 ```
 
-This chains train_poc → plot_run → evaluate for every `config_*.yaml` in
-the experiments directory (skips smoke configs). Handles both baseline and
-poc modes correctly — builds SumDiffTrainer for evaluation so weight
-loading works regardless of mode.
+Chains `train_poc.py` → `plot_poc.py` → `evaluate_poc.py` for every
+`config_*.yaml` in the experiments directory (skips smoke configs).  Each
+step runs as an independent subprocess so GPU memory is freed between
+steps — mirrors the `scripts/run_full.py` pattern.
+
+The three scripts can also be run individually:
+
+```bash
+python experiments/phic_psi_poc/train_poc.py experiments/phic_psi_poc/config_poc.yaml
+python experiments/phic_psi_poc/plot_poc.py experiments/phic_psi_poc/config_poc.yaml
+python experiments/phic_psi_poc/evaluate_poc.py experiments/phic_psi_poc/config_poc.yaml --split validation
+```
 
 ### Run C (ι=0 slice) — not yet configured
 

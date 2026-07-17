@@ -18,6 +18,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from scripts.plot_run import _load_config, _resolve_run_dir, plot_history, plot_diagnostics
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -39,13 +41,6 @@ def main() -> None:
         help="directory for PNG outputs; default: the selected run directory",
     )
     args = parser.parse_args()
-
-    from scripts.plot_run import (
-        _load_config,
-        _resolve_run_dir,
-        plot_diagnostics,
-        plot_history,
-    )
 
     _, cfg = _load_config(args.config)
     run_dir = _resolve_run_dir(cfg, args.run_folder)

@@ -35,24 +35,32 @@ from datetime import datetime as _dt
 class _Tee:
     """Write to both a file and the original stdout."""
     def __init__(self, file_path):
-        self.file = open(file_path, "w", buffering=1)
         self.stdout = sys.stdout
+        try:
+            self.file = open(file_path, "w", buffering=1)
+        except OSError as e:
+            print(f"WARNING: could not open log file {file_path}: {e}", file=self.stdout)
+            self.file = None
     def write(self, data):
         self.stdout.write(data)
-        self.file.write(data)
+        if self.file:
+            self.file.write(data)
     def flush(self):
         self.stdout.flush()
-        self.file.flush()
+        if self.file:
+            self.file.flush()
     def close(self):
-        self.file.close()
+        if self.file:
+            self.file.close()
 
-_TEE = None
 _LOG_FILE = None
+_TEE = None
 
 def _setup_logging(script_name, out_dir):
     global _TEE, _LOG_FILE
     ts = _dt.now().strftime("%Y%m%d_%H%M%S")
     _LOG_FILE = out_dir / f"{script_name}_{ts}.log"
+    print(f"Logging to: {_LOG_FILE}", file=sys.stdout)
     _TEE = _Tee(str(_LOG_FILE))
     sys.stdout = _TEE
 

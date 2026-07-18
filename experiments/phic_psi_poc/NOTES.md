@@ -171,9 +171,14 @@ until this is resolved.
 ### Next steps
 
 - [x] Run `diagnostic_checks.py` on GPU machine
-- [ ] Run Check 5 (tanh saturation) on GPU machine to confirm root cause
-- [ ] If saturation confirmed: try `activation: linear` for PERIODIC heads,
-      or reduce Dense layer initialization variance
+- [x] Fix logging: `_Tee` now guards against file-open failures, prints log
+      path before stdout redirect. Applied to both analyse_predictions.py
+      and diagnostic_checks.py.
+- [x] Fix Check 2: `_patch_log_vars` now also cleans `head_loss`
+- [ ] Re-run `diagnostic_checks.py` on GPU — the second run (with Check 5)
+      didn't produce a log file; hardened logging should fix this
+- [ ] If Check 5 confirms tanh saturation: try `activation: linear` for
+      PERIODIC heads, or reduce Dense layer initialization variance
 - [ ] Re-run baseline (poc_a / tcn) with fix to verify heads train
 - [ ] THEN implement ι-conditioning plan (`plan_iota_conditioning.md`)
 - [ ] Investigate sky_position degradation in SumDiffTrainer

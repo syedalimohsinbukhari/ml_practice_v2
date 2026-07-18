@@ -45,21 +45,27 @@ sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc"))
 # Logging: tee stdout to both console and a timestamped log file
 # ---------------------------------------------------------------------------
 from datetime import datetime as _dt
-import contextlib as _cl
 
 class _Tee:
     """Write to both a file and the original stdout."""
     def __init__(self, file_path):
-        self.file = open(file_path, "w", buffering=1)
         self.stdout = sys.stdout
+        try:
+            self.file = open(file_path, "w", buffering=1)
+        except OSError as e:
+            print(f"WARNING: could not open log file {file_path}: {e}", file=self.stdout)
+            self.file = None
     def write(self, data):
         self.stdout.write(data)
-        self.file.write(data)
+        if self.file:
+            self.file.write(data)
     def flush(self):
         self.stdout.flush()
-        self.file.flush()
+        if self.file:
+            self.file.flush()
     def close(self):
-        self.file.close()
+        if self.file:
+            self.file.close()
 
 _LOG_FILE = None
 _TEE = None
@@ -68,13 +74,17 @@ def _setup_logging(script_name: str):
     global _LOG_FILE, _TEE
     ts = _dt.now().strftime("%Y%m%d_%H%M%S")
     _LOG_FILE = OUT_DIR / f"{script_name}_{ts}.log"
+    # Print to original stdout BEFORE redirecting
+    print(f"Logging to: {_LOG_FILE}", file=sys.stdout)
     _TEE = _Tee(str(_LOG_FILE))
     sys.stdout = _TEE
 
 def _teardown_logging():
+    global _TEE
     if _TEE:
         sys.stdout = _TEE.stdout
         _TEE.close()
+        _TEE = None
 
 # ---------------------------------------------------------------------------
 
@@ -537,31 +547,71 @@ def check_gradient_routing():
     trainer(strain_batch[:1])
     trainer.load_weights(str(weights_path))
 
-# Snapshot all trainable weights and find φc/ψ head weights
-    print(f"\n  All trainable weights ({len(trainer.trainable_weights)} tensors):")
-    phi_psi_weights = {}
-    for w in trainer.trainable_weights:
-        if "coa_phase" in w.name or "polarization_angle" in w.name:
-            phi_psi_weights[w.name] = w.numpy().copy()
-            print(f"    {w.name}: shape={w.shape}  norm={np.linalg.norm(w):.6f}")
+    # ------------------------------------------------------------------
+    # Weight discovery: trainer.trainable_weights may only contain log_vars
+    # (self.add_weight in _patch_log_vars) because Keras 3 does not always
+    # track self.base as a sublayer.  Pull from both sources.
+    # ------------------------------------------------------------------
+    _sources = {
+        "trainer.trainable_weights": trainer.trainable_weights,
+        "trainer.base.trainable_weights": trainer.base.trainable_weights,
+    }
 
-    if not phi_psi_weights:
-        print(f"  ⚠ No coa_phase/polarization_angle weights found in trainable_weights!")
-        print(f"  Printing first 10 weight names for debugging:")
-        for w in trainer.trainable_weights[:10]:
+    for label, wlist in _sources.items():
+        print(f"\n  {label} ({len(wlist)} tensors):")
+        for w in wlist:
             print(f"    {w.name}")
 
+    # Combine and deduplicate by object identity
+    seen_ids = set(id(v) for v in trainer.trainable_weights)
+    all_weights = list(trainer.trainable_weights)
+    for w in trainer.base.trainable_weights:
+        if id(w) not in seen_ids:
+            seen_ids.add(id(w))
+            all_weights.append(w)
+
+    print(f"\n  Combined unique trainable weights: {len(all_weights)}")
+
+    # Filter helper — match head names or the gw_multihead submodel prefix
+    def _is_phi_psi(name: str) -> bool:
+        return ("coa_phase" in name or
+                "polarization_angle" in name or
+                "polarization" in name)  # shorter alias
+
+    # Snapshot φc/ψ head weights
+    phi_psi_weights = {}
+    phi_psi_vars = []
+    for w in all_weights:
+        if _is_phi_psi(w.name):
+            phi_psi_weights[w.name] = w.numpy().copy()
+            phi_psi_vars.append(w)
+            print(f"  Found φc/ψ weight: {w.name}: shape={w.shape}  "
+                  f"norm={np.linalg.norm(w):.6f}")
+
+    if not phi_psi_weights:
+        print(f"\n  ⚠ No coa_phase/polarization_angle weights found "
+              f"in combined weight list!")
+
+    # ------------------------------------------------------------------
     # Manual gradient step
+    # ------------------------------------------------------------------
+    # Capture predictions BEFORE the step for later perturbation check
+    y_pred_before = trainer(strain_batch[:8], training=False)
+
     with tf.GradientTape() as tape:
         y_pred = trainer(strain_batch, training=True)
         loss = trainer._total_loss(targets, y_pred)
-    grads = tape.gradient(loss, trainer.trainable_weights)
+    grads = tape.gradient(loss, all_weights)
 
-    # Check gradients for φc / ψ head weights
+    if grads is None:
+        print(f"\n  ⚠ tape.gradient returned None!")
+        return False
+
+    # Gradient norms for φc/ψ head weights
     print(f"\n  Gradient norms for φc/ψ-related weights:")
     found_any = False
-    for w, g in zip(trainer.trainable_weights, grads):
-        if "coa_phase" in w.name or "polarization_angle" in w.name:
+    for w, g in zip(all_weights, grads):
+        if _is_phi_psi(w.name):
             found_any = True
             gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
             if gn < 0:
@@ -573,22 +623,27 @@ def check_gradient_routing():
     if not found_any:
         print(f"  ⚠ No φc/ψ weight gradients found!")
 
-    # Also check combo head weights (combo_A / combo_B are log_vars, not
-    # model weights — but they drive the loss weighting)
-    for w, g in zip(trainer.trainable_weights, grads):
-        if any(k in w.name for k in ["combo_A", "combo_B", "log_var"]):
+    # Gradient norms for combo log-var weights
+    print(f"\n  Gradient norms for combo log-var weights:")
+    for w, g in zip(all_weights, grads):
+        if any(k in w.name for k in ["log_var_combo", "combo_A", "combo_B"]):
             gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
-            if "combo" in w.name:
-                print(f"    {w.name}: grad_norm={gn:.6f}")
+            print(f"    {w.name}: grad_norm={gn:.6f}")
 
-    # Apply gradients and check weight change
-    trainer.optimizer.apply_gradients(zip(grads, trainer.trainable_weights))
+    # Apply gradients to COMBINED weight list
+    trainer.optimizer.apply_gradients(zip(grads, all_weights))
 
+    # Get post-step predictions
+    y_pred_after = trainer(strain_batch[:8], training=False)
+
+    # ------------------------------------------------------------------
+    # Weight deltas for φc/ψ weights
+    # ------------------------------------------------------------------
     print(f"\n  Weight deltas after one gradient step:")
     any_changed = False
     for name, before in phi_psi_weights.items():
         after = None
-        for w in trainer.trainable_weights:
+        for w in all_weights:
             if w.name == name:
                 after = w.numpy()
                 break
@@ -602,9 +657,43 @@ def check_gradient_routing():
                 print(f"    {name}: delta={delta:.2e} ZERO CHANGE")
 
     if phi_psi_weights and not any_changed:
-        print(f"\n  ⚠ NO φc/ψ WEIGHT CHANGE — gradient signal is not reaching these heads!")
+        print(f"\n  ⚠ NO φc/ψ WEIGHT CHANGE — gradient signal is not "
+              f"reaching these heads!")
     elif phi_psi_weights and any_changed:
-        print(f"\n  ok: gradient signal reaches φc/ψ weights via combo path.")
+        print(f"\n  ✓ gradient signal reaches φc/ψ weights via combo path.")
+
+    # ------------------------------------------------------------------
+    # Prediction perturbation check
+    # ------------------------------------------------------------------
+    print(f"\n  Prediction perturbation per head (mean|Δ| after gradient step):")
+    perturbed_any = False
+    for head_name in y_pred_before.keys():
+        # Drop auxiliary outputs (e.g. sky_position_mu_raw, sky_position_kappa_raw)
+        # to avoid double counting.
+        if head_name in targets:
+            before_val = y_pred_before[head_name].numpy()
+            after_val = y_pred_after[head_name].numpy()
+            diff_norm = np.mean(np.linalg.norm(
+                after_val - before_val, axis=-1
+            )) if before_val.ndim >= 2 else np.mean(np.abs(after_val - before_val))
+            before_norm = np.mean(np.linalg.norm(
+                before_val, axis=-1
+            )) if before_val.ndim >= 2 else np.mean(np.abs(before_val))
+            rel_change = diff_norm / max(before_norm, 1e-12)
+            flagged = " *changed*" if diff_norm > 1e-8 else ""
+            if diff_norm > 1e-8:
+                perturbed_any = True
+            print(f"    {head_name}: mean|Δ|={diff_norm:.2e}  "
+                  f"rel_change={rel_change:.2e}{flagged}")
+        else:
+            print(f"    {head_name}: (auxiliary output, skipped)")
+
+    if perturbed_any:
+        print(f"\n  ✓ Gradient step perturbed model predictions — "
+              f"backprop is wired through the loss to at least some heads.")
+    else:
+        print(f"\n  ⚠ Predictions unchanged — gradient step had no effect "
+              f"on any head's output.")
 
     return True
 

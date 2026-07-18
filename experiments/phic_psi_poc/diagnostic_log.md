@@ -339,11 +339,26 @@ layers is simply too large for tanh.
 - [x] Root cause: tanh saturation at random init for PERIODIC heads
 - [x] Mechanism: init variance on coa_phase/pol_angle output layers too large
 - [x] Fix determined: `activation="tanh"` → `"linear"` in heads_spec.py
-- [ ] Apply fix
+- [x] Apply fix (2026-07-18): `activation="tanh"` → `"linear"` in heads_spec.py
+      for inclination, coa_phase, polarization_angle
 - [ ] Retrain all models (7 configs)
 - [ ] Re-run full diagnostics to test degeneracy hypothesis
+
+### Fix applied
+
+Changed in `src/gwml/heads_spec.py`:
+```
+inclination:         activation="tanh" → "linear"
+coa_phase:           activation="tanh" → "linear"
+polarization_angle:  activation="tanh" → "linear"
+```
+
+`normalize_unit` in the combo loss pipeline already projects outputs onto the
+unit circle. `tanh` was redundant and introduced a saturation bottleneck.
+With linear activation, the model learns unconstrained directions and
+normalize_unit handles the normalization.
 
 ---
 
 *Last updated: 2026-07-18*
-*Next: Apply tanh→linear fix, retrain all models, re-diagnose*
+*Next: Retrain all models, re-run full diagnostics to test degeneracy hypothesis*

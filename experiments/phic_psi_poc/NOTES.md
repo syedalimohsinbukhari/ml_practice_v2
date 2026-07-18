@@ -190,10 +190,12 @@ unit-circle projection — tanh is redundant and creates saturation bottleneck.
 ### Next steps
 
 - [x] Root cause identified: tanh saturation on PERIODIC heads
-- [ ] Check 7: early-training saturation timing (init vs drift)
-- [ ] Apply tanh→linear fix in heads_spec.py
-- [ ] Retrain all models with linear activation
-- [ ] Re-run full diagnostics — THEN test degeneracy hypothesis
+- [x] Check 7: saturation at step 0 — init variance confirmed
+- [x] Applied fix: `activation="tanh"` → `"linear"` for all 3 PERIODIC heads
+      (inclination, coa_phase, polarization_angle) in `src/gwml/heads_spec.py`
+- [ ] Retrain all models (7 configs) with linear activation
+- [ ] Re-run `analyse_predictions.py` to check φc/ψ learnability
+- [ ] THEN implement ι-conditioning plan (`plan_iota_conditioning.md`)
 
 ### Next steps
 

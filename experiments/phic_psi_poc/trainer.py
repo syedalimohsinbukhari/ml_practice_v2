@@ -172,6 +172,7 @@ class SumDiffTrainer(MultiHeadTrainer):
         """Remove φc/ψ log_vars; add combo_A / combo_B log_vars."""
         for h in self._SUMDIFF_SOURCE_HEADS:
             self.log_vars.pop(h, None)
+            self.head_loss.pop(h, None)  # also remove stale huber registrations
 
         combo_clamp_cfg = cfg.get("combo_log_var_clamp", None)
         if combo_clamp_cfg is None:

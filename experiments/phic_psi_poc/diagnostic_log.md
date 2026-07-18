@@ -294,5 +294,56 @@ onto the unit circle — tanh is redundant and harmful.
 
 ---
 
-*Last updated: 2026-07-18 14:00*
-*Next: Check 7 (early-training saturation timing) + tanh→linear fix + retrain*
+---
+
+## Run 4 — 2026-07-18 (Check 7 only)
+
+**Script version:** Check 7 added (early-training saturation timing).
+**Log:** `diagnostic_output/diagnostic_checks_20260718_<timestamp>.log`
+
+### Check 7: SATURATION AT INIT — confirmed
+
+```
+Step 0 (before any training)
+  Sample 0: z_phic_raw = [-1.000000, -1.000000]  norm=1.4142  SATURATED
+  Sample 1: z_phic_raw = [-1.000000, -1.000000]  norm=1.4142  SATURATED
+  Sample 2: z_phic_raw = [-1.000000, -1.000000]  norm=1.4142  SATURATED
+
+  Any |value| > 0.99 across all 8 samples:
+    coa_phase:          SATURATED
+    polarization_angle: SATURATED
+```
+
+Saturation is immediate — before any training step, the random-init weights
+already push pre-activation logits past tanh's flat region. The model is
+born dead.
+
+**Conclusion:** Fix is `activation: linear` only. No gradient clipping needed
+(no spike to protect against). The init variance on PERIODIC head output
+layers is simply too large for tanh.
+
+### All hypotheses resolved
+
+| Hypothesis | Status | Evidence |
+|-----------|--------|----------|
+| Data pipeline bug | Ruled out | Check 1 ×4 |
+| Loss wiring bug | Fixed | Check 2 confirmed ×3 |
+| Tanh saturation | **CONFIRMED AT INIT** | Check 6: raw outputs ±1; Check 7: saturated step 0 |
+| PERIODIC encoding broken | Ruled out | Inclination trains when not saturated |
+| Disconnected graph | Ruled out | Gradient reaches post-tanh output (0.308) |
+| Attenuated gradient | Superseded | Gradient healthy until tanh kills it |
+| Init-variance vs drift | **INIT** | Check 7: saturated before first gradient step |
+
+### Bug closed. Ready for fix phase.
+
+- [x] Root cause: tanh saturation at random init for PERIODIC heads
+- [x] Mechanism: init variance on coa_phase/pol_angle output layers too large
+- [x] Fix determined: `activation="tanh"` → `"linear"` in heads_spec.py
+- [ ] Apply fix
+- [ ] Retrain all models (7 configs)
+- [ ] Re-run full diagnostics to test degeneracy hypothesis
+
+---
+
+*Last updated: 2026-07-18*
+*Next: Apply tanh→linear fix, retrain all models, re-diagnose*

@@ -128,57 +128,85 @@ a transforms.json save/load issue in the SumDiffTrainer pipeline.
 - `analyse_predictions.py` — loads all models, predicts on validation,
   reports per-head stats (MAE, R², circular concentration, mode-collapse
   detection), writes CSVs + markdown report + PNG plots.
-- `diagnostic_checks.py` — five deep checks (see `diagnostic_output/` for
-  latest run):
-  1. True label distribution (are labels themselves collapsed?)
-  2. Loss function verification (circular vs Huber)
-  3. Log-var trajectory over training (early collapse detection)
-  4. Gradient routing (do φc/ψ weights change?)
-  5. Pre-tanh logit saturation (are heads frozen by tanh saturation?)
-- `analyse_phic_distributions.py` — φc-only distribution analysis
-  (superseded by analyse_predictions.py, kept for reference)
+- `diagnostic_checks.py` — five deep checks (Check 6 pending):
+  1. True label distribution
+  2. Loss function verification
+  3. Log-var trajectory over training
+  4. Gradient routing + prediction perturbation
+  5. Pre-tanh logit saturation
+  6. (pending) Gradient chain instrument through combo pipeline
+- `diagnostic_log.md` — **thesis reference**: chronological log of every
+  diagnostic run, hypothesis tested, outcome, and wrong turns. Tracks which
+  hypotheses are active/ruled out and what evidence supports each.
+### Diagnostic findings — Run 2 (2026-07-18 13:17)
 
-### Diagnostic findings (2026-07-18)
+See `diagnostic_output/diagnostic_checks_20260718_131719.log` for full output.
 
-Ran `diagnostic_checks.py` on lab GPU. Key results:
+1. **True labels: CLEAN.** Confirmed again — no data pipeline bug.
+2. **Loss wiring: FIXED CONFIRMED.** poc_b shows `head_loss` without
+   coa_phase/pol_angle. `head_loss.pop()` fix works.
+3. **Circular loss still frozen.** Identical to Run 1 — this reads old
+   training-history CSVs, so no change expected. Needs fresh retrain.
+4. **Prediction perturbation: SMOKING GUN.** After one gradient step:
+   - mchirp: mean|Δ| = 0.81 (changes)
+   - inclination: mean|Δ| = 0.46 (changes — proves PERIODIC encoding is fine)
+   - **coa_phase: mean|Δ| = 0.00** (zero change)
+   - **polarization_angle: mean|Δ| = 0.00** (zero change)
+   - combo_A/B log_vars DO get gradient (0.097, 0.095)
+   - Weight names are flat (`kernel`, `bias` — Keras strips prefixes), so
+     name-matching filter has false negatives. Layer lookup (Check 5) works.
+5. **Tanh saturation: RULED OUT.** est_logit_mag ≈ 0.5 for all heads, well
+   below 3.0 threshold. Kernels change ~3% over training — weights move but
+   far too slowly. My prior hypothesis was wrong.
 
-1. **True labels: CLEAN.** All params well-spread (circ_r ≈ 0.005). Data
-   pipeline is fine — collapse is a training phenomenon.
-2. **Loss wiring: BUG FOUND & FIXED.** `_patch_log_vars` removed coa_phase/pol_angle
-   from `self.log_vars` but left stale huber registrations in `self.head_loss`.
-   Never called ( `_other_heads_loss` correctly skips them) but cosmetic fix
-   applied: `self.head_loss.pop(h, None)` added alongside log_vars cleanup.
-3. **Circular loss frozen at random expectation.** 1−cos(Δθ) ≈ 1.0 from epoch 0-79
-   in both poc_a AND poc_b. Never moved. R² for coa_phase = −1.988 frozen
-   across all 80 epochs in poc_a (baseline, no combo machinery). This proves
-   the degeneracy hasn't been tested yet — the heads never trained AT ALL.
-4. **Gradient routing: weight-name filter bug.** Snapshot filter missed Keras
-   naming convention. Fixed to print all weight names for debugging.
-   combo_A/combo_B log_vars DO get gradient (norm ≈ 0.1), confirming the loss
-   graph is wired.
-5. **Pre-tanh saturation check: ADDED.** Hypothesis: `tanh` activation on
-   PERIODIC heads saturates at init (|logit| > 3-5), killing gradient.
-   This would explain frozen weights across all architectures, independent of
-   loss design. Check 5 dumps kernel/bias norms for coa_phase, pol_angle, and
-   mchirp to compare.
+### Revised diagnosis (Run 2)
 
-**Revised diagnosis:** This is likely a tanh-saturation / vanishing-gradient
-trap in the output layer of PERIODIC heads, not a degeneracy problem. The
-circular loss and combo-transform were never actually tested — the heads were
-dead from epoch 0. Every φc/ψ result across all architectures is uninterpretable
-until this is resolved.
+Not tanh saturation. Not a disconnected graph (combo log_vars get gradient,
+trunk-dependent heads change). The problem: **severely attenuated gradient
+through the circular loss → combo transform → head output chain**, specific
+to the coa_phase/pol_angle output layers. The gradient exists but is ~orders
+of magnitude too weak to train the heads in 80 epochs.
+
+Inclination (same PERIODIC encoding, same trunk, NOT in the combo path) gets
+healthy gradient — this isolates the problem to the normalize_unit →
+complex_mul → 1−cosΔθ pipeline, not the PERIODIC encoding itself.
+
+### Diagnostic findings — Run 3 (2026-07-18 13:41) — ROOT CAUSE FOUND
+
+See `diagnostic_output/diagnostic_checks_20260718_134134.log` and
+`diagnostic_log.md` for full details.
+
+**Check 6: Tanh saturation CONFIRMED.** Forward-pass dump shows every sample
+produces `z_phic_raw = [-1.000000, +1.000000]` (norm=√2=1.4142) regardless of
+input. The post-tanh output gradient is healthy (0.308) but `tanh'(sat) ≈ 0`
+kills gradient to the weights. All contradictions resolved:
+- Check 3's `std_ratio = 1.414` = √2 = norm of saturated (±1,±1)
+- Check 4's "zero gradient but weight movement" = Adam momentum coasting
+- Check 5's "est_logit ≈ 0.5 ok" = estimate used wrong input-scale assumption
+
+**Fix:** `tanh → linear` for PERIODIC heads. `normalize_unit` already handles
+unit-circle projection — tanh is redundant and creates saturation bottleneck.
 
 ### Next steps
 
-- [x] Run `diagnostic_checks.py` on GPU machine
-- [x] Fix logging: `_Tee` now guards against file-open failures, prints log
-      path before stdout redirect. Applied to both analyse_predictions.py
-      and diagnostic_checks.py.
-- [x] Fix Check 2: `_patch_log_vars` now also cleans `head_loss`
-- [ ] Re-run `diagnostic_checks.py` on GPU — the second run (with Check 5)
-      didn't produce a log file; hardened logging should fix this
-- [ ] If Check 5 confirms tanh saturation: try `activation: linear` for
-      PERIODIC heads, or reduce Dense layer initialization variance
+- [x] Root cause identified: tanh saturation on PERIODIC heads
+- [ ] Check 7: early-training saturation timing (init vs drift)
+- [ ] Apply tanh→linear fix in heads_spec.py
+- [ ] Retrain all models with linear activation
+- [ ] Re-run full diagnostics — THEN test degeneracy hypothesis
+
+### Next steps
+
+- [x] Run `diagnostic_checks.py` on GPU machine (two runs completed)
+- [x] Fix logging hardened in both scripts
+- [x] Fix Check 2: `_patch_log_vars` cleans `head_loss` — confirmed working
+- [x] Check 5: tanh saturation ruled out (est_logit_mag ≈ 0.5, healthy)
+- [x] Isolated problem: gradient through circular loss chain is attenuated,
+      not disconnected. Inclination (same encoding, no combo) works fine.
+- [ ] Fix Check 4 weight-name lookup (layer-based, matching Check 5)
+- [ ] Run Check 6 (gradient chain instrument) on GPU to localize attenuation
+- [ ] Fix the bottleneck — likely normalize_unit epsilon or complex_mul
+      gradient routing
 - [ ] Re-run baseline (poc_a / tcn) with fix to verify heads train
 - [ ] THEN implement ι-conditioning plan (`plan_iota_conditioning.md`)
 - [ ] Investigate sky_position degradation in SumDiffTrainer

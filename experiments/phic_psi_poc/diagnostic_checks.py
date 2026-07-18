@@ -548,49 +548,51 @@ def check_gradient_routing():
     trainer.load_weights(str(weights_path))
 
     # ------------------------------------------------------------------
-    # Weight discovery: trainer.trainable_weights may only contain log_vars
-    # (self.add_weight in _patch_log_vars) because Keras 3 does not always
-    # track self.base as a sublayer.  Pull from both sources.
+    # Weight discovery: use layer-name lookup (same approach as Check 5).
+    #
+    # trainer.base.trainable_weights returns flat names like "kernel", "bias"
+    # — Keras strips the layer prefix, so substring matching on name fails
+    # (the root cause of the original bug).
+    #
+    # Instead, access layers by name via get_layer() and pull their weights
+    # directly.  Check 5 already demonstrates this pattern works.
     # ------------------------------------------------------------------
-    _sources = {
-        "trainer.trainable_weights": trainer.trainable_weights,
-        "trainer.base.trainable_weights": trainer.base.trainable_weights,
-    }
+    base_model = trainer.base
+    phi_psi_heads = ["coa_phase", "polarization_angle"]
 
-    for label, wlist in _sources.items():
-        print(f"\n  {label} ({len(wlist)} tensors):")
-        for w in wlist:
-            print(f"    {w.name}")
+    # Snapshot φc/ψ head weights and collect their variable tensors
+    phi_psi_snapshots = {}    # w.name -> numpy snapshot (for delta check)
+    phi_psi_vars = []          # tf.Variable list (for gradient computation)
 
-    # Combine and deduplicate by object identity
-    seen_ids = set(id(v) for v in trainer.trainable_weights)
-    all_weights = list(trainer.trainable_weights)
-    for w in trainer.base.trainable_weights:
-        if id(w) not in seen_ids:
-            seen_ids.add(id(w))
-            all_weights.append(w)
+    for head_name in phi_psi_heads:
+        try:
+            layer = base_model.get_layer(head_name)
+        except ValueError:
+            print(f"  Layer '{head_name}' not found in model — skipping")
+            continue
 
-    print(f"\n  Combined unique trainable weights: {len(all_weights)}")
-
-    # Filter helper — match head names or the gw_multihead submodel prefix
-    def _is_phi_psi(name: str) -> bool:
-        return ("coa_phase" in name or
-                "polarization_angle" in name or
-                "polarization" in name)  # shorter alias
-
-    # Snapshot φc/ψ head weights
-    phi_psi_weights = {}
-    phi_psi_vars = []
-    for w in all_weights:
-        if _is_phi_psi(w.name):
-            phi_psi_weights[w.name] = w.numpy().copy()
+        print(f"  Layer '{head_name}' has "
+              f"{len(layer.trainable_weights)} trainable weight(s):")
+        for w in layer.trainable_weights:
+            phi_psi_snapshots[w.name] = w.numpy().copy()
             phi_psi_vars.append(w)
-            print(f"  Found φc/ψ weight: {w.name}: shape={w.shape}  "
-                  f"norm={np.linalg.norm(w):.6f}")
+            print(f"    {w.name}: shape={w.shape}  "
+                  f"norm={np.linalg.norm(w.numpy()):.6f}")
 
-    if not phi_psi_weights:
+    if not phi_psi_snapshots:
         print(f"\n  ⚠ No coa_phase/polarization_angle weights found "
-              f"in combined weight list!")
+              f"via layer-name lookup!")
+        return False
+
+    # Also collect combo log-var weights (these ARE discoverable by name
+    # since they're added via self.add_weight on the trainer itself)
+    log_var_vars = []
+    for w in trainer.trainable_weights:
+        if any(k in w.name for k in ["log_var_combo", "combo_A", "combo_B"]):
+            log_var_vars.append(w)
+
+    # Combine all variables we care about for a single gradient computation
+    all_grad_vars = phi_psi_vars + log_var_vars
 
     # ------------------------------------------------------------------
     # Manual gradient step
@@ -601,37 +603,32 @@ def check_gradient_routing():
     with tf.GradientTape() as tape:
         y_pred = trainer(strain_batch, training=True)
         loss = trainer._total_loss(targets, y_pred)
-    grads = tape.gradient(loss, all_weights)
+    grads = tape.gradient(loss, all_grad_vars)
 
     if grads is None:
         print(f"\n  ⚠ tape.gradient returned None!")
         return False
 
     # Gradient norms for φc/ψ head weights
+    n_phi = len(phi_psi_vars)
     print(f"\n  Gradient norms for φc/ψ-related weights:")
-    found_any = False
-    for w, g in zip(all_weights, grads):
-        if _is_phi_psi(w.name):
-            found_any = True
-            gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
-            if gn < 0:
-                print(f"    {w.name}: None (NO GRADIENT)")
-            elif gn < 1e-8:
-                print(f"    {w.name}: {gn:.2e} (ZERO)")
-            else:
-                print(f"    {w.name}: {gn:.6f} ok")
-    if not found_any:
-        print(f"  ⚠ No φc/ψ weight gradients found!")
+    for w, g in zip(phi_psi_vars, grads[:n_phi]):
+        gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
+        if gn < 0:
+            print(f"    {w.name}: None (NO GRADIENT)")
+        elif gn < 1e-8:
+            print(f"    {w.name}: {gn:.2e} (ZERO)")
+        else:
+            print(f"    {w.name}: {gn:.6f} ok")
 
     # Gradient norms for combo log-var weights
     print(f"\n  Gradient norms for combo log-var weights:")
-    for w, g in zip(all_weights, grads):
-        if any(k in w.name for k in ["log_var_combo", "combo_A", "combo_B"]):
-            gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
-            print(f"    {w.name}: grad_norm={gn:.6f}")
+    for w, g in zip(log_var_vars, grads[n_phi:]):
+        gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
+        print(f"    {w.name}: grad_norm={gn:.6f}")
 
-    # Apply gradients to COMBINED weight list
-    trainer.optimizer.apply_gradients(zip(grads, all_weights))
+    # Apply gradients
+    trainer.optimizer.apply_gradients(zip(grads, all_grad_vars))
 
     # Get post-step predictions
     y_pred_after = trainer(strain_batch[:8], training=False)
@@ -641,9 +638,10 @@ def check_gradient_routing():
     # ------------------------------------------------------------------
     print(f"\n  Weight deltas after one gradient step:")
     any_changed = False
-    for name, before in phi_psi_weights.items():
+    for name, before in phi_psi_snapshots.items():
+        # Find the current value from the updated variable
         after = None
-        for w in all_weights:
+        for w in phi_psi_vars:
             if w.name == name:
                 after = w.numpy()
                 break
@@ -656,10 +654,10 @@ def check_gradient_routing():
             else:
                 print(f"    {name}: delta={delta:.2e} ZERO CHANGE")
 
-    if phi_psi_weights and not any_changed:
+    if phi_psi_snapshots and not any_changed:
         print(f"\n  ⚠ NO φc/ψ WEIGHT CHANGE — gradient signal is not "
               f"reaching these heads!")
-    elif phi_psi_weights and any_changed:
+    elif phi_psi_snapshots and any_changed:
         print(f"\n  ✓ gradient signal reaches φc/ψ weights via combo path.")
 
     # ------------------------------------------------------------------
@@ -796,6 +794,434 @@ def check_tanh_saturation():
 
 
 # ======================================================================
+# CHECK 6: Gradient chain through circular loss pipeline
+# ======================================================================
+
+def check_gradient_chain():
+    """Trace gradient norms at each stage of the circular loss pipeline.
+
+    Replicates the ``_poc_total_loss`` computation inside a
+    ``tf.GradientTape`` while watching intermediate tensors, then reports
+    the gradient norm at each stage to identify where signal attenuates.
+
+    Key intermediates (in order):
+        z_phic_raw / z_psi_raw  (tanh model outputs)
+        z_phic_norm / z_psi_norm  (after ``tf_normalize_unit``)
+        combo_A_pred / combo_B_pred  (after ``tf_complex_mul`` / conj)
+        per-sample circular losses, w-iota weighted, log-var scaled
+
+    Also computes the gradient for ``inclination`` as a healthy baseline
+    (same PERIODIC encoding, trains fine per Check 4).
+    """
+    print("\n\n" + "=" * 80)
+    print("CHECK 6: Gradient chain through circular loss pipeline")
+    print("=" * 80)
+
+    import tensorflow as tf
+    from train_poc import build_sumdiff_trainer
+    from curriculum import tf_w_iota
+    from transform_utils import (
+        tf_normalize_unit,
+        tf_complex_mul,
+        tf_complex_mul_conj,
+    )
+
+    config_path = ROOT / "experiments/phic_psi_poc/config_poc.yaml"
+    cfg = load_config(str(config_path))
+    run_dir = latest_run_dir(cfg)
+    weights_path = run_dir / "best.weights.h5"
+
+    if not weights_path.exists():
+        print(f"  no weights at {weights_path}")
+        return False
+
+    # ---- Load a single small batch (8 samples) ----
+    strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=128)
+    transforms = TargetTransforms(heads=["mchirp", "merger_time", "snr",
+                                          "sky_position", "coa_phase",
+                                          "polarization_angle", "inclination"])
+    transforms.fit(params)
+    ds = make_dataset(strain, params, transforms, 8, shuffle=False)
+    batch = next(iter(ds))
+    strain_batch, targets = batch
+    n = int(strain_batch.shape[0])
+
+    print(f"\n  Batch size: {n}")
+
+    # ---- Build trainer and load trained weights ----
+    trainer = build_sumdiff_trainer(cfg)
+    trainer(strain_batch[:1])  # build variable shapes
+    trainer.load_weights(str(weights_path))
+
+    # ---- Replicate the full loss pipeline inside a GradientTape ----
+    with tf.GradientTape(persistent=True) as tape:
+        # Forward pass
+        y_pred = trainer(strain_batch, training=True)
+
+        # ── Raw model outputs (post-tanh) ──
+        z_phic_raw = y_pred["coa_phase"]
+        z_psi_raw = y_pred["polarization_angle"]
+        incl_raw = y_pred["inclination"]
+
+        # Watch every intermediate tensor for gradient interrogation
+        tape.watch(z_phic_raw)
+        tape.watch(z_psi_raw)
+        tape.watch(incl_raw)
+
+        # ── Step 1: Normalise to unit vectors ──
+        z_phic_norm = tf_normalize_unit(z_phic_raw)
+        z_psi_norm = tf_normalize_unit(z_psi_raw)
+        tape.watch(z_phic_norm)
+        tape.watch(z_psi_norm)
+
+        # ── Step 2: Complex multiply to build combo vectors ──
+        combo_A_pred = tf_complex_mul(z_phic_norm, z_psi_norm)
+        combo_B_pred = tf_complex_mul_conj(z_phic_norm, z_psi_norm)
+        tape.watch(combo_A_pred)
+        tape.watch(combo_B_pred)
+
+        # True combo vectors (unit by construction; normalise for safety)
+        combo_A_true = tf_complex_mul(
+            tf_normalize_unit(targets["coa_phase"]),
+            tf_normalize_unit(targets["polarization_angle"]),
+        )
+        combo_B_true = tf_complex_mul_conj(
+            tf_normalize_unit(targets["coa_phase"]),
+            tf_normalize_unit(targets["polarization_angle"]),
+        )
+
+        # ── Step 3: Isotropic circular loss per combo ──
+        loss_A_per_sample = 1.0 - tf.reduce_sum(
+            combo_A_true * combo_A_pred, axis=-1
+        )
+        loss_B_per_sample = 1.0 - tf.reduce_sum(
+            combo_B_true * combo_B_pred, axis=-1
+        )
+
+        # ── Step 4: Curriculum weighting w(ι) ──
+        cos_iota = targets["inclination"][:, 1]
+        w_iota = tf_w_iota(cos_iota)
+
+        if trainer._sign_dependent:
+            pos_mask = tf.cast(cos_iota >= 0.0, tf.float32)
+            neg_mask = 1.0 - pos_mask
+            if trainer._well_constrained == "combo_A":
+                w_A = pos_mask + neg_mask * w_iota
+                w_B = neg_mask + pos_mask * w_iota
+            else:  # combo_B well-constrained
+                w_B = pos_mask + neg_mask * w_iota
+                w_A = neg_mask + pos_mask * w_iota
+        else:
+            if trainer._well_constrained == "combo_A":
+                w_A = tf.ones_like(w_iota)
+                w_B = w_iota
+            else:  # combo_B well-constrained
+                w_B = tf.ones_like(w_iota)
+                w_A = w_iota
+
+        # ── Step 5: Weighted mean losses ──
+        loss_A_mean = tf.reduce_mean(w_A * loss_A_per_sample)
+        loss_B_mean = tf.reduce_mean(w_B * loss_B_per_sample)
+
+        # ── Step 6: Log-var uncertainty weighting ──
+        s_A = trainer.log_vars["combo_A"]
+        s_B = trainer.log_vars["combo_B"]
+
+        combo_total = (
+            tf.exp(-s_A) * loss_A_mean + s_A
+            + tf.exp(-s_B) * loss_B_mean + s_B
+        )
+
+        # ── All other heads (inclination, mchirp, snr, ...) ──
+        other_total = trainer._other_heads_loss(targets, y_pred, None)
+
+        total_loss = combo_total + other_total
+
+    # ============================
+    # Report gradient norms
+    # ============================
+    print(f"\n  {'=' * 70}")
+    print(f"  {'Gradient chain — d(total_loss)/dtensor norms':^70}")
+    print(f"  {'=' * 70}")
+    print(f"  {'Tensor':<44s} {'Grad norm':<18s} {'Status':<10s}")
+    print(f"  {'-' * 44} {'-' * 18} {'-' * 10}")
+
+    def _report_gn(label, tensor):
+        g = tape.gradient(total_loss, tensor)
+        gn = float(tf.linalg.global_norm([g]) if g is not None else -1.0)
+        if gn < 0:
+            status = "NONE"
+        elif gn < 1e-10:
+            status = "ZERO"
+        elif gn < 1e-6:
+            status = "tiny"
+        elif gn < 1e-3:
+            status = "small"
+        else:
+            status = "OK"
+        print(f"  {label:<44s} {gn:<18.8f} {status:<10s}")
+        return gn
+
+    _report_gn("dL/d(combo_A_pred)", combo_A_pred)
+    _report_gn("dL/d(combo_B_pred)", combo_B_pred)
+    _report_gn("dL/d(z_phic_norm) [after normalize_unit]", z_phic_norm)
+    _report_gn("dL/d(z_psi_norm) [after normalize_unit]", z_psi_norm)
+    _report_gn("dL/d(z_phic_raw) [model output]", z_phic_raw)
+    _report_gn("dL/d(z_psi_raw) [model output]", z_psi_raw)
+    _report_gn("dL/d(inclination_raw) [healthy baseline]", incl_raw)
+
+    # Log-var gradients
+    print(f"\n  {'Log-var gradients:':44s}")
+    for lv_name in ("combo_A", "combo_B",):
+        g = tape.gradient(total_loss, trainer.log_vars[lv_name])
+        gn = float(tf.linalg.global_norm([g]) if g is not None else -1.0)
+        print(f"  {'dL/d(log_var_' + lv_name + ')':<44s} {gn:<18.8f}")
+
+    del tape  # persistent tape no longer needed
+
+    # ============================
+    # Per-sample forward-pass values
+    # ============================
+    print(f"\n  {'─' * 70}")
+    print(f"  Per-sample forward-pass values (first 3 of {n} samples)")
+    print(f"  {'─' * 70}")
+
+    for i in range(min(3, n)):
+        print(f"\n  Sample {i}:")
+
+        la = float(loss_A_per_sample[i])
+        lb = float(loss_B_per_sample[i])
+        wa = float(w_A[i])
+        wb = float(w_B[i])
+        print(f"    1-cosDelta combo_A  loss={la:.6f}  weight={wa:.4f}  "
+              f"weighted={la * wa:.6f}")
+        print(f"    1-cosDelta combo_B  loss={lb:.6f}  weight={wb:.4f}  "
+              f"weighted={lb * wb:.6f}")
+
+        # Combo vectors
+        for tag, vp, vt in [
+            ("combo_A", combo_A_pred, combo_A_true),
+            ("combo_B", combo_B_pred, combo_B_true),
+        ]:
+            p = vp[i].numpy()
+            t = vt[i].numpy()
+            print(f"    {tag}_pred  = [{p[0]:+.6f}, {p[1]:+.6f}]  "
+                  f"angle={np.arctan2(p[0], p[1]):.4f}")
+            print(f"    {tag}_true  = [{t[0]:+.6f}, {t[1]:+.6f}]  "
+                  f"angle={np.arctan2(t[0], t[1]):.4f}")
+
+        # Raw model outputs
+        for tag, vec in [("z_phic", z_phic_raw), ("z_psi", z_psi_raw)]:
+            v = vec[i].numpy()
+            norm = np.linalg.norm(v)
+            print(f"    {tag}_raw  = [{v[0]:+.6f}, {v[1]:+.6f}]  "
+                  f"norm={norm:.4f}")
+
+    # ============================
+    # Interpretation guide
+    # ============================
+    print(f"\n  {'─' * 70}")
+    print(f"  Interpretation guide")
+    print(f"  {'─' * 70}")
+    print(f"  1. combo_A_pred / combo_B_pred have healthy grad  → loss reaches combos")
+    print(f"  2. Grad drops from combo_A_pred to z_phic_norm    → complex_mul path")
+    print(f"  3. Grad drops from z_phic_norm to z_phic_raw       → normalize_unit")
+    print(f"  4. Grad at z_phic_raw is tiny but incl_raw is OK   → φc/ψ-specific issue")
+    print(f"  5. If even combo pred gradient is tiny              → loss fn / weighting")
+    print(f"  6. If z_phic_raw grad is OK but weights don't move → layer-level (Check 5)")
+
+    return True
+
+
+# ======================================================================
+# CHECK 7: Early training tanh saturation timing
+# ======================================================================
+
+def check_early_training_saturation():
+    """Track tanh outputs at steps 0-10 to determine WHEN saturation happens.
+
+    For poc_b config only (where Check 6 confirmed full saturation at epoch 80).
+    Builds a FRESH trainer with random init (no loaded weights), runs 10 training
+    steps, and inspects coa_phase/polarization_angle tanh outputs at each step.
+
+    Key diagnostic:
+      - |value| > 0.99 at step 0  → INIT VARIANCE problem (random weights already
+        push pre-activation logits past tanh saturation).
+      - Healthy at step 0, drifts to +/-1 over steps 1-5  → GRADIENT SPIKE from
+        circular loss driving weights into saturation.
+      - Never saturates in first 10 steps  → slow drift across epochs, different
+        mechanism.
+    """
+    print("\n\n" + "=" * 80)
+    print("CHECK 7: Early training tanh saturation timing")
+    print("=" * 80)
+
+    import tensorflow as tf
+    from train_poc import build_sumdiff_trainer
+
+    config_path = ROOT / "experiments/phic_psi_poc/config_poc.yaml"
+    cfg = load_config(str(config_path))
+
+    # ------------------------------------------------------------------
+    # 1. Build fresh trainer with RANDOM init (don't load trained weights)
+    # ------------------------------------------------------------------
+    trainer = build_sumdiff_trainer(cfg)
+    print(f"\n  Trainer built with mode={trainer._poc_mode}, random init (no weights loaded)")
+
+    # ------------------------------------------------------------------
+    # 2. Load a small fixed batch (8 samples) of validation data
+    # ------------------------------------------------------------------
+    strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=128)
+    transforms = TargetTransforms(heads=trainer.head_names).fit(params)
+    ds = make_dataset(strain, params, transforms, 8, shuffle=False)
+    batch = next(iter(ds))
+    strain_batch, targets = batch
+    n = int(strain_batch.shape[0])
+    print(f"  Batch size: {n}")
+
+    # Build model variable shapes by running one sample through
+    trainer(strain_batch[:1], training=False)
+
+    # Reference to tanh-activated Dense layers for weight/gradient inspection
+    coa_phase_layer = trainer.base.get_layer("coa_phase")
+    psi_layer = trainer.base.get_layer("polarization_angle")
+
+    # Track when saturation first appears
+    first_saturation_step = None
+
+    # ------------------------------------------------------------------
+    # 3-5. Run 10 training steps, diagnose BEFORE each step
+    # ------------------------------------------------------------------
+    for step in range(11):  # steps 0..10 = 11 evaluations, 10 train_steps
+        print(f"\n  {'─' * 70}")
+        print(f"  Step {step} {'(before any training)' if step == 0 else ''}")
+        print(f"  {'─' * 70}")
+
+        # 4a. Forward pass BEFORE the gradient step (training=False)
+        y_pred = trainer(strain_batch, training=False)
+
+        z_phic_raw = y_pred["coa_phase"]             # (N, 2), post-tanh
+        z_psi_raw = y_pred["polarization_angle"]     # (N, 2), post-tanh
+
+        # 4b. Print first 3 samples in detail
+        for i in range(min(3, n)):
+            print(f"\n  Sample {i}:")
+            for tag, vec in [("z_phic_raw  (coa_phase)", z_phic_raw),
+                             ("z_psi_raw   (pol_angle)", z_psi_raw)]:
+                v = vec[i].numpy()
+                norm = float(np.linalg.norm(v))
+                s_val, c_val = float(v[0]), float(v[1])
+                flags = ""
+                for comp_name, comp_val in [("sin", s_val), ("cos", c_val)]:
+                    if abs(comp_val) > 0.99:
+                        flags += f"  {comp_name}=+/-1"
+                print(f"    {tag:<30s} = [{s_val:+.6f}, {c_val:+.6f}]  "
+                      f"norm={norm:.4f}{flags}")
+
+        # 4c. Check whether ANY component is saturated (|value| > 0.99)
+        phic_saturated = bool(
+            tf.reduce_any(tf.abs(z_phic_raw) > 0.99).numpy()
+        )
+        psi_saturated = bool(
+            tf.reduce_any(tf.abs(z_psi_raw) > 0.99).numpy()
+        )
+        any_sat = phic_saturated or psi_saturated
+        if any_sat and first_saturation_step is None:
+            first_saturation_step = step
+
+        print(f"\n  Any |value| > 0.99 across all {n} samples:")
+        print(f"    coa_phase:          {'SATURATED' if phic_saturated else 'healthy'}")
+        print(f"    polarization_angle: {'SATURATED' if psi_saturated else 'healthy'}")
+
+        # For step 10 there is no train_step after the diagnostic pass
+        if step >= 10:
+            continue
+
+        # ------------------------------------------------------------------
+        # Gather gradient info for coa_phase kernel before applying updates
+        # ------------------------------------------------------------------
+        with tf.GradientTape() as tape:
+            y_pred_train = trainer(strain_batch, training=True)
+            loss = trainer._total_loss(targets, y_pred_train, None)
+
+        kernel_var = coa_phase_layer.trainable_weights[0]   # weight matrix
+        grad_kernel = tape.gradient(loss, kernel_var)
+        grad_norm = float(
+            tf.linalg.global_norm([grad_kernel])
+            if grad_kernel is not None
+            else -1.0
+        )
+
+        # Also grab bias gradient (2-element vector per periodic head)
+        bias_var = (
+            coa_phase_layer.trainable_weights[1]
+            if len(coa_phase_layer.trainable_weights) > 1
+            else None
+        )
+        grad_bias_norm = -1.0
+        if bias_var is not None:
+            gb = tape.gradient(loss, bias_var)
+            if gb is not None:
+                grad_bias_norm = float(tf.linalg.global_norm([gb]))
+        del tape
+
+        # ------------------------------------------------------------------
+        # 5. Full training step (updates weights, updates metrics)
+        # ------------------------------------------------------------------
+        metrics = trainer.train_step(batch)
+
+        # ------------------------------------------------------------------
+        # After-step diagnostics
+        # ------------------------------------------------------------------
+        gn_str = f"{grad_norm:.8f}"
+        if grad_norm < 0:
+            gn_str += " (NO GRADIENT)"
+        elif grad_norm < 1e-10:
+            gn_str += " (ZERO)"
+        elif grad_norm < 1e-6:
+            gn_str += " (tiny)"
+
+        print(f"\n  After gradient step:")
+        print(f"    coa_phase kernel   |nabla| = {gn_str}")
+        print(f"    coa_phase bias     |nabla| = {grad_bias_norm:.8f}")
+
+        for mkey in ["circular_loss_combo_A", "circular_loss_combo_B"]:
+            val = metrics.get(mkey)
+            if val is not None:
+                print(f"    {mkey:<30s} = {val:.6f}")
+
+        for mkey in ["weight_combo_A", "weight_combo_B"]:
+            val = metrics.get(mkey)
+            if val is not None:
+                print(f"    {mkey:<30s} = {val:.6f}")
+
+    # ------------------------------------------------------------------
+    # Summary
+    # ------------------------------------------------------------------
+    print(f"\n  {'=' * 70}")
+    print(f"  SUMMARY")
+    print(f"  {'=' * 70}")
+    if first_saturation_step is None:
+        print(f"  No tanh saturation detected in any of the first 10 training steps.")
+        print(f"  -> Saturation at epoch 80 is a slow drift, not init/early-training.")
+        print(f"  -> Consider checking later epochs (epoch 1-5 range) for drift onset.")
+    elif first_saturation_step == 0:
+        print(f"  SATURATION PRESENT AT STEP 0 — before any training.")
+        print(f"  -> Root cause: INIT VARIANCE — random weights already push")
+        print(f"     pre-activation logits past tanh(|logit| ~3).")
+        print(f"  -> Fix: switch periodic head activation to 'linear'.")
+    else:
+        n_steps = first_saturation_step
+        print(f"  Tanh saturation first appears at STEP {first_saturation_step}.")
+        print(f"  -> Root cause: EARLY-TRAINING GRADIENT SPIKE — the circular")
+        print(f"     loss drives weight updates into saturation within the first "
+              f"{n_steps} step(s).")
+        print(f"  -> Fix: activation='linear' + gradient clipping.")
+
+    return True
+
+
+# ======================================================================
 # Main
 # ======================================================================
 
@@ -814,6 +1240,8 @@ def main():
     check_logvar_trajectory()
     check_gradient_routing()
     check_tanh_saturation()
+    check_gradient_chain()
+    check_early_training_saturation()
 
     print("\n\nAll checks complete.")
     _teardown_logging()

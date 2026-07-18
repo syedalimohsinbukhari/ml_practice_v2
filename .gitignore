@@ -163,3 +163,6 @@ cython_debug/
 combined_repackaged.hdf
 structure.md
 .codex
+
+# save the diagonistic log files at least
+!**/diagnostic_*.log

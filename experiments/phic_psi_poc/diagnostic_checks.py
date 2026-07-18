@@ -537,15 +537,19 @@ def check_gradient_routing():
     trainer(strain_batch[:1])
     trainer.load_weights(str(weights_path))
 
-    # Snapshot φc / ψ head weights before gradient step
-    weight_snapshots = {}
+# Snapshot all trainable weights and find φc/ψ head weights
+    print(f"\n  All trainable weights ({len(trainer.trainable_weights)} tensors):")
+    phi_psi_weights = {}
     for w in trainer.trainable_weights:
-        if any(k in w.name for k in ["coa_phase", "polarization_angle"]):
-            weight_snapshots[w.name] = w.numpy().copy()
+        if "coa_phase" in w.name or "polarization_angle" in w.name:
+            phi_psi_weights[w.name] = w.numpy().copy()
+            print(f"    {w.name}: shape={w.shape}  norm={np.linalg.norm(w):.6f}")
 
-    print(f"\n  Snapshot weights ({len(weight_snapshots)} tensors):")
-    for name, arr in weight_snapshots.items():
-        print(f"    {name}: shape={arr.shape}, norm={np.linalg.norm(arr):.6f}")
+    if not phi_psi_weights:
+        print(f"  ⚠ No coa_phase/polarization_angle weights found in trainable_weights!")
+        print(f"  Printing first 10 weight names for debugging:")
+        for w in trainer.trainable_weights[:10]:
+            print(f"    {w.name}")
 
     # Manual gradient step
     with tf.GradientTape() as tape:
@@ -553,21 +557,21 @@ def check_gradient_routing():
         loss = trainer._total_loss(targets, y_pred)
     grads = tape.gradient(loss, trainer.trainable_weights)
 
-    # Check gradients for φc / ψ heads
-    grad_info = {}
+    # Check gradients for φc / ψ head weights
+    print(f"\n  Gradient norms for φc/ψ-related weights:")
+    found_any = False
     for w, g in zip(trainer.trainable_weights, grads):
-        if any(k in w.name for k in ["coa_phase", "polarization_angle"]):
-            grad_norm = float(tf.linalg.global_norm([g]) if g is not None else -1)
-            grad_info[w.name] = grad_norm
-
-    print(f"\n  Gradient norms:")
-    for name, gn in grad_info.items():
-        if gn < 0:
-            print(f"    {name}: None (NO GRADIENT!)")
-        elif gn < 1e-8:
-            print(f"    {name}: {gn:.2e} ⚠ ZERO GRADIENT")
-        else:
-            print(f"    {name}: {gn:.6f} ✓")
+        if "coa_phase" in w.name or "polarization_angle" in w.name:
+            found_any = True
+            gn = float(tf.linalg.global_norm([g]) if g is not None else -1)
+            if gn < 0:
+                print(f"    {w.name}: None (NO GRADIENT)")
+            elif gn < 1e-8:
+                print(f"    {w.name}: {gn:.2e} (ZERO)")
+            else:
+                print(f"    {w.name}: {gn:.6f} ok")
+    if not found_any:
+        print(f"  ⚠ No φc/ψ weight gradients found!")
 
     # Also check combo head weights (combo_A / combo_B are log_vars, not
     # model weights — but they drive the loss weighting)
@@ -580,9 +584,9 @@ def check_gradient_routing():
     # Apply gradients and check weight change
     trainer.optimizer.apply_gradients(zip(grads, trainer.trainable_weights))
 
-    print(f"\n  After one gradient step:")
+    print(f"\n  Weight deltas after one gradient step:")
     any_changed = False
-    for name, before in weight_snapshots.items():
+    for name, before in phi_psi_weights.items():
         after = None
         for w in trainer.trainable_weights:
             if w.name == name:
@@ -591,16 +595,113 @@ def check_gradient_routing():
         if after is not None:
             delta = np.linalg.norm(after - before)
             rel_delta = delta / max(np.linalg.norm(before), 1e-12)
-            flag = "✓" if delta > 1e-10 else "⚠ ZERO CHANGE"
             if delta > 1e-10:
                 any_changed = True
-            print(f"    {name}: Δ={delta:.2e} (rel={rel_delta:.2e}) {flag}")
+                print(f"    {name}: delta={delta:.2e} (rel={rel_delta:.2e}) ok")
+            else:
+                print(f"    {name}: delta={delta:.2e} ZERO CHANGE")
 
-    if not any_changed:
-        print(f"\n  ⚠  NO φc/ψ WEIGHT CHANGE — gradient signal is not reaching these heads!")
-        print(f"  → The combo-transform gradient path may be broken.")
-    else:
-        print(f"\n  ✓ Gradient signal reaches φc/ψ weights via combo path.")
+    if phi_psi_weights and not any_changed:
+        print(f"\n  ⚠ NO φc/ψ WEIGHT CHANGE — gradient signal is not reaching these heads!")
+    elif phi_psi_weights and any_changed:
+        print(f"\n  ok: gradient signal reaches φc/ψ weights via combo path.")
+
+    return True
+
+
+p # ======================================================================
+# CHECK 5: Pre-tanh logit saturation check
+# ======================================================================
+
+def check_tanh_saturation():
+    """Dump pre-activation logits for coa_phase/pol_angle vs mchirp.
+
+    PERIODIC heads use tanh activation.  If the pre-tanh logits are large
+    magnitude (|x| > 5), tanh'(x) = 1−tanh²(x) ≈ 0 — vanishing gradient.
+    This would explain frozen weights even with correct loss wiring.
+    """
+    print("\n\n" + "=" * 80)
+    print("CHECK 5: Pre-tanh logit saturation")
+    print("=" * 80)
+
+    for config_name, config_path in [
+        ("poc_a (baseline)", ROOT / "experiments/phic_psi_poc/config_baseline.yaml"),
+        ("poc_b (PoC)", ROOT / "experiments/phic_psi_poc/config_poc.yaml"),
+        ("tcn", ROOT / "experiments/phic_psi_poc/config_tcn.yaml"),
+    ]:
+        print(f"\n--- {config_name} ---")
+        cfg = load_config(str(config_path))
+        run_dir = latest_run_dir(cfg)
+        weights_path = run_dir / "best.weights.h5"
+
+        from train_poc import build_sumdiff_trainer
+
+        # Build fresh (random init) and trained versions
+        trainer_init = build_sumdiff_trainer(cfg)
+        strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=128)
+        batch = next(iter(make_dataset(strain, params,
+                       TargetTransforms(heads=trainer_init.head_names).fit(params),
+                       128, shuffle=False)))
+        strain_batch, targets = batch
+
+        # Get intermediate layer outputs for tanh-activated heads
+        # The Dense output layer named e.g. "coa_phase" produces pre-activation
+        # logits, and the activation (tanh) is applied by the layer's activation
+        # attribute.  We need the output BEFORE activation.
+
+        # Build an intermediate model that outputs pre-activation for tanh heads
+        tanh_heads = ["coa_phase", "polarization_angle"]
+        base_model = trainer_init.base
+
+        # Check which heads exist in the model
+        model_output_names = [o.name.split("/")[0] for o in base_model.outputs]
+        # Actually outputs are named e.g. "coa_phase", "coa_phase_hidden" etc.
+        # We want the pre-activation of the final Dense layer.
+
+        # Simpler approach: get the layer by name and inspect its weights
+        for head_name in tanh_heads + ["mchirp"]:
+            # Find the output layer for this head
+            try:
+                layer = base_model.get_layer(head_name)
+            except ValueError:
+                print(f"  {head_name}: layer not found in model")
+                continue
+
+            # Get layer weights
+            kernel, bias = layer.get_weights() if layer.weights else (None, None)
+            if kernel is not None:
+                kernel_norm = np.linalg.norm(kernel)
+                bias_norm = np.linalg.norm(bias) if bias is not None else 0
+                # For a hidden_dim=64 input, output_dim=2
+                # Expected activation magnitude ≈ bias ± kernel·features
+                # Features are post-GAP/GMP, typically small (~0.1-0.5)
+                # So pre-activation ≈ bias ± O(kernel_norm * feature_norm)
+                max_input_norm = 2.0  # rough estimate of GAP feature magnitude
+                est_logit_mag = abs(bias).max() + kernel_norm * max_input_norm / np.sqrt(kernel.shape[0])
+                print(f"  {head_name}: kernel_norm={kernel_norm:.4f} bias_range=[{bias.min():.4f}, {bias.max():.4f}] "
+                      f"est_logit_mag≈{est_logit_mag:.2f} "
+                      f"({'SATURATED' if est_logit_mag > 3 else 'ok' if est_logit_mag < 1.5 else 'marginal'})")
+            else:
+                print(f"  {head_name}: no weights")
+
+        # Also load trained weights and compare
+        trainer_init(strain_batch[:1])
+        trainer_init.load_weights(str(weights_path))
+        print(f"  --- after loading trained weights ---")
+        for head_name in tanh_heads + ["mchirp"]:
+            try:
+                layer = trainer_init.base.get_layer(head_name)
+            except ValueError:
+                continue
+            kernel, bias = layer.get_weights() if layer.weights else (None, None)
+            if kernel is not None:
+                kernel_norm = np.linalg.norm(kernel)
+                est_logit_mag = abs(bias).max() + kernel_norm * 2.0 / np.sqrt(kernel.shape[0])
+                print(f"  {head_name}: kernel_norm={kernel_norm:.4f} bias_range=[{bias.min():.4f}, {bias.max():.4f}] "
+                      f"est_logit_mag≈{est_logit_mag:.2f}")
+
+    print("\n→ If est_logit_mag > 3 for coa_phase/pol_angle: tanh saturation confirmed.")
+    print("  Fix: switch activation to 'linear' for PERIODIC heads, or reduce init variance.")
 
     return True
 
@@ -623,6 +724,7 @@ def main():
     check_loss_function()
     check_logvar_trajectory()
     check_gradient_routing()
+    check_tanh_saturation()
 
     print("\n\nAll checks complete.")
     _teardown_logging()

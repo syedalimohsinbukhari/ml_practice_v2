@@ -27,6 +27,44 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc"))
 
+# ---------------------------------------------------------------------------
+# Logging: tee stdout to both console and a timestamped log file
+# ---------------------------------------------------------------------------
+from datetime import datetime as _dt
+
+class _Tee:
+    """Write to both a file and the original stdout."""
+    def __init__(self, file_path):
+        self.file = open(file_path, "w", buffering=1)
+        self.stdout = sys.stdout
+    def write(self, data):
+        self.stdout.write(data)
+        self.file.write(data)
+    def flush(self):
+        self.stdout.flush()
+        self.file.flush()
+    def close(self):
+        self.file.close()
+
+_TEE = None
+_LOG_FILE = None
+
+def _setup_logging(script_name, out_dir):
+    global _TEE, _LOG_FILE
+    ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+    _LOG_FILE = out_dir / f"{script_name}_{ts}.log"
+    _TEE = _Tee(str(_LOG_FILE))
+    sys.stdout = _TEE
+
+def _teardown_logging():
+    global _TEE
+    if _TEE:
+        sys.stdout = _TEE.stdout
+        _TEE.close()
+        _TEE = None
+
+# ---------------------------------------------------------------------------
+
 from gwml.data.loader import load_arrays
 from gwml.data.transforms import TargetTransforms
 from gwml.training.train import latest_run_dir, load_config
@@ -322,6 +360,10 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+    _setup_logging("analyse_predictions", out_dir)
+    if _LOG_FILE:
+        print(f"Log file: {_LOG_FILE}")
+
     # --- CSV: scalar heads ---
     scalar_path = out_dir / f"scalar_heads_{ts}.csv"
     with open(scalar_path, "w", newline="") as f:
@@ -439,6 +481,7 @@ def main():
     _generate_plots(results, out_dir, ts)
 
     print("\n\nDone.")
+    _teardown_logging()
 
 
 # ======================================================================

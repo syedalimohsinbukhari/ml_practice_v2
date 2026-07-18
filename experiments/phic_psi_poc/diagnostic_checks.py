@@ -41,6 +41,43 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc"))
 
+# ---------------------------------------------------------------------------
+# Logging: tee stdout to both console and a timestamped log file
+# ---------------------------------------------------------------------------
+from datetime import datetime as _dt
+import contextlib as _cl
+
+class _Tee:
+    """Write to both a file and the original stdout."""
+    def __init__(self, file_path):
+        self.file = open(file_path, "w", buffering=1)
+        self.stdout = sys.stdout
+    def write(self, data):
+        self.stdout.write(data)
+        self.file.write(data)
+    def flush(self):
+        self.stdout.flush()
+        self.file.flush()
+    def close(self):
+        self.file.close()
+
+_LOG_FILE = None
+_TEE = None
+
+def _setup_logging(script_name: str):
+    global _LOG_FILE, _TEE
+    ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+    _LOG_FILE = OUT_DIR / f"{script_name}_{ts}.log"
+    _TEE = _Tee(str(_LOG_FILE))
+    sys.stdout = _TEE
+
+def _teardown_logging():
+    if _TEE:
+        sys.stdout = _TEE.stdout
+        _TEE.close()
+
+# ---------------------------------------------------------------------------
+
 from gwml.data.loader import load_arrays
 from gwml.data.transforms import TargetTransforms, PARAM_COLUMNS
 from gwml.training.train import latest_run_dir, load_config
@@ -166,7 +203,7 @@ def check_true_labels():
     return True
 
 
-def _plot_true_labels(data_path, out_dir):
+def _plot_true_labels(data_path, out_dir, all_stats=None):
     """Generate histograms of true φc / ψ / ι for training and validation."""
     from gwml.data.loader import load_arrays
     from gwml.data.transforms import TargetTransforms, PARAM_COLUMNS
@@ -571,9 +608,13 @@ def check_gradient_routing():
 # ======================================================================
 
 def main():
+    _setup_logging("diagnostic_checks")
+
     print("PHIC_PSI DEEP DIAGNOSTICS")
     print("=" * 80)
     print(f"Output directory: {OUT_DIR}")
+    if _LOG_FILE:
+        print(f"Log file: {_LOG_FILE}")
     print()
 
     check_true_labels()
@@ -582,6 +623,7 @@ def main():
     check_gradient_routing()
 
     print("\n\nAll checks complete.")
+    _teardown_logging()
 
 
 if __name__ == "__main__":

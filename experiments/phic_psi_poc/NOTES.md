@@ -82,16 +82,16 @@ Companion to `phic_psi_implementation_plan_v4.md` and
 
 ## Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| Subclass MultiHeadTrainer | Reuses log_var, metrics, train_step machinery |
-| inclination as trained head | Simplest way to get cos(ι_true) at batch level |
-| Both numpy + TF transform utils | numpy for validation, TF for graph ops |
-| Circular loss (1−dot), not Huber | Provably isotropic; avoids per-component Huber anisotropy |
-| Combo log_var clamps at 3.0 (default) | Don't double-suppress with w(ι) |
-| Separate train_poc.py script | Doesn't modify main-branch train.py |
-| TCN backbone | Current best performer per multi-architecture comparison |
-| Sign-dependent combo label | Step 1.1 found flip at cos ι=0; dynamic per-sample assignment avoids label dilution |
+| Decision                              | Rationale                                                                                   |
+|---------------------------------------|---------------------------------------------------------------------------------------------|
+| Subclass MultiHeadTrainer             | Reuses log_var, metrics, train_step machinery                                               |
+| inclination as trained head           | Simplest way to get cos(ι_true) at batch level                                              |
+| Both numpy + TF transform utils       | numpy for validation, TF for graph ops                                                      |
+| Circular loss (1−dot), not Huber      | Provably isotropic; avoids per-component Huber anisotropy                                   |
+| Combo log_var clamps at 3.0 (default) | Don't double-suppress with w(ι)                                                             |
+| Separate train_poc.py script          | Doesn't modify main-branch train.py                                                         |
+| TCN backbone                          | Current best performer per multi-architecture comparison                                    |
+| Sign-dependent combo label            | Step 1.1 found flip at cos ι=0; dynamic per-sample assignment avoids label dilution         |
 | w=1−cos²ι default (not empirical fit) | Empirical fit gives edge-on w≈0.12 vs. default 1.0; default is safer for first go/no-go run |
 
 ## Run Log
@@ -159,7 +159,7 @@ See `diagnostic_output/diagnostic_checks_20260718_131719.log` for full output.
    below 3.0 threshold. Kernels change ~3% over training — weights move but
    far too slowly. My prior hypothesis was wrong.
 
-> **Note:** These conclusions were overturned by Check 6 (Run 3 ~25 minutes later). Tanh saturation IS the root cause. See `diagnostic_log.md`.
+> **⚠ Note:** These conclusions were overturned by Check 6 (Run 3 ~25 minutes later). Tanh saturation IS the root cause. See `diagnostic_log.md`.
 
 ### Revised diagnosis (Run 2)
 
@@ -235,13 +235,13 @@ inclination), all using `mode: baseline` (circular loss on individual
 φc/ψ — same loss function class as Run B, so the only variable is
 architecture).
 
-| Config | Trunk | Ran (invalidated by tanh — pending retrain) |
-|--------|-------|--------|
-| `config_tcn.yaml` | tcn | `train_poc.py config_tcn.yaml` |
-| `config_cnn_baseline.yaml` | cnn_baseline | `train_poc.py config_cnn_baseline.yaml` |
-| `config_cnn_attention.yaml` | cnn_attention | `train_poc.py config_cnn_attention.yaml` |
-| `config_inception_time.yaml` | inception_time | `train_poc.py config_inception_time.yaml` |
-| `config_resnet1d.yaml` | resnet1d | `train_poc.py config_resnet1d.yaml` |
+| Config                       | Trunk          | Ran (invalidated by tanh — pending retrain) |
+|------------------------------|----------------|---------------------------------------------|
+| `config_tcn.yaml`            | tcn            | `train_poc.py config_tcn.yaml`              |
+| `config_cnn_baseline.yaml`   | cnn_baseline   | `train_poc.py config_cnn_baseline.yaml`     |
+| `config_cnn_attention.yaml`  | cnn_attention  | `train_poc.py config_cnn_attention.yaml`    |
+| `config_inception_time.yaml` | inception_time | `train_poc.py config_inception_time.yaml`   |
+| `config_resnet1d.yaml`       | resnet1d       | `train_poc.py config_resnet1d.yaml`         |
 
 ### Batch run (all configs at once)
 

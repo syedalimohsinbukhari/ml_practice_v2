@@ -88,14 +88,14 @@ Bug closed. No stale huber registrations remain.
 Despite the weight-name filter still being broken, the prediction-perturbation
 test directly measures whether each head's output changes after a gradient step:
 
-| Head | mean\|Δ\| | Changes? |
-|------|:---------:|:--------:|
-| mchirp | 0.81 | YES |
-| merger_time | 0.15 | YES |
-| snr | 0.72 | YES |
-| inclination | 0.46 | YES |
-| **coa_phase** | **0.00** | **NO** |
-| **polarization_angle** | **0.00** | **NO** |
+| Head                   | mean\|Δ\| | Changes? |
+|------------------------|:---------:|:--------:|
+| mchirp                 |   0.81    |   YES    |
+| merger_time            |   0.15    |   YES    |
+| snr                    |   0.72    |   YES    |
+| inclination            |   0.46    |   YES    |
+| **coa_phase**          | **0.00**  |  **NO**  |
+| **polarization_angle** | **0.00**  |  **NO**  |
 
 This is decisive: the gradient reaches all other heads on the same trunk
 (including inclination, which uses the same PERIODIC sin/cos encoding), but
@@ -115,11 +115,11 @@ loss + combo transform chain: normalize_unit → complex_mul →
 
 ### Check 5: Pre-tanh logit saturation — RULED OUT
 
-| Head | Init est_logit_mag | Trained est_logit_mag | Saturated? |
-|------|:---:|:---:|:---:|
-| coa_phase | 0.48 | 0.51 | No (threshold > 3) |
-| polarization_angle | 0.52 | 0.53 | No |
-| mchirp (control) | 0.37 | 0.28 | No |
+| Head               | Init est_logit_mag | Trained est_logit_mag |     Saturated?     |
+|--------------------|:------------------:|:---------------------:|:------------------:|
+| coa_phase          |        0.48        |         0.51          | No (threshold > 3) |
+| polarization_angle |        0.52        |         0.53          |         No         |
+| mchirp (control)   |        0.37        |         0.28          |         No         |
 
 Kernel norms change ~3% over training (1.93 → 1.99 for coa_phase). Weights
 ARE moving, just far too slowly to affect predictions in 80 epochs.
@@ -142,14 +142,14 @@ retraining to produce new data.
 
 ## Current State of Hypotheses
 
-| Hypothesis | Status | Evidence |
-|-----------|--------|----------|
-| Data pipeline bug (labels collapsed) | **Ruled out** | Check 1, two runs |
-| Loss wiring bug (Huber still active) | **Fixed** | Check 2 Run 2 confirmed |
-| Tanh saturation | **Ruled out** | Check 5: est_logit_mag ≈ 0.5 |
-| PERIODIC encoding broken | **Ruled out** | Inclination uses same encoding, gets gradient |
-| Disconnected computation graph | **Ruled out** | combo log_vars get gradient, other heads change |
-| **Attenuated gradient through combo chain** | **ACTIVE** | Check 4: coa_phase/psi Δ=0.00, all others change |
+| Hypothesis                                  | Status        | Evidence                                         |
+|---------------------------------------------|---------------|--------------------------------------------------|
+| Data pipeline bug (labels collapsed)        | **Ruled out** | Check 1, two runs                                |
+| Loss wiring bug (Huber still active)        | **Fixed**     | Check 2 Run 2 confirmed                          |
+| Tanh saturation                             | **Ruled out** | Check 5: est_logit_mag ≈ 0.5                     |
+| PERIODIC encoding broken                    | **Ruled out** | Inclination uses same encoding, gets gradient    |
+| Disconnected computation graph              | **Ruled out** | combo log_vars get gradient, other heads change  |
+| **Attenuated gradient through combo chain** | **ACTIVE**    | Check 4: coa_phase/psi Δ=0.00, all others change |
 
 ---
 
@@ -180,15 +180,15 @@ Goal: find exactly which operation attenuates the gradient.
 
 ## Files Tracking This Investigation
 
-| File | Purpose |
-|------|---------|
-| `diagnostic_checks.py` | Current diagnostic script (5 checks, 6th pending) |
-| `diagnostic_output/*.log` | Console output from each diagnostic run |
-| `diagnostic_output/*.png` | Plots (true labels, logvar trajectories, combo loss) |
-| `diagnostic_output/*.csv` | True label statistics |
-| `analyse_predictions.py` | Cross-model prediction distribution analysis |
-| `NOTES.md` | Design decisions, run log, overall plan |
-| `plan_iota_conditioning.md` | Design plan for ι-conditioning (on hold) |
+| File                        | Purpose                                              |
+|-----------------------------|------------------------------------------------------|
+| `diagnostic_checks.py`      | Current diagnostic script (5 checks, 6th pending)    |
+| `diagnostic_output/*.log`   | Console output from each diagnostic run              |
+| `diagnostic_output/*.png`   | Plots (true labels, logvar trajectories, combo loss) |
+| `diagnostic_output/*.csv`   | True label statistics                                |
+| `analyse_predictions.py`    | Cross-model prediction distribution analysis         |
+| `NOTES.md`                  | Design decisions, run log, overall plan              |
+| `plan_iota_conditioning.md` | Design plan for ι-conditioning (on hold)             |
 
 ---
 
@@ -257,14 +257,14 @@ weights that produced it — textbook dead-tanh.
 
 ### Resolution of all contradictions
 
-| Evidence | Explanation |
-|----------|-------------|
-| Check 4: kernel Δ=2.46 but grad=0 | Adam momentum coasting, not gradient-driven |
-| Check 4: pred Δ=0 despite weight change | tanh'(sat)=0, output frozen regardless of weight |
-| Check 5: est_logit≈0.5 "ok" | Estimate wrong; actual trunk features much larger |
-| Check 6: raw outputs = ±1 | Direct proof of saturation |
-| Check 3: std_ratio=1.414 | √2 = norm of saturated (±1,±1) output |
-| Inclination gets gradient | Random init happened to not saturate this head |
+| Evidence                                | Explanation                                       |
+|-----------------------------------------|---------------------------------------------------|
+| Check 4: kernel Δ=2.46 but grad=0       | Adam momentum coasting, not gradient-driven       |
+| Check 4: pred Δ=0 despite weight change | tanh'(sat)=0, output frozen regardless of weight  |
+| Check 5: est_logit≈0.5 "ok"             | Estimate wrong; actual trunk features much larger |
+| Check 6: raw outputs = ±1               | Direct proof of saturation                        |
+| Check 3: std_ratio=1.414                | √2 = norm of saturated (±1,±1) output             |
+| Inclination gets gradient               | Random init happened to not saturate this head    |
 
 ### Root cause confirmed
 
@@ -283,14 +283,14 @@ onto the unit circle — tanh is redundant and harmful.
 
 ### Hypothesis status (updated)
 
-| Hypothesis | Status | Evidence |
-|-----------|--------|----------|
-| Data pipeline bug | Ruled out | Check 1 ×3 |
-| Loss wiring bug | Fixed | Check 2 confirmed ×2 |
-| Tanh saturation | **CONFIRMED** | Check 6: raw outputs ±1.0, Check 3: std_ratio=√2 |
-| PERIODIC encoding broken | Ruled out | Inclination trains (different init luck) |
-| Disconnected graph | Ruled out | Gradient reaches post-tanh output (0.308) |
-| Attenuated gradient through combo | Superseded | Gradient is healthy until tanh kills it |
+| Hypothesis                        | Status        | Evidence                                         |
+|-----------------------------------|---------------|--------------------------------------------------|
+| Data pipeline bug                 | Ruled out     | Check 1 ×3                                       |
+| Loss wiring bug                   | Fixed         | Check 2 confirmed ×2                             |
+| Tanh saturation                   | **CONFIRMED** | Check 6: raw outputs ±1.0, Check 3: std_ratio=√2 |
+| PERIODIC encoding broken          | Ruled out     | Inclination trains (different init luck)         |
+| Disconnected graph                | Ruled out     | Gradient reaches post-tanh output (0.308)        |
+| Attenuated gradient through combo | Superseded    | Gradient is healthy until tanh kills it          |
 
 ---
 
@@ -324,15 +324,15 @@ layers is simply too large for tanh.
 
 ### All hypotheses resolved
 
-| Hypothesis | Status | Evidence |
-|-----------|--------|----------|
-| Data pipeline bug | Ruled out | Check 1 ×4 |
-| Loss wiring bug | Fixed | Check 2 confirmed ×3 |
-| Tanh saturation | **CONFIRMED AT INIT** | Check 6: raw outputs ±1; Check 7: saturated step 0 |
-| PERIODIC encoding broken | Ruled out | Inclination trains when not saturated |
-| Disconnected graph | Ruled out | Gradient reaches post-tanh output (0.308) |
-| Attenuated gradient | Superseded | Gradient healthy until tanh kills it |
-| Init-variance vs drift | **INIT** | Check 7: saturated before first gradient step |
+| Hypothesis               | Status                | Evidence                                           |
+|--------------------------|-----------------------|----------------------------------------------------|
+| Data pipeline bug        | Ruled out             | Check 1 ×4                                         |
+| Loss wiring bug          | Fixed                 | Check 2 confirmed ×3                               |
+| Tanh saturation          | **CONFIRMED AT INIT** | Check 6: raw outputs ±1; Check 7: saturated step 0 |
+| PERIODIC encoding broken | Ruled out             | Inclination trains when not saturated              |
+| Disconnected graph       | Ruled out             | Gradient reaches post-tanh output (0.308)          |
+| Attenuated gradient      | Superseded            | Gradient healthy until tanh kills it               |
+| Init-variance vs drift   | **INIT**              | Check 7: saturated before first gradient step      |
 
 ### Bug closed. Ready for fix phase.
 

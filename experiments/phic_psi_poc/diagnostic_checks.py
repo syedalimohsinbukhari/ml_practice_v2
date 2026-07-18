@@ -211,11 +211,13 @@ def _plot_true_labels(data_path, out_dir, all_stats=None):
     heads = ["mchirp", "merger_time", "snr", "sky_position",
              "coa_phase", "polarization_angle", "inclination"]
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
+    fig, axes = plt.subplots(2, 5, figsize=(20, 8))
     params_map = [
-        (0, 0, "coa_phase", r"$\phi_c$ true [rad]", 2*np.pi, PARAM_COLUMNS["coa_phase"]),
-        (0, 1, "polarization_angle", r"$\psi$ true [rad]", np.pi, PARAM_COLUMNS["polarization_angle"]),
-        (0, 2, "inclination", r"$\iota$ true [rad]", np.pi, PARAM_COLUMNS["inclination"]),
+        (0, "coa_phase", r"$\phi_c$ true [rad]", 2*np.pi, PARAM_COLUMNS["coa_phase"]),
+        (1, "polarization_angle", r"$\psi$ true [rad]", np.pi, PARAM_COLUMNS["polarization_angle"]),
+        (2, "inclination", r"$\iota$ true [rad]", np.pi, PARAM_COLUMNS["inclination"]),
+        (3, "declination", "Dec true [rad]", np.pi, PARAM_COLUMNS["declination"]),
+        (4, "ra", "RA true [rad]", 2*np.pi, PARAM_COLUMNS["ra"]),
     ]
 
     for row, split in enumerate(["training", "validation"]):
@@ -223,7 +225,7 @@ def _plot_true_labels(data_path, out_dir, all_stats=None):
         transforms = TargetTransforms(heads=heads).fit(params)
         targets = transforms.transform(params)
 
-        for col_idx, (_, _, label, xlabel, period, param_col) in enumerate(params_map):
+        for col_idx, label, xlabel, period, param_col in params_map:
             ax = axes[row][col_idx]
             raw_vals = params[:, param_col]
             ax.hist(raw_vals, bins=40, range=(0, period), alpha=0.7,

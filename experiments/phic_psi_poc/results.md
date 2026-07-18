@@ -193,6 +193,12 @@ Population: 28.7% face-on, 32.7% edge-on — healthy.
 | 1.6 — Population balance | ✓ Passed | 28.7% face-on, 32.7% edge-on |
 | **Overall** | **✓ GO** | **Proceed to Run A and Run B training** |
 
+**⚠ Note (2026-07-18):** The training runs that followed this GO decision
+(Run A/B across 7 architectures) were invalidated by a tanh saturation bug
+discovered during post-training diagnostics.  The "GO" above applies
+correctly to the prerequisite checks (Step 1.1–1.6), which remain valid.
+See `diagnostic_log.md` and `NOTES.md` for the full investigation and fix.
+
 ---
 
 ## Evolution of the Step 1.1 ratio across runs

@@ -1,5 +1,13 @@
 # Plan: Feed cos(ι) as Model Input Instead of Predicting It
 
+> **STATUS: ON HOLD** — pending retraining with `activation: linear` for
+> PERIODIC heads.  The first-round results cited below (φc R² ≤ 0.007)
+> were caused by tanh saturation at initialization, not by the φc/ψ
+> degeneracy.  See `diagnostic_log.md` for the full investigation (7
+> diagnostic checks across 4 runs).  This plan should only proceed if
+> φc/ψ remain unlearnable after the tanh→linear fix is applied and all
+> models are retrained.
+
 ## Context
 
 The phic_psi PoC currently treats inclination as an **output head** — the model
@@ -397,7 +405,9 @@ rationale, what changed, caveats.
    `metrics_validation.csv` has 6 heads, no inclination.
 
 5. **Compare against previous results:** If φc R² improves above noise (> 0.02),
-   the degeneracy is breakable with ι conditioning.
+   the degeneracy is breakable with ι conditioning.  (Note: this threshold was
+   set before the tanh saturation bug was discovered; it may need re-evaluation
+   once all models are retrained with `activation: linear` for PERIODIC heads.)
 
 ---
 

@@ -169,12 +169,12 @@ Goal: find exactly which operation attenuates the gradient.
 
 ## Open Bugs in Diagnostic Script
 
-1. **Check 4 weight-name filter:** Uses substring matching on flat Keras names
-   (`kernel`, `bias`). Needs layer-based lookup (same pattern as Check 5).
-   Non-blocking — prediction-perturbation test works around it.
+1. **Check 4 weight-name filter:** Fixed in Run 3 — now uses layer-based
+   lookup via `trainer.base.get_layer()`, same pattern as Check 5.
 
-2. **Check 3 stale:** Reads old training CSVs. Cannot produce new data until
-   models are retrained.
+2. **Check 3 stale:** Reads old training CSVs. Superseded — root cause
+   confirmed independently via Checks 6 (forward-pass dump) and 7
+   (saturation at init). Not a blocking issue.
 
 ---
 

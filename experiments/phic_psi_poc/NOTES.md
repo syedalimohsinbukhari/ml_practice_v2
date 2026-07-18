@@ -159,6 +159,8 @@ See `diagnostic_output/diagnostic_checks_20260718_131719.log` for full output.
    below 3.0 threshold. Kernels change ~3% over training — weights move but
    far too slowly. My prior hypothesis was wrong.
 
+> **Note:** These conclusions were overturned by Check 6 (Run 3 ~25 minutes later). Tanh saturation IS the root cause. See `diagnostic_log.md`.
+
 ### Revised diagnosis (Run 2)
 
 Not tanh saturation. Not a disconnected graph (combo log_vars get gradient,
@@ -196,21 +198,6 @@ unit-circle projection — tanh is redundant and creates saturation bottleneck.
 - [ ] Retrain all models (7 configs) with linear activation
 - [ ] Re-run `analyse_predictions.py` to check φc/ψ learnability
 - [ ] THEN implement ι-conditioning plan (`plan_iota_conditioning.md`)
-
-### Next steps
-
-- [x] Run `diagnostic_checks.py` on GPU machine (two runs completed)
-- [x] Fix logging hardened in both scripts
-- [x] Fix Check 2: `_patch_log_vars` cleans `head_loss` — confirmed working
-- [x] Check 5: tanh saturation ruled out (est_logit_mag ≈ 0.5, healthy)
-- [x] Isolated problem: gradient through circular loss chain is attenuated,
-      not disconnected. Inclination (same encoding, no combo) works fine.
-- [ ] Fix Check 4 weight-name lookup (layer-based, matching Check 5)
-- [ ] Run Check 6 (gradient chain instrument) on GPU to localize attenuation
-- [ ] Fix the bottleneck — likely normalize_unit epsilon or complex_mul
-      gradient routing
-- [ ] Re-run baseline (poc_a / tcn) with fix to verify heads train
-- [ ] THEN implement ι-conditioning plan (`plan_iota_conditioning.md`)
 - [ ] Investigate sky_position degradation in SumDiffTrainer
 
 ## Run Log (original)
@@ -240,7 +227,7 @@ unit-circle projection — tanh is redundant and creates saturation bottleneck.
     receive gradient through combo_A/combo_B. The dead coa_phase is expected.
     The real comparison needs combo-level circular-loss metrics from evaluation.
 
-### Multi-architecture baselines — pending
+### Multi-architecture baselines — ran but invalidated
 
 Configs created for all five architectures with the full 7-head list
 (mchirp, merger_time, snr, sky_position, coa_phase, polarization_angle,
@@ -248,7 +235,7 @@ inclination), all using `mode: baseline` (circular loss on individual
 φc/ψ — same loss function class as Run B, so the only variable is
 architecture).
 
-| Config | Trunk | To run |
+| Config | Trunk | Ran (invalidated by tanh — pending retrain) |
 |--------|-------|--------|
 | `config_tcn.yaml` | tcn | `train_poc.py config_tcn.yaml` |
 | `config_cnn_baseline.yaml` | cnn_baseline | `train_poc.py config_cnn_baseline.yaml` |

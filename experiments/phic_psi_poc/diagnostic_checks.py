@@ -78,7 +78,7 @@ def _teardown_logging():
 
 # ---------------------------------------------------------------------------
 
-from gwml.data.loader import load_arrays
+from gwml.data.loader import load_arrays, make_dataset
 from gwml.data.transforms import TargetTransforms, PARAM_COLUMNS
 from gwml.training.train import latest_run_dir, load_config
 
@@ -609,7 +609,7 @@ def check_gradient_routing():
     return True
 
 
-p # ======================================================================
+# ======================================================================
 # CHECK 5: Pre-tanh logit saturation check
 # ======================================================================
 

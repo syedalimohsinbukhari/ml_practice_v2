@@ -448,9 +448,9 @@ def _plot_logvar_trajectories(out_dir):
     # --- Plot: Weight trajectories (4x2 grid) ---
     if weight_cols:
         n_weight = len(weight_cols)
-        n_cols = 2
+        n_cols = 4
         n_rows = (n_models + n_cols - 1) // n_cols
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, 3 * n_rows),
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows),
                                  sharex=True, squeeze=False)
         colors = plt.cm.tab10(np.linspace(0, 1, max(n_weight, 10)))
         for idx, (label, df) in enumerate(history_data.items()):
@@ -481,11 +481,11 @@ def _plot_logvar_trajectories(out_dir):
         plt.close(fig)
         print(f"Plot: {png_path}")
 
-    # --- Plot: Combo loss trajectories (4x2 grid) ---
+    # --- Plot: Combo loss trajectories (2x4 grid) ---
     if loss_cols:
-        n_cols = 2
+        n_cols = 4
         n_rows = (n_models + n_cols - 1) // n_cols
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, 3 * n_rows),
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows),
                                  sharex=True, squeeze=False)
         colors = plt.cm.tab10(np.linspace(0, 1, max(len(loss_cols), 10)))
         for idx, (label, df) in enumerate(history_data.items()):

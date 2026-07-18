@@ -272,8 +272,8 @@ def main():
     # ==================================================================
     print("\n\n" + "=" * 100)
     print("TABLE 4: QUICK HEALTH CHECK")
-    print("  ✓ = ok   ~ = marginal   ✗ = dead/random   💀 = MODE COLLAPSE")
-    print("  (col: circ_r ≈ 1 + high angular MAE = all preds at single value)")
+    print("  ok = well-predicted   marginal   dead   COLLAPSE = mode collapse")
+    print("  (COLLAPSE: circ_r ~ 1 + high angular MAE = all preds at single value)")
     print("=" * 100)
 
     def _periodic_grade(s):
@@ -282,18 +282,18 @@ def main():
         mae = s["angular_mae"]
         # Mode collapse: perfectly concentrated (r > 0.9) but wrong (high MAE)
         if r > 0.9 and mae > 0.5:
-            return "💀"
+            return "COLLAPSE"
         if mae < 0.3:
-            return "✓"
+            return "ok"
         if mae < 0.8:
             return "~"
-        return "✗"
+        return "XX"
 
     criteria = {
-        "mchirp": lambda s: "✓" if s["r2"] > 0.8 else ("~" if s["r2"] > 0.5 else "✗"),
-        "merger_time": lambda s: "✓" if s["r2"] > 0.8 else ("~" if s["r2"] > 0.5 else "✗"),
-        "snr": lambda s: "✓" if s["r2"] > 0.6 else ("~" if s["r2"] > 0.3 else "✗"),
-        "sky_position": lambda s: "✓" if s["angular_mae_deg"] < 45 else ("~" if s["angular_mae_deg"] < 80 else "✗"),
+        "mchirp": lambda s: "ok" if s["r2"] > 0.8 else ("~" if s["r2"] > 0.5 else "XX"),
+        "merger_time": lambda s: "ok" if s["r2"] > 0.8 else ("~" if s["r2"] > 0.5 else "XX"),
+        "snr": lambda s: "ok" if s["r2"] > 0.6 else ("~" if s["r2"] > 0.3 else "XX"),
+        "sky_position": lambda s: "ok" if s["angular_mae_deg"] < 45 else ("~" if s["angular_mae_deg"] < 80 else "XX"),
         "coa_phase": _periodic_grade,
         "polarization_angle": _periodic_grade,
         "inclination": _periodic_grade,
@@ -455,40 +455,43 @@ def _generate_plots(results, out_dir, ts):
     # Color palette (colorblind-friendly)
     MODEL_COLORS = plt.cm.tab10(np.linspace(0, 1, max(n_models, 10)))
 
-    # ---- Plot 1: Periodic head prediction histograms ----
+    # ---- Plot 1: Periodic head prediction histograms (4x2 grid) ----
+    n_cols = 2
+    n_rows = (n_models + n_cols - 1) // n_cols
     for h, period, title in [("coa_phase", 2*np.pi, "φc (coa_phase)"),
                               ("polarization_angle", np.pi, "ψ (polarization_angle)"),
                               ("inclination", 2*np.pi, "ι (inclination)")]:
-        fig, axes = plt.subplots(n_models, 1, figsize=(10, 2.5 * n_models),
-                                 sharex=True)
-        if n_models == 1:
-            axes = [axes]
-
-        for ax, (label, r), color in zip(axes, results.items(), MODEL_COLORS):
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, 3 * n_rows),
+                                 sharex=True, squeeze=False)
+        idx = 0
+        for label, r in results.items():
             if h not in r.get("_pred", {}):
-                ax.set_visible(False)
                 continue
+            ax = axes[idx // n_cols][idx % n_cols]
             pred_vals = np.ravel(r["_pred"][h])
             true_vals = np.ravel(r["_true"][h])
 
-            # Histogram predicted
             ax.hist(pred_vals, bins=40, range=(0, period), alpha=0.7,
-                    color=color, label="predicted", edgecolor="white",
+                    color=MODEL_COLORS[idx], label="predicted", edgecolor="white",
                     linewidth=0.3)
-            # Histogram true
             ax.hist(true_vals, bins=40, range=(0, period), alpha=0.3,
                     color="grey", label="true", edgecolor="white",
                     linewidth=0.3)
 
-            # Stats annotation
             stats = r.get(h, {})
             circ_r = stats.get("circular_r", 0)
             ang_mae = stats.get("angular_mae", 0)
             peak_str = ", ".join(f"{np.degrees(p[0]):.0f}°" for p in stats.get("peaks", [])[:2])
-            ax.set_ylabel(label, fontsize=9)
+            ax.set_title(label, fontsize=10)
             ax.yaxis.set_major_locator(MaxNLocator(3))
-            status = "💀 MODE COLLAPSE" if (circ_r > 0.9 and ang_mae > 0.5) else \
-                     ("✓ good" if ang_mae < 0.3 else ("~ marginal" if ang_mae < 0.8 else "✗ dead"))
+            if circ_r > 0.9 and ang_mae > 0.5:
+                status = "COLLAPSE"
+            elif ang_mae < 0.3:
+                status = "good"
+            elif ang_mae < 0.8:
+                status = "marginal"
+            else:
+                status = "dead"
             ax.text(0.99, 0.95, f"r={circ_r:.3f}  MAE={ang_mae:.2f}  {status}",
                     transform=ax.transAxes, ha="right", va="top",
                     fontsize=8, fontfamily="monospace",
@@ -498,9 +501,13 @@ def _generate_plots(results, out_dir, ts):
                         transform=ax.transAxes, ha="right", va="top",
                         fontsize=7, fontfamily="monospace",
                         bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
+            idx += 1
 
-        axes[0].legend(fontsize=8, loc="upper left")
-        axes[-1].set_xlabel(f"{title} [rad]")
+        # Hide unused subplots
+        for j in range(idx, n_rows * n_cols):
+            axes[j // n_cols][j % n_cols].set_visible(False)
+        axes[0][0].legend(fontsize=8, loc="upper left")
+        fig.supxlabel(f"{title} [rad]", fontsize=10)
         fig.suptitle(f"Prediction Distributions — {title}", fontsize=13, fontweight="bold")
         fig.tight_layout()
         png_path = out_dir / f"histogram_{h}_{ts}.png"
@@ -575,16 +582,16 @@ def _plot_health_heatmap(results, out_dir, ts):
                 circ_r = s["circular_r"]
                 ang_mae = s["angular_mae"]
                 if circ_r > 0.9 and ang_mae > 0.5:
-                    row.append(f"💀 r={circ_r:.2f}")
+                    row.append(f"COLLAPSE r={circ_r:.2f}")
                     row_vals.append(-0.2)
                 elif ang_mae < 0.3:
-                    row.append(f"✓ MAE={ang_mae:.2f}")
+                    row.append(f"ok MAE={ang_mae:.2f}")
                     row_vals.append(1.0)
                 elif ang_mae < 0.8:
                     row.append(f"~ MAE={ang_mae:.2f}")
                     row_vals.append(0.5)
                 else:
-                    row.append(f"✗ MAE={ang_mae:.2f}")
+                    row.append(f"XX MAE={ang_mae:.2f}")
                     row_vals.append(0.1)
         annot.append(row)
         data[len(annot)-1] = row_vals
@@ -616,7 +623,7 @@ def _plot_health_heatmap(results, out_dir, ts):
     ax.set_xticklabels(heads_order, rotation=30, ha="right", fontsize=9)
     ax.set_yticks(range(len(labels)))
     ax.set_yticklabels(labels, fontsize=9)
-    ax.set_title("Health Check — ✓=good  ~=marginal  ✗=dead  💀=MODE COLLAPSE",
+    ax.set_title("Health Check — ok=good  ~=marginal  XX=dead  COLLAPSE=mode collapse",
                  fontsize=11, fontweight="bold")
     fig.tight_layout()
     png_path = out_dir / f"health_check_{ts}.png"

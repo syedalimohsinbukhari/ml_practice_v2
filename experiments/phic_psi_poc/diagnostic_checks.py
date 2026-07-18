@@ -59,6 +59,7 @@ def check_true_labels():
     print("=" * 80)
 
     data_path = "combined_repackaged.hdf"
+    all_stats = []
 
     for split in ["training", "validation"]:
         print(f"\n--- {split} split ---")
@@ -128,13 +129,39 @@ def check_true_labels():
             print(f"    max bin fraction = {max_bin_frac:.4f}  "
                   f"(uniform would be {1/n_bins:.4f}, collapsed would be 1.0)")
 
+            all_stats.append({
+                "split": split, "parameter": name, "n": n,
+                "unique_raw": unique_raw, "unique_transformed": unique_transformed,
+                "circular_r": float(circ_r), "collapsed": collapsed,
+                "max_bin_frac": float(max_bin_frac),
+                "uniform_frac": 1.0 / n_bins,
+                "raw_min": float(deciles_raw[0]), "raw_median": float(deciles_raw[2]),
+                "raw_max": float(deciles_raw[4]),
+            })
+
+    # Write CSV
+    import csv
+    csv_path = OUT_DIR / "true_label_stats.csv"
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["split", "parameter", "n", "unique_raw", "unique_transformed",
+                         "circular_r", "collapsed", "max_bin_frac", "uniform_frac",
+                         "raw_min", "raw_median", "raw_max"])
+        for s in all_stats:
+            writer.writerow([s["split"], s["parameter"], s["n"],
+                             s["unique_raw"], s["unique_transformed"],
+                             s["circular_r"], s["collapsed"], s["max_bin_frac"],
+                             s["uniform_frac"], s["raw_min"], s["raw_median"],
+                             s["raw_max"]])
+    print(f"\nTrue label stats CSV: {csv_path}")
+
     print("\n→ If any true label shows circ_r > 0.5 or max_bin > 3× uniform: "
           "DATA PIPELINE BUG — stop here, fix before anything else.")
     print("→ If all true labels are well-spread: the collapse is a training "
           "phenomenon, proceed to Check 2.")
 
     # ---- Plot: true label distributions ----
-    _plot_true_labels(data_path, OUT_DIR)
+    _plot_true_labels(data_path, OUT_DIR, all_stats)
 
     return True
 
@@ -369,22 +396,23 @@ def _plot_logvar_trajectories(out_dir):
 
     n_models = len(history_data)
 
-    # --- Plot: Weight trajectories ---
+    # --- Plot: Weight trajectories (4x2 grid) ---
     if weight_cols:
         n_weight = len(weight_cols)
-        fig, axes = plt.subplots(n_models, 1, figsize=(12, 2.5 * n_models),
+        n_cols = 2
+        n_rows = (n_models + n_cols - 1) // n_cols
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, 3 * n_rows),
                                  sharex=True, squeeze=False)
         colors = plt.cm.tab10(np.linspace(0, 1, max(n_weight, 10)))
-        for ax_row, (label, df) in zip(axes, history_data.items()):
-            ax = ax_row[0]
+        for idx, (label, df) in enumerate(history_data.items()):
+            ax = axes[idx // n_cols][idx % n_cols]
             for col, color in zip(weight_cols, colors):
                 if col in df.columns:
                     ax.plot(df.index, df[col], color=color, linewidth=0.8,
                             alpha=0.8, label=col)
-            ax.set_ylabel(label, fontsize=9)
+            ax.set_title(label, fontsize=10)
             ax.legend(fontsize=7, loc="upper right", ncol=2)
             ax.grid(True, alpha=0.3)
-            # Check for collapse: annotate if weight went to zero
             for col in weight_cols:
                 if col in df.columns and len(df) > 10:
                     first = df[col].iloc[5]
@@ -393,8 +421,10 @@ def _plot_logvar_trajectories(out_dir):
                         ax.annotate(f"{col} collapsed", xy=(len(df)*0.7, last),
                                     fontsize=7, color="red",
                                     bbox=dict(facecolor="white", alpha=0.8))
-        axes[-1][0].set_xlabel("epoch")
-        fig.suptitle("Uncertainty Weight Trajectories (exp(−log_var))",
+        # Hide unused subplots
+        for j in range(n_models, n_rows * n_cols):
+            axes[j // n_cols][j % n_cols].set_visible(False)
+        fig.suptitle("Uncertainty Weight Trajectories (exp(-log_var))",
                      fontsize=13, fontweight="bold")
         fig.tight_layout()
         png_path = out_dir / "logvar_trajectories.png"
@@ -402,21 +432,24 @@ def _plot_logvar_trajectories(out_dir):
         plt.close(fig)
         print(f"Plot: {png_path}")
 
-    # --- Plot: Combo loss trajectories ---
+    # --- Plot: Combo loss trajectories (4x2 grid) ---
     if loss_cols:
-        fig, axes = plt.subplots(n_models, 1, figsize=(12, 2.5 * n_models),
+        n_cols = 2
+        n_rows = (n_models + n_cols - 1) // n_cols
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, 3 * n_rows),
                                  sharex=True, squeeze=False)
         colors = plt.cm.tab10(np.linspace(0, 1, max(len(loss_cols), 10)))
-        for ax_row, (label, df) in zip(axes, history_data.items()):
-            ax = ax_row[0]
+        for idx, (label, df) in enumerate(history_data.items()):
+            ax = axes[idx // n_cols][idx % n_cols]
             for col, color in zip(loss_cols, colors):
                 if col in df.columns:
                     ax.plot(df.index, df[col], color=color, linewidth=0.8,
                             alpha=0.8, label=col)
-            ax.set_ylabel(label, fontsize=9)
+            ax.set_title(label, fontsize=10)
             ax.legend(fontsize=7, loc="upper right", ncol=2)
             ax.grid(True, alpha=0.3)
-        axes[-1][0].set_xlabel("epoch")
+        for j in range(n_models, n_rows * n_cols):
+            axes[j // n_cols][j % n_cols].set_visible(False)
         fig.suptitle("Combo / Circular Loss Trajectories",
                      fontsize=13, fontweight="bold")
         fig.tight_layout()

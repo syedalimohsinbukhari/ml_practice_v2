@@ -96,20 +96,64 @@ Companion to `phic_psi_implementation_plan_v4.md` and
 
 ## Run Log
 
-### Run A (baseline) — 2026-07-16
+### Round 1 — all architectures (2026-07-17/18)
+
+Seven runs completed across 5 architectures + poc_a/poc_b on TCN.
+See `analysis_output/` for detailed CSVs, plots, and markdown reports.
+
+**Key finding: total mode collapse on φc and ψ.**
+
+All PERIODIC heads (coa_phase, polarization_angle, inclination) collapsed to
+predicting a single constant value regardless of input. circ_r = 1.000 for
+φc across all TCN variants, 1.000 for ψ across nearly all models.
+
+This was NOT random noise — the models converged to outputting exactly one
+angle for every sample. The gradient is identically zero for these heads.
+
+**ψ R² = 0.75 was a mathematical artifact.** For a PERIODIC head with
+constant predictions against a uniform true distribution, the expected
+null-hypothesis R² = 1 − (π²/48)/(π²/12) = 0.75. The diagnostic looked
+healthy but was actually the null.
+
+**Non-degenerate heads are fine across TCN variants** (mchirp R² > 0.95,
+snr R² > 0.78). CNN baseline struggles on mchirp (R²=0.63) and merger_time
+(R²=0.24). Inception can't do merger_time (R²=−0.001).
+
+**Sky position anomaly:** poc_a/poc_b show 4× worse angular MAE (12.9°)
+than plain TCN (3.2°), despite all being TCN. Needs investigation — may be
+a transforms.json save/load issue in the SumDiffTrainer pipeline.
+
+### Diagnostic scripts
+
+- `analyse_predictions.py` — loads all models, predicts on validation,
+  reports per-head stats (MAE, R², circular concentration, mode-collapse
+  detection), writes CSVs + markdown report + PNG plots.
+- `diagnostic_checks.py` — four deep checks:
+  1. True label distribution (are labels themselves collapsed?)
+  2. Loss function verification (circular vs Huber)
+  3. Log-var trajectory over training (early collapse detection)
+  4. Gradient routing (do φc/ψ weights change in poc_b?)
+- `analyse_phic_distributions.py` — φc-only distribution analysis
+  (superseded by analyse_predictions.py, kept for reference)
+
+### Next steps
+
+- [ ] Run `diagnostic_checks.py` on GPU machine to rule out data-pipeline bugs
+- [ ] Implement ι-conditioning plan (`plan_iota_conditioning.md`)
+- [ ] Investigate sky_position degradation in SumDiffTrainer
+
+## Run Log (original)
+
+### Run A (baseline) — 2026-07-16 (re-run 2026-07-17)
 - **Config:** `config_baseline.yaml`
 - **Branch:** `poc/phic-psi-degeneracy`
 - **Machine:** lab GPU
 - **Epochs:** 80
 - **Mode:** baseline (circular loss on individual φc/ψ)
-- **Status:** Training complete. Metrics pending (run `run_full.py` or evaluate manually).
-- **Preliminary diagnostics (epoch 80, full):**
-  - coa_phase MAE=1.572, R²=−0.012 (dead — degeneracy confirmed)
-  - polarization_angle MAE=0.779, R²=0.754 (learnable)
-  - inclination MAE=1.556, R²=0.014 (essentially dead)
-  - mchirp MAE=0.939, R²=0.962
+- **Status:** Training complete. Full analysis available.
+- **Key result:** φc mode-collapsed to 315° constant. ψ mode-collapsed to 67.5° constant.
 
-### Run B (PoC) — 2026-07-16
+### Run B (PoC) — 2026-07-16 (re-run 2026-07-18)
 - **Config:** `config_poc.yaml`
 - **Branch:** `poc/phic-psi-degeneracy`
 - **Machine:** lab GPU

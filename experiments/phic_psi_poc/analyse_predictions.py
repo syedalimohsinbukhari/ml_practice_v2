@@ -18,6 +18,11 @@ from pathlib import Path
 
 import numpy as np
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc"))
@@ -176,6 +181,11 @@ def analyse_run(label: str, config_path: Path) -> dict:
                 **peak_info,
             }
 
+    # Store raw predictions for plotting
+    result["_pred"] = pred
+    result["_true"] = true
+    result["_heads"] = heads
+
     return result
 
 
@@ -258,21 +268,35 @@ def main():
                       f"{peak_str:>30s}")
 
     # ==================================================================
-    # Table 4: Quick health check — which params are well-predicted?
+    # Table 4: Quick health check
     # ==================================================================
     print("\n\n" + "=" * 100)
     print("TABLE 4: QUICK HEALTH CHECK")
-    print("        ✓ = well predicted   ~ = marginal   ✗ = dead/random")
+    print("  ✓ = ok   ~ = marginal   ✗ = dead/random   💀 = MODE COLLAPSE")
+    print("  (col: circ_r ≈ 1 + high angular MAE = all preds at single value)")
     print("=" * 100)
+
+    def _periodic_grade(s):
+        """Grade a periodic head: distinguish mode collapse from good concentration."""
+        r = s["circular_r"]
+        mae = s["angular_mae"]
+        # Mode collapse: perfectly concentrated (r > 0.9) but wrong (high MAE)
+        if r > 0.9 and mae > 0.5:
+            return "💀"
+        if mae < 0.3:
+            return "✓"
+        if mae < 0.8:
+            return "~"
+        return "✗"
 
     criteria = {
         "mchirp": lambda s: "✓" if s["r2"] > 0.8 else ("~" if s["r2"] > 0.5 else "✗"),
         "merger_time": lambda s: "✓" if s["r2"] > 0.8 else ("~" if s["r2"] > 0.5 else "✗"),
         "snr": lambda s: "✓" if s["r2"] > 0.6 else ("~" if s["r2"] > 0.3 else "✗"),
         "sky_position": lambda s: "✓" if s["angular_mae_deg"] < 45 else ("~" if s["angular_mae_deg"] < 80 else "✗"),
-        "coa_phase": lambda s: "✓" if s["circular_r"] > 0.5 else ("~" if s["circular_r"] > 0.15 else "✗"),
-        "polarization_angle": lambda s: "✓" if s["circular_r"] > 0.5 else ("~" if s["circular_r"] > 0.15 else "✗"),
-        "inclination": lambda s: "✓" if s["circular_r"] > 0.5 else ("~" if s["circular_r"] > 0.15 else "✗"),
+        "coa_phase": _periodic_grade,
+        "polarization_angle": _periodic_grade,
+        "inclination": _periodic_grade,
     }
 
     heads_order = ["mchirp", "merger_time", "snr", "sky_position",
@@ -288,8 +312,317 @@ def main():
                 symbols.append("—")
         print(f"{label:<22s} " + "".join(f"{s:>12s}" for s in symbols))
 
+    # ==================================================================
+    # Write all tables to disk
+    # ==================================================================
+    import csv
+    from datetime import datetime
+
+    out_dir = Path("experiments/phic_psi_poc/analysis_output")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # --- CSV: scalar heads ---
+    scalar_path = out_dir / f"scalar_heads_{ts}.csv"
+    with open(scalar_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["model", "head", "mae", "r2", "bias", "std_ratio"])
+        for label, r in results.items():
+            for h in ["mchirp", "merger_time", "snr"]:
+                if h in r:
+                    s = r[h]
+                    writer.writerow([label, h, s["mae"], s["r2"], s["bias"], s["std_ratio"]])
+    print(f"\nScalar heads CSV: {scalar_path}")
+
+    # --- CSV: sky position ---
+    sky_path = out_dir / f"sky_position_{ts}.csv"
+    with open(sky_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["model", "angular_mae_deg", "angular_median_deg"])
+        for label, r in results.items():
+            if "sky_position" in r:
+                writer.writerow([label, r["sky_position"]["angular_mae_deg"],
+                                 r["sky_position"]["angular_med_deg"]])
+    print(f"Sky position CSV: {sky_path}")
+
+    # --- CSV: periodic heads ---
+    period_path = out_dir / f"periodic_heads_{ts}.csv"
+    with open(period_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["model", "head", "circular_r", "circular_mean_deg",
+                         "angular_mae", "n_peaks", "peaks", "is_structured", "chi2"])
+        for label, r in results.items():
+            for h in ["coa_phase", "polarization_angle", "inclination"]:
+                if h in r:
+                    s = r[h]
+                    peak_str = "; ".join(f"{np.degrees(p[0]):.0f}°:{p[1]:.3f}"
+                                         for p in s["peaks"][:4])
+                    writer.writerow([label, h, s["circular_r"],
+                                     np.degrees(s["circular_mean"]),
+                                     s["angular_mae"], s["n_peaks"],
+                                     peak_str, s["is_structured"], s["chi2"]])
+    print(f"Periodic heads CSV: {period_path}")
+
+    # --- CSV: health check ---
+    health_path = out_dir / f"health_check_{ts}.csv"
+    with open(health_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["model"] + heads_order)
+        for label, r in results.items():
+            row = [label]
+            for h in heads_order:
+                if h in r:
+                    row.append(criteria[h](r[h]))
+                else:
+                    row.append("—")
+            writer.writerow(row)
+    print(f"Health check CSV: {health_path}")
+
+    # --- Consolidated markdown report ---
+    md_path = out_dir / f"analysis_report_{ts}.md"
+    with open(md_path, "w") as f:
+        f.write(f"# Prediction Analysis Report — {ts}\n\n")
+
+        f.write("## Scalar Heads\n\n")
+        for h in ["mchirp", "merger_time", "snr"]:
+            f.write(f"### {h}\n\n")
+            f.write("| model | MAE | R² | bias | std_ratio |\n")
+            f.write("|-------|-----|----|------|----------|\n")
+            for label, r in results.items():
+                if h in r:
+                    s = r[h]
+                    f.write(f"| {label} | {s['mae']:.4f} | {s['r2']:.4f} | {s['bias']:.4f} | {s['std_ratio']:.4f} |\n")
+            f.write("\n")
+
+        f.write("## Sky Position\n\n")
+        f.write("| model | angular MAE | angular median |\n")
+        f.write("|-------|------------|---------------|\n")
+        for label, r in results.items():
+            if "sky_position" in r:
+                s = r["sky_position"]
+                f.write(f"| {label} | {s['angular_mae_deg']:.1f}° | {s['angular_med_deg']:.1f}° |\n")
+        f.write("\n")
+
+        f.write("## Periodic Heads\n\n")
+        for h, period_name in [("coa_phase", "φc [0,2π)"), ("polarization_angle", "ψ [0,π)"),
+                                ("inclination", "ι [0,π]")]:
+            f.write(f"### {h} ({period_name})\n\n")
+            f.write("| model | circ_r | circ_mean | ang_MAE | peaks |\n")
+            f.write("|-------|--------|-----------|---------|-------|\n")
+            for label, r in results.items():
+                if h in r:
+                    s = r[h]
+                    peak_str = ", ".join(f"{np.degrees(p[0]):.0f}°({p[1]:.2f})"
+                                         for p in s["peaks"][:3]) or "—"
+                    f.write(f"| {label} | {s['circular_r']:.4f} | "
+                            f"{np.degrees(s['circular_mean']):.1f}° | "
+                            f"{s['angular_mae']:.4f} | {peak_str} |\n")
+            f.write("\n")
+
+        f.write("## Health Check\n\n")
+        f.write("| model | " + " | ".join(heads_order) + " |\n")
+        f.write("|-------|" + "|".join(":---:" for _ in heads_order) + "|\n")
+        for label, r in results.items():
+            symbols = []
+            for h in heads_order:
+                if h in r:
+                    symbols.append(criteria[h](r[h]))
+                else:
+                    symbols.append("—")
+            f.write(f"| {label} | " + " | ".join(symbols) + " |\n")
+
+    print(f"Markdown report: {md_path}")
+
+    # ==================================================================
+    # Generate plots
+    # ==================================================================
+    _generate_plots(results, out_dir, ts)
+
     print("\n\nDone.")
-    print("Run the analyse_phic_distributions.py script for detailed φc histogram data.")
+
+
+# ======================================================================
+# Plot generation
+# ======================================================================
+
+def _generate_plots(results, out_dir, ts):
+    """Generate PNG visualizations for all models × heads."""
+    labels = list(results.keys())
+    n_models = len(labels)
+    if n_models == 0:
+        return
+
+    # Color palette (colorblind-friendly)
+    MODEL_COLORS = plt.cm.tab10(np.linspace(0, 1, max(n_models, 10)))
+
+    # ---- Plot 1: Periodic head prediction histograms ----
+    for h, period, title in [("coa_phase", 2*np.pi, "φc (coa_phase)"),
+                              ("polarization_angle", np.pi, "ψ (polarization_angle)"),
+                              ("inclination", 2*np.pi, "ι (inclination)")]:
+        fig, axes = plt.subplots(n_models, 1, figsize=(10, 2.5 * n_models),
+                                 sharex=True)
+        if n_models == 1:
+            axes = [axes]
+
+        for ax, (label, r), color in zip(axes, results.items(), MODEL_COLORS):
+            if h not in r.get("_pred", {}):
+                ax.set_visible(False)
+                continue
+            pred_vals = np.ravel(r["_pred"][h])
+            true_vals = np.ravel(r["_true"][h])
+
+            # Histogram predicted
+            ax.hist(pred_vals, bins=40, range=(0, period), alpha=0.7,
+                    color=color, label="predicted", edgecolor="white",
+                    linewidth=0.3)
+            # Histogram true
+            ax.hist(true_vals, bins=40, range=(0, period), alpha=0.3,
+                    color="grey", label="true", edgecolor="white",
+                    linewidth=0.3)
+
+            # Stats annotation
+            stats = r.get(h, {})
+            circ_r = stats.get("circular_r", 0)
+            ang_mae = stats.get("angular_mae", 0)
+            peak_str = ", ".join(f"{np.degrees(p[0]):.0f}°" for p in stats.get("peaks", [])[:2])
+            ax.set_ylabel(label, fontsize=9)
+            ax.yaxis.set_major_locator(MaxNLocator(3))
+            status = "💀 MODE COLLAPSE" if (circ_r > 0.9 and ang_mae > 0.5) else \
+                     ("✓ good" if ang_mae < 0.3 else ("~ marginal" if ang_mae < 0.8 else "✗ dead"))
+            ax.text(0.99, 0.95, f"r={circ_r:.3f}  MAE={ang_mae:.2f}  {status}",
+                    transform=ax.transAxes, ha="right", va="top",
+                    fontsize=8, fontfamily="monospace",
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.85))
+            if peak_str:
+                ax.text(0.99, 0.78, f"peaks: {peak_str}",
+                        transform=ax.transAxes, ha="right", va="top",
+                        fontsize=7, fontfamily="monospace",
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
+
+        axes[0].legend(fontsize=8, loc="upper left")
+        axes[-1].set_xlabel(f"{title} [rad]")
+        fig.suptitle(f"Prediction Distributions — {title}", fontsize=13, fontweight="bold")
+        fig.tight_layout()
+        png_path = out_dir / f"histogram_{h}_{ts}.png"
+        fig.savefig(png_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Plot: {png_path}")
+
+    # ---- Plot 2: Scalar heads — true vs predicted scatter ----
+    for h, xlabel in [("mchirp", r"$\mathcal{M}_c$ true"),
+                       ("merger_time", "$t_{merger}$ true [s]"),
+                       ("snr", "SNR true")]:
+        cols = min(n_models, 4)
+        rows = (n_models + cols - 1) // cols
+        fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 3.5*rows),
+                                 squeeze=False)
+        idx = 0
+        for label, r in results.items():
+            if h not in r.get("_pred", {}):
+                continue
+            ax = axes[idx // cols][idx % cols]
+            t = np.ravel(r["_true"][h])
+            p = np.ravel(r["_pred"][h])
+            ax.scatter(t, p, s=0.5, alpha=0.3, color=MODEL_COLORS[idx])
+            # Diagonal
+            lims = [min(t.min(), p.min()), max(t.max(), p.max())]
+            ax.plot(lims, lims, "k--", linewidth=0.5, alpha=0.5)
+            stats = r.get(h, {})
+            ax.set_title(f"{label}\nR²={stats.get('r2',0):.3f}  MAE={stats.get('mae',0):.3f}",
+                        fontsize=9)
+            ax.set_xlabel(xlabel, fontsize=8)
+            ax.set_ylabel(f"{h} predicted", fontsize=8)
+            idx += 1
+        # Hide unused subplots
+        for j in range(idx, rows * cols):
+            axes[j // cols][j % cols].set_visible(False)
+        fig.suptitle(f"True vs Predicted — {h}", fontsize=13, fontweight="bold")
+        fig.tight_layout()
+        png_path = out_dir / f"scatter_{h}_{ts}.png"
+        fig.savefig(png_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"Plot: {png_path}")
+
+    # ---- Plot 3: Health check heatmap ----
+    _plot_health_heatmap(results, out_dir, ts)
+
+
+def _plot_health_heatmap(results, out_dir, ts):
+    """Color-coded grid: models × heads with ✓/~ /✗/💀."""
+    heads_order = ["mchirp", "merger_time", "snr", "sky_position",
+                   "coa_phase", "polarization_angle", "inclination"]
+    labels = list(results.keys())
+
+    data = np.zeros((len(labels), len(heads_order)))
+    annot = []
+    for label, r in results.items():
+        row = []
+        row_vals = []
+        for h in heads_order:
+            if h not in r:
+                row.append("—")
+                row_vals.append(-1)
+            elif h in ["mchirp", "merger_time", "snr"]:
+                s = r[h]
+                row.append(f"R²={s['r2']:.2f}")
+                row_vals.append(max(0, s["r2"]))
+            elif h == "sky_position":
+                s = r[h]
+                row.append(f"{s['angular_mae_deg']:.0f}°")
+                row_vals.append(max(0, 1 - s["angular_mae_deg"]/180))
+            else:
+                s = r[h]
+                circ_r = s["circular_r"]
+                ang_mae = s["angular_mae"]
+                if circ_r > 0.9 and ang_mae > 0.5:
+                    row.append(f"💀 r={circ_r:.2f}")
+                    row_vals.append(-0.2)
+                elif ang_mae < 0.3:
+                    row.append(f"✓ MAE={ang_mae:.2f}")
+                    row_vals.append(1.0)
+                elif ang_mae < 0.8:
+                    row.append(f"~ MAE={ang_mae:.2f}")
+                    row_vals.append(0.5)
+                else:
+                    row.append(f"✗ MAE={ang_mae:.2f}")
+                    row_vals.append(0.1)
+        annot.append(row)
+        data[len(annot)-1] = row_vals
+
+    fig, ax = plt.subplots(figsize=(2 + 1.8*len(heads_order), 1.2 + 0.45*len(labels)))
+
+    # Custom colormap: red (collapse) → white (dead) → yellow (marginal) → green (good)
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap = LinearSegmentedColormap.from_list("health",
+        [(0.8, 0.1, 0.1),    # red for collapse
+         (0.95, 0.95, 0.95),  # white for dead
+         (1.0, 0.9, 0.5),     # yellow for marginal
+         (0.3, 0.8, 0.3)],    # green for good
+        N=256)
+
+    im = ax.imshow(data, aspect="auto", cmap=cmap, vmin=-0.3, vmax=1.2)
+
+    for i in range(len(labels)):
+        for j in range(len(heads_order)):
+            val = data[i, j]
+            color = "white" if val < 0 else "black"
+            ax.text(j, i, annot[i][j], ha="center", va="center",
+                    fontsize=8, fontfamily="monospace", color=color,
+                    bbox=dict(boxstyle="round,pad=0.15",
+                              facecolor="white" if val >= 0 else "none",
+                              alpha=0.6 if val >= 0 else 0))
+
+    ax.set_xticks(range(len(heads_order)))
+    ax.set_xticklabels(heads_order, rotation=30, ha="right", fontsize=9)
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.set_title("Health Check — ✓=good  ~=marginal  ✗=dead  💀=MODE COLLAPSE",
+                 fontsize=11, fontweight="bold")
+    fig.tight_layout()
+    png_path = out_dir / f"health_check_{ts}.png"
+    fig.savefig(png_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Plot: {png_path}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,4 @@ model,angular_mae_deg,angular_median_deg
 poc_a (baseline),8.17258236537346,0.0
 poc_b (PoC),9.989972605862432,0.0
 tcn,4.49538098215875,0.0
-cnn_baseline,2.1125408887782893,0.0
 cnn_attention,3.338488277543937,0.0
-inception_time,5.2142731615561,0.0
-resnet1d,22.834332943441503,0.0

@@ -81,10 +81,10 @@ CONFIGS = {
     "poc_a (baseline)":    ROOT / "experiments/phic_psi_poc/config_baseline.yaml",
     "poc_b (PoC)":         ROOT / "experiments/phic_psi_poc/config_poc.yaml",
     "tcn":                 ROOT / "experiments/phic_psi_poc/config_tcn.yaml",
-    "cnn_baseline":        ROOT / "experiments/phic_psi_poc/config_cnn_baseline.yaml",
+    # "cnn_baseline":        ROOT / "experiments/phic_psi_poc/config_cnn_baseline.yaml",
     "cnn_attention":       ROOT / "experiments/phic_psi_poc/config_cnn_attention.yaml",
-    "inception_time":      ROOT / "experiments/phic_psi_poc/config_inception_time.yaml",
-    "resnet1d":            ROOT / "experiments/phic_psi_poc/config_resnet1d.yaml",
+    # "inception_time":      ROOT / "experiments/phic_psi_poc/config_inception_time.yaml",
+    # "resnet1d":            ROOT / "experiments/phic_psi_poc/config_resnet1d.yaml",
 }
 
 

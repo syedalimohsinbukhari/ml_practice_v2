@@ -30,6 +30,7 @@ loss:
   snr_weight_alpha: null
   log_var_clamp: 3.0
   variance_penalty: 0.0
+  magnitude_penalty_lambda: 0.01
 
 optim:
   lr: 1.0e-3

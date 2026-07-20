@@ -189,15 +189,60 @@ kills gradient to the weights. All contradictions resolved:
 **Fix:** `tanh → linear` for PERIODIC heads. `normalize_unit` already handles
 unit-circle projection — tanh is redundant and creates saturation bottleneck.
 
-### Next steps
+### Post-fix retraining — 2026-07-18/20
+
+All 7 configs retrained with `activation="linear"` on PERIODIC heads.
+Full analysis in `tanh_to_linear_postmortem.md`.
+
+**Key finding: tanh fixed, but normalize_unit gradient pathology blocks all
+PERIODIC heads.** Tanh saturation was correctly diagnosed and fixed (std_ratio
+≠ √2), but removing tanh unmasked a second bug: the `normalize_unit` layer's
+backward pass divides by |v|, and the isotropic `1−cosΔθ` loss provides no
+signal to keep |v| near 1. |v| drifts without bound, crushing or exploding
+gradients:
+
+| Head              | Post-fix MAE     | |v| (std_ratio)  | Gradient scaling    |
+|-------------------|------------------|-----------------|---------------------|
+| coa_phase         | 1.57–1.58 rad    | ~104× (growing) | ÷104 → vanished     |
+| polarization_angle| 0.78–0.79 rad    | ~13× (stable)   | ÷13 → attenuated    |
+| inclination       | 1.54–1.59 rad    | ~0.07× (shrinking)| ×14 → unstable     |
+
+**Inclination's failure is the key diagnostic.** Inclination is NOT part of
+the φc-ψ degeneracy — it's an independent parameter with no sum/diff structure.
+Yet it mode-collapses identically to φc and ψ. This is strong evidence the root
+cause is a shared mechanism bug (normalize_unit), not a physics limit.
+
+**Combo heads (poc_b) also don't learn**, but this doesn't test the degeneracy:
+`complex_mul` operates on already-normalized z_φc and z_ψ — the |v| pathology
+enters upstream before the combo transform.
+
+**The φc-ψ degeneracy hypothesis remains UNTESTED.** We cannot distinguish
+"degeneracy is fundamental" from "|v| is broken" until |v| is stabilized.
+The split is cleanly along mechanism lines: every PERIODIC head (normalize_unit)
+is dead; every non-PERIODIC head is healthy.
+
+**How this bug was introduced:** The original Huber-on-vector loss implicitly
+regularized |v| (minimum at |v|=1). Swapping to `1−cosΔθ` was correct for
+fixing directional anisotropy, but silently discarded that side effect.
+
+**Fix:** Add explicit magnitude penalty `λ·(|v_raw|−1)²` alongside the angular
+loss. Standard in metric learning literature. See `tanh_to_linear_postmortem.md`
+Section 6.
+
+### Next steps (revised after review)
 
 - [x] Root cause identified: tanh saturation on PERIODIC heads
 - [x] Check 7: saturation at step 0 — init variance confirmed
 - [x] Applied fix: `activation="tanh"` → `"linear"` for all 3 PERIODIC heads
       (inclination, coa_phase, polarization_angle) in `src/gwml/heads_spec.py`
-- [ ] Retrain all models (7 configs) with linear activation
-- [ ] Re-run `analyse_predictions.py` to check φc/ψ learnability
-- [ ] THEN implement ι-conditioning plan (`plan_iota_conditioning.md`)
+- [x] Retrain all models (7 configs) with linear activation
+- [x] Re-run analysis → **mode collapse persists; normalize_unit pathology found**
+- [ ] **Implement magnitude penalty** `λ·(|v_raw|−1)²` in loss pipeline
+- [ ] **Retrain poc_a + poc_b on TCN only** (minimal cost to test the fix)
+- [ ] **Track std_ratio** over full training — success = stabilizes near 1.0
+- [ ] **Only then evaluate physics** — poor R² with healthy |v| is clean evidence
+- [ ] Do NOT conclude degeneracy is fundamental, pivot to ι-conditioning, or
+      explore alternative representations until |v| fix is tested
 - [ ] Investigate sky_position degradation in SumDiffTrainer
 
 ## Run Log (original)
@@ -261,6 +306,38 @@ python experiments/phic_psi_poc/train_poc.py experiments/phic_psi_poc/config_poc
 python experiments/phic_psi_poc/plot_poc.py experiments/phic_psi_poc/config_poc.yaml
 python experiments/phic_psi_poc/evaluate_poc.py experiments/phic_psi_poc/config_poc.yaml --split validation
 ```
+
+### Post-fix retraining (tanh→linear) — 2026-07-18
+
+All 7 configs retrained with `activation="linear"` on PERIODIC heads.
+Runs completed on lab GPU machine. Analysis 2026-07-20.
+
+| Config                    | Run ID            | Status               |
+|---------------------------|-------------------|----------------------|
+| poc_a (baseline, TCN)     | 20260718_141645   | Complete — see below |
+| cnn_attention             | 20260718_143902   | Complete             |
+| cnn_baseline              | 20260718_144514   | Complete             |
+| inception_time            | 20260718_145002   | Complete             |
+| poc_b (PoC, TCN)          | 20260718_150353   | Complete — see below |
+| resnet1d                  | 20260718_152543   | Complete             |
+| tcn                       | 20260718_153301   | Complete             |
+
+**Result:** Mode collapse persists on all PERIODIC heads across all configs.
+Tanh saturation was correctly fixed but was not the root cause. A new
+pathology — normalize_unit gradient attenuation due to |v| divergence —
+prevents PERIODIC heads from training. Even the combo heads (poc_b) don't
+learn (circ_loss stays at random baseline).
+
+> **⚠ Superseded (2026-07-20):** The initial conclusion that "the degeneracy
+> appears fundamental" was premature — see the revised `tanh_to_linear_postmortem.md`
+> and `diagnostic_log.md` Run 5/6. Inclination's identical failure, initially
+> cited as evidence, was traced to a different mechanism (Huber loss, no
+> normalize_unit — see `inclination_loss_trace.md`). The magnitude penalty
+> `λ·(|v_raw|−1)²` was implemented 2026-07-20 to fix the |v| drift; the
+> degeneracy hypothesis remains untested pending retrain.
+
+Full postmortem: [`tanh_to_linear_postmortem.md`](tanh_to_linear_postmortem.md)
+Quick comparison: [`pre_post_comparison.csv`](pre_post_comparison.csv)
 
 ### Run C (ι=0 slice) — not yet configured
 

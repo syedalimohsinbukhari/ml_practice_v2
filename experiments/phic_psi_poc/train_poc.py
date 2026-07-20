@@ -87,6 +87,10 @@ def build_sumdiff_trainer(cfg: dict) -> SumDiffTrainer:
             "sign_dependent_combo", False
         )
 
+    trainer_kwargs["magnitude_penalty_lambda"] = loss_cfg.get(
+        "magnitude_penalty_lambda", 0.0
+    )
+
     trainer = SumDiffTrainer(
         base,
         loss_cfg,

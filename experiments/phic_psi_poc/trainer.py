@@ -114,6 +114,17 @@ class SumDiffTrainer(MultiHeadTrainer):
         rather than using a single fixed label.  When cos_iota > 0 the
         ``well_constrained_combo`` is used as-is; when cos_iota < 0 the
         opposite combo is treated as well-constrained.
+    magnitude_penalty_lambda : float
+        Weight for the radial regularisation term ``(|v_raw| − 1)²`` added
+        to the circular loss on φc and ψ.  The isotropic ``1−cosΔθ`` loss
+        is blind to |v|, so nothing prevents the raw Dense output magnitude
+        from drifting.  When |v| ≫ 1, ``normalize_unit``'s backward pass
+        divides the angular gradient by |v|, crushing it.  When |v| ≪ 1,
+        the gradient is amplified into instability.  This penalty replaces
+        the implicit magnitude regularisation that the old Huber loss
+        accidentally provided.  Default 0.0 (no penalty — backward
+        compatible).  Start with 0.01–0.1 and tune based on whether
+        std_ratio stabilises near 1.0.
     """
 
     # Heads whose individual losses are removed in "poc" mode.
@@ -128,12 +139,14 @@ class SumDiffTrainer(MultiHeadTrainer):
         w_iota_fn: callable | None = None,
         well_constrained_combo: str = "combo_A",
         sign_dependent_combo: bool = False,
+        magnitude_penalty_lambda: float = 0.0,
         **kwargs,
     ):
         self._poc_mode = mode
         self._w_iota_fn = w_iota_fn or tf_w_iota
         self._well_constrained = well_constrained_combo
         self._sign_dependent = sign_dependent_combo
+        self._mag_lambda = magnitude_penalty_lambda
         self._poor_combo = (
             "combo_B" if well_constrained_combo == "combo_A" else "combo_A"
         )
@@ -157,11 +170,12 @@ class SumDiffTrainer(MultiHeadTrainer):
         self._combo_metrics = self._build_combo_metrics()
 
         # ---- Remove stale parent metrics for replaced heads ----
+        # Keep std_ratio — it's the key diagnostic for |v| drift even
+        # in poc mode where individual φc/ψ MAE/R² are not meaningful.
         if self._poc_mode == "poc":
             for h in self._SUMDIFF_SOURCE_HEADS:
                 self.head_mae.pop(h, None)
                 self.head_r2.pop(h, None)
-                self.head_std_ratio.pop(h, None)
                 self.weight_trackers.pop(h, None)
 
     # ------------------------------------------------------------------
@@ -286,6 +300,39 @@ class SumDiffTrainer(MultiHeadTrainer):
         )
 
     # ------------------------------------------------------------------
+    # Magnitude penalty (radial regularisation for normalize_unit)
+    # ------------------------------------------------------------------
+
+    def _magnitude_penalty(self, *raw_vectors) -> tf.Tensor:
+        """``λ · mean((|v| − 1)²)`` for each raw (pre-normalize) vector.
+
+        The isotropic ``1−cosΔθ`` loss is computed *after* ``normalize_unit``
+        and is therefore completely blind to the raw prediction magnitude |v|.
+        Without a restoring force, |v| drifts under ordinary weight-update
+        noise.  When |v| ≫ 1 the angular gradient is crushed (÷|v|); when
+        |v| ≪ 1 it is amplified into instability.  This penalty gives the
+        optimizer an explicit reason to keep |v| ≈ 1.
+
+        Parameters
+        ----------
+        *raw_vectors : tf.Tensor
+            One or more (N, 2) tensors of raw (pre-normalize) predictions.
+
+        Returns
+        -------
+        tf.Tensor
+            Scalar penalty summed over all input vectors, weighted by
+            ``self._mag_lambda``.  Returns 0.0 when λ = 0.
+        """
+        if self._mag_lambda == 0.0:
+            return tf.constant(0.0)
+        total = tf.constant(0.0)
+        for v in raw_vectors:
+            norm = tf.sqrt(tf.reduce_sum(tf.square(v), axis=-1) + 1e-8)
+            total = total + tf.reduce_mean(tf.square(norm - 1.0))
+        return self._mag_lambda * total
+
+    # ------------------------------------------------------------------
     # _total_loss overrides
     # ------------------------------------------------------------------
 
@@ -343,6 +390,12 @@ class SumDiffTrainer(MultiHeadTrainer):
         """
         total = tf.constant(0.0)
 
+        # Capture raw (pre-normalize) vectors for magnitude penalty.
+        # _build_combo_vectors normalises internally via tf_normalize_unit,
+        # which discards |v| — we need the raw values before that happens.
+        z_phic_raw = y_pred["coa_phase"]
+        z_psi_raw = y_pred["polarization_angle"]
+
         z_phic_true, z_phic_pred, z_psi_true, z_psi_pred, _, _, _, _, _ = (
             self._build_combo_vectors(y_true, y_pred)
         )
@@ -356,6 +409,10 @@ class SumDiffTrainer(MultiHeadTrainer):
         loss_psi = 1.0 - tf.reduce_sum(z_psi_true * z_psi_pred, axis=-1)
         s_psi = self.log_vars["polarization_angle"]
         total = total + tf.exp(-s_psi) * tf.reduce_mean(loss_psi) + s_psi
+
+        # Magnitude penalty — prevents |v| drift that crushes/explodes the
+        # angular gradient through normalize_unit's 1/|v| backward pass.
+        total = total + self._magnitude_penalty(z_phic_raw, z_psi_raw)
 
         # All other heads (standard losses)
         total = total + self._other_heads_loss(y_true, y_pred, sample_weight)
@@ -374,6 +431,11 @@ class SumDiffTrainer(MultiHeadTrainer):
         individual φc or ψ loss is applied.
         """
         total = tf.constant(0.0)
+
+        # Capture raw (pre-normalize) vectors for magnitude penalty —
+        # same rationale as _baseline_total_loss.
+        z_phic_raw = y_pred["coa_phase"]
+        z_psi_raw = y_pred["polarization_angle"]
 
         (_, _, _, _,
          combo_A_true, combo_A_pred,
@@ -427,6 +489,12 @@ class SumDiffTrainer(MultiHeadTrainer):
         total = total + tf.exp(-s_A) * loss_A_mean + s_A
         total = total + tf.exp(-s_B) * loss_B_mean + s_B
 
+        # Magnitude penalty — prevents |v| drift that crushes/explodes the
+        # angular gradient through normalize_unit's 1/|v| backward pass.
+        # Applied to the raw (pre-normalize) φc and ψ vectors before they
+        # feed into normalize_unit → complex_mul → combo loss.
+        total = total + self._magnitude_penalty(z_phic_raw, z_psi_raw)
+
         # All other heads (standard losses)
         total = total + self._other_heads_loss(y_true, y_pred, sample_weight)
 
@@ -444,7 +512,11 @@ class SumDiffTrainer(MultiHeadTrainer):
         self.loss_tracker.update_state(loss)
         for h in self.head_names:
             if h in self._SUMDIFF_SOURCE_HEADS and self._poc_mode == "poc":
-                continue  # combo metrics handled below
+                # std_ratio is the key diagnostic for |v| drift — track it
+                # even though MAE/R² for these heads are not meaningful in
+                # poc mode (they receive no direct loss).
+                self.head_std_ratio[h].update_state(y_true[h], y_pred[h])
+                continue  # remaining metrics handled via combos below
             if HEAD_SPECS[h].loss == "vmf":
                 kappa = _vmf_kappa_from_raw(y_pred[f"{h}_kappa_raw"])
                 self.head_kappa[h].update_state(tf.reduce_mean(kappa))

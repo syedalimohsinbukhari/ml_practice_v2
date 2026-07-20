@@ -30,6 +30,12 @@ loss:
   snr_weight_alpha: null
   log_var_clamp: 3.0
   variance_penalty: 0.0
+  # Radial regularisation for PERIODIC heads using circular loss.
+  # The isotropic 1−cosΔθ loss is blind to |v_raw| — without this penalty
+  # |v| drifts, and normalize_unit's backward pass (÷|v|) crushes or
+  # explodes the angular gradient.  0.0 = disabled (backward-compatible).
+  # Start with 0.01–0.1; tune based on whether std_ratio stabilises near 1.
+  magnitude_penalty_lambda: 0.01
 
 optim:
   lr: 1.0e-3

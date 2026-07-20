@@ -510,13 +510,15 @@ heads we care about. Inclination's failure is a separate open question
 - [x] Fix: `activation="tanh"` → `"linear"` in heads_spec.py
 - [x] Retrain all 7 configs (2026-07-18)
 - [x] Re-run analysis (2026-07-20) → **mode collapse persists; new pathology found**
-- [ ] **Implement magnitude penalty** `λ·(|v_raw|−1)²` in the loss pipeline
+- [x] **Implement magnitude penalty** `λ·(|v_raw|−1)²` in the loss pipeline —
+      **completed in Run 6 (2026-07-20)**
 - [ ] **Retrain poc_a + poc_b on TCN only** (minimal cost to test the fix)
 - [ ] **Track std_ratio** over full training — success = stabilizes near 1.0
 - [ ] **Only then evaluate physics:** if std_ratio is healthy and PERIODIC heads
       still don't learn, that's clean evidence about the degeneracy
-- [ ] Do NOT conclude the degeneracy is fundamental, pivot to ι-conditioning,
-      or explore alternative representations until the |v| fix is tested
+- [x] Do NOT conclude the degeneracy is fundamental, pivot to ι-conditioning,
+      or explore alternative representations until the |v| fix is tested —
+      **premature conclusion retired; see Run 6**
 
 ---
 

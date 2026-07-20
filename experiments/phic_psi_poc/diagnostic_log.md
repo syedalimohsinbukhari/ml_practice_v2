@@ -275,11 +275,13 @@ onto the unit circle — tanh is redundant and harmful.
 ### Next steps
 
 - [x] Check 6 complete — root cause confirmed
-- [ ] Check 7: instrument early training steps to determine WHEN saturation
-      occurs (init vs drift)
-- [ ] Fix: change `activation="tanh"` → `"linear"` for PERIODIC heads
-- [ ] Retrain all models
-- [ ] Re-run full diagnostics to test degeneracy hypothesis
+- [x] Check 7: instrument early training steps to determine WHEN saturation
+      occurs (init vs drift) — **completed in Run 4**
+- [x] Fix: change `activation="tanh"` → `"linear"` for PERIODIC heads —
+      **applied 2026-07-18**
+- [x] Retrain all models — **completed in Run 5 (2026-07-18)**
+- [x] Re-run full diagnostics to test degeneracy hypothesis —
+      **completed 2026-07-20; result: normalize_unit pathology found**
 
 ### Hypothesis status (updated)
 
@@ -341,8 +343,9 @@ layers is simply too large for tanh.
 - [x] Fix determined: `activation="tanh"` → `"linear"` in heads_spec.py
 - [x] Apply fix (2026-07-18): `activation="tanh"` → `"linear"` in heads_spec.py
       for inclination, coa_phase, polarization_angle
-- [ ] Retrain all models (7 configs)
-- [ ] Re-run full diagnostics to test degeneracy hypothesis
+- [x] Retrain all models (7 configs) — **completed in Run 5 (2026-07-18)**
+- [x] Re-run full diagnostics to test degeneracy hypothesis —
+      **completed 2026-07-20; result: normalize_unit pathology found**
 
 ### Fix applied
 

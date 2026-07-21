@@ -166,3 +166,4 @@ structure.md
 
 # save the diagonistic log files at least
 !**/diagnostic_*.log
+!**/bootstrap_*.log

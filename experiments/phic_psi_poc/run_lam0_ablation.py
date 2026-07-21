@@ -27,6 +27,9 @@ import pandas as pd
 EXPERIMENTS_DIR = Path(__file__).resolve().parent
 ROOT = EXPERIMENTS_DIR.parents[1]
 
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(EXPERIMENTS_DIR))
+
 LAM0_CONFIGS = [
     "config_lam0_ablation.yaml",       # poc_a (baseline mode)
     "config_lam0_ablation_tcn.yaml",   # tcn (baseline mode)

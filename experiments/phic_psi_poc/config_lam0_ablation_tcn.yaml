@@ -1,0 +1,51 @@
+# λ=0 ablation — same as config_tcn.yaml but magnitude penalty disabled.
+#
+# Purpose: test whether the systematic increase in circular loss during training
+# is driven by the magnitude penalty.  TCN variant — second baseline architecture
+# alongside poc_a (config_lam0_ablation.yaml).
+#
+# If circular loss still increases with λ=0 → penalty is NOT the cause.
+# If circular loss stays flat or decreases with λ=0 → penalty IS contributing.
+
+name: phic_psi_lam0_ablation_tcn
+run_dir: runs/phic_psi_lam0_ablation_tcn
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: baseline
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  variance_penalty: 0.0
+  magnitude_penalty_lambda: 0.0   # ← ABLATION: penalty disabled
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

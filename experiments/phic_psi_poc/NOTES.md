@@ -207,11 +207,12 @@ backward pass divides by |v|, and the isotropic `1−cosΔθ` loss provides no
 signal to keep |v| near 1. |v| drifts without bound, crushing or exploding
 gradients:
 
-| Head              | Post-fix MAE     | |v| (std_ratio)  | Gradient scaling    |
-|-------------------|------------------|-----------------|---------------------|
-| coa_phase         | 1.57–1.58 rad    | ~104× (growing) | ÷104 → vanished     |
-| polarization_angle| 0.78–0.79 rad    | ~13× (stable)   | ÷13 → attenuated    |
-| inclination       | 1.54–1.59 rad    | ~0.07× (shrinking)| ×14 → unstable     |
+
+| Head               | Post-fix MAE  | v (std_ratio)      | Gradient scaling |
+|--------------------|---------------|--------------------|------------------|
+| coa_phase          | 1.57–1.58 rad | ~104× (growing)    | ÷104 → vanished  |
+| polarization_angle | 0.78–0.79 rad | ~13× (stable)      | ÷13 → attenuated |
+| inclination        | 1.54–1.59 rad | ~0.07× (shrinking) | ×14 → unstable   |
 
 **Inclination's failure is the key diagnostic.** Inclination is NOT part of
 the φc-ψ degeneracy — it's an independent parameter with no sum/diff structure.
@@ -277,14 +278,14 @@ attention pooling, not phase learning (`cnn_attention_config_diff.md`).
 Five-section verification plan (`run7_verification_plan.md`) executed to
 systematically rule out confounds:
 
-| Section | Finding | Detail |
-|---------|---------|--------|
-| A | Gating checks | A.1 ✅, A.2 ⚠️ (2/4 fully healthy), A.3 ⚠️ (89× rel_change vs mchirp) |
-| B | poc_b config diff | No config bug. Worse collapse = curriculum+degeneracy prediction |
-| C | cnn_attention config diff | No hidden config difference. q_tokens unused. circ_r is feature-variance artifact |
-| D | Bootstrap significance | **11/12 model×head combinations non-significant.** coa_phase & pol_angle: 0/4 models significant |
-| — | Validation ordering check | Data is i.i.d. (window variance ratio=0.99, no row-index correlation). Bootstrap shuffle-null is valid. |
-| E | SNR stratification | No SNR-dependent improvement on any head. High-SNR events at baseline |
+| Section | Finding                   | Detail                                                                                                  |
+|---------|---------------------------|---------------------------------------------------------------------------------------------------------|
+| A       | Gating checks             | A.1 ✅, A.2 ⚠️ (2/4 fully healthy), A.3 ⚠️ (89× rel_change vs mchirp)                                    |
+| B       | poc_b config diff         | No config bug. Worse collapse = curriculum+degeneracy prediction                                        |
+| C       | cnn_attention config diff | No hidden config difference. q_tokens unused. circ_r is feature-variance artifact                       |
+| D       | Bootstrap significance    | **11/12 model×head combinations non-significant.** coa_phase & pol_angle: 0/4 models significant        |
+| —       | Validation ordering check | Data is i.i.d. (window variance ratio=0.99, no row-index correlation). Bootstrap shuffle-null is valid. |
+| E       | SNR stratification        | No SNR-dependent improvement on any head. High-SNR events at baseline                                   |
 
 Output files:
 - [`std_ratio_trajectories.md`](std_ratio_trajectories.md)

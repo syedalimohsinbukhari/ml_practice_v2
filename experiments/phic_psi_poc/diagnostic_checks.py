@@ -273,6 +273,8 @@ def check_loss_function():
     for config_name, config_path in [
         ("poc_a (baseline)", ROOT / "experiments/phic_psi_poc/config_baseline.yaml"),
         ("poc_b (PoC)", ROOT / "experiments/phic_psi_poc/config_poc.yaml"),
+        ("tcn (TNC)", ROOT / "experiments/phic_psi_poc/config_tcn.yaml"),
+        ("cnn_attention (ATX)", ROOT / "experiments/phic_psi_poc/config_cnn_attention.yaml")
     ]:
         print(f"\n--- {config_name} ---")
         cfg = load_config(str(config_path))

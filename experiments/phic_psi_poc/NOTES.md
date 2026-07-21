@@ -26,7 +26,10 @@ Companion to `phic_psi_implementation_plan_v4.md` and
   throughout training (option a). No epoch-based scheduling.
 
 ### Still to verify
-- None remaining — all prerequisite gates passed.
+- None remaining — all Step 1 prerequisite gates passed.
+- Run 7 verification (2026-07-21): four small items identified (λ=0 ablation,
+  multi-step perturbation trace, tcn λ retune, poc_a pol_angle λ check) —
+  see [`diagnostic_log.md`](diagnostic_log.md) Run 7 section.
 
 ### Resolved (2026-07-16, rev2)
 
@@ -119,22 +122,25 @@ healthy but was actually the null.
 snr R² > 0.78). CNN baseline struggles on mchirp (R²=0.63) and merger_time
 (R²=0.24). Inception can't do merger_time (R²=−0.001).
 
-**Sky position anomaly:** poc_a/poc_b show 4× worse angular MAE (12.9°)
-than plain TCN (3.2°), despite all being TCN. Needs investigation — may be
-a transforms.json save/load issue in the SumDiffTrainer pipeline.
+**Sky position anomaly (RESOLVED in Run 7):** Earlier assessment of 4× worse
+angular MAE for poc_a/poc_b vs plain TCN was incorrect — the kappa-derived
+proxy in `metrics_validation.csv` was misleading. True angular errors in Run 7
+are 3.3–10.0° across models (cnn_attention at 3.3°, tcn at 4.5°). Sky position
+is working. No transforms.json bug.
 
 ### Diagnostic scripts
 
 - `analyse_predictions.py` — loads all models, predicts on validation,
   reports per-head stats (MAE, R², circular concentration, mode-collapse
   detection), writes CSVs + markdown report + PNG plots.
-- `diagnostic_checks.py` — five deep checks (Check 6 pending):
+- `diagnostic_checks.py` — seven deep checks (all complete as of Run 7):
   1. True label distribution
   2. Loss function verification
   3. Log-var trajectory over training
   4. Gradient routing + prediction perturbation
   5. Pre-tanh logit saturation
-  6. (pending) Gradient chain instrument through combo pipeline
+  6. Gradient chain instrument through combo pipeline
+  7. Early training tanh saturation timing
 - `diagnostic_log.md` — **thesis reference**: chronological log of every
   diagnostic run, hypothesis tested, outcome, and wrong turns. Tracks which
   hypotheses are active/ruled out and what evidence supports each.
@@ -229,21 +235,93 @@ fixing directional anisotropy, but silently discarded that side effect.
 loss. Standard in metric learning literature. See `tanh_to_linear_postmortem.md`
 Section 6.
 
-### Next steps (revised after review)
+### Run 6 — Magnitude penalty implemented (2026-07-20)
 
-- [x] Root cause identified: tanh saturation on PERIODIC heads
-- [x] Check 7: saturation at step 0 — init variance confirmed
-- [x] Applied fix: `activation="tanh"` → `"linear"` for all 3 PERIODIC heads
-      (inclination, coa_phase, polarization_angle) in `src/gwml/heads_spec.py`
-- [x] Retrain all models (7 configs) with linear activation
-- [x] Re-run analysis → **mode collapse persists; normalize_unit pathology found**
-- [ ] **Implement magnitude penalty** `λ·(|v_raw|−1)²` in loss pipeline
-- [ ] **Retrain poc_a + poc_b on TCN only** (minimal cost to test the fix)
-- [ ] **Track std_ratio** over full training — success = stabilizes near 1.0
-- [ ] **Only then evaluate physics** — poor R² with healthy |v| is clean evidence
-- [ ] Do NOT conclude degeneracy is fundamental, pivot to ι-conditioning, or
-      explore alternative representations until |v| fix is tested
-- [ ] Investigate sky_position degradation in SumDiffTrainer
+Magnitude penalty `λ·(|v_raw|−1)²` implemented in `trainer.py`
+(`_magnitude_penalty` method, lines 305-332) and wired into both
+`_baseline_total_loss` and `_poc_total_loss`. Five pre-flight silent-failure
+checks verified: penalty lands on pre-normalize vectors (not combo vectors),
+outside the uncertainty-weighting wrapper, not scaled by curriculum weight
+w(ι), and the sign-dependent combo label assignment is confirmed per-sample
+correct.
+
+Inclination code-path traced (`inclination_loss_trace.md`): uses Huber loss
+on raw Dense output, no normalize_unit in path. Its failure (MAE = π/2) is a
+**separate, unresolved issue** — not evidence for or against the |v|-drift
+hypothesis.
+
+### Run 7 — Magnitude penalty retrain (2026-07-20)
+
+Four models retrained with λ=0.01: poc_a, poc_b, TCN, CNN Attention.
+All other configs identical to Run 5.
+
+**Magnitude penalty prevents |v| drift:**
+- Pre-fix: std_ratio_coa_phase = 103.7 (diverging)
+- Post-fix: std_ratios in 0.34–0.85 across models. 2/4 models fully healthy
+  (poc_b, cnn_attention). poc_a pol_angle systematically below 0.5. tcn
+  coa_phase still declining (−0.008/ep). Full trajectories at
+  `std_ratio_trajectories.md`.
+
+**Periodic heads still don't learn.** Circular loss flat at ~1.0 for all 80
+epochs, all models, all heads. The two models with clean |v|-space (poc_b,
+cnn_attention) and healthy gradients show zero learning — this is a clean test.
+
+**poc_b COLLAPSE (circ_r ≈ 0.99)** is explained by curriculum design +
+degeneracy interaction, not a config bug (`poc_b_config_diff.md`).
+
+**cnn_attention's lower circ_r** is a feature-variance artifact from learned
+attention pooling, not phase learning (`cnn_attention_config_diff.md`).
+
+### Verification — Sections A–E (2026-07-21)
+
+Five-section verification plan (`run7_verification_plan.md`) executed to
+systematically rule out confounds:
+
+| Section | Finding | Detail |
+|---------|---------|--------|
+| A | Gating checks | A.1 ✅, A.2 ⚠️ (2/4 fully healthy), A.3 ⚠️ (89× rel_change vs mchirp) |
+| B | poc_b config diff | No config bug. Worse collapse = curriculum+degeneracy prediction |
+| C | cnn_attention config diff | No hidden config difference. q_tokens unused. circ_r is feature-variance artifact |
+| D | Bootstrap significance | **11/12 model×head combinations non-significant.** coa_phase & pol_angle: 0/4 models significant |
+| — | Validation ordering check | Data is i.i.d. (window variance ratio=0.99, no row-index correlation). Bootstrap shuffle-null is valid. |
+| E | SNR stratification | No SNR-dependent improvement on any head. High-SNR events at baseline |
+
+Output files:
+- [`std_ratio_trajectories.md`](std_ratio_trajectories.md)
+- [`poc_b_config_diff.md`](poc_b_config_diff.md)
+- [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)
+- [`bootstrap_output/bootstrap_ang_mae_20260721_093533.md`](bootstrap_output/bootstrap_ang_mae_20260721_093533.md)
+- [`snr_output/snr_stratification_20260721_094039.md`](snr_output/snr_stratification_20260721_094039.md)
+
+### Next steps (revised after verification)
+
+- [x] Root cause: tanh saturation at random init for PERIODIC heads (Run 3–4)
+- [x] Fix: `activation="tanh"` → `"linear"` in heads_spec.py (Run 5)
+- [x] Retrain all 7 configs → normalize_unit pathology found (Run 5)
+- [x] Implement magnitude penalty `λ·(|v_raw|−1)²` (Run 6)
+- [x] Code-trace inclination loss path (Run 6)
+- [x] Five pre-flight silent-failure checks passed (Run 6)
+- [x] Retrain 4 models with magnitude penalty λ=0.01 (Run 7)
+- [x] Run `analyse_predictions.py` on Run 7 checkpoints
+- [x] Run full diagnostic checks 1–7 on Run 7 checkpoints
+- [x] Verification plan Sections A–E executed
+- [x] Bootstrap CI on ang_MAE — 11/12 non-significant
+- [x] SNR stratification — no SNR-dependent improvement
+- [x] std_ratio full trajectories extracted
+- [x] poc_b config diff + collapse mechanism explained
+- [x] cnn_attention config diff + outlier explained
+
+**Remaining before ι-conditioning gate:**
+- [ ] Run λ=0 ablation to isolate increasing-loss trend
+- [ ] Run multi-step perturbation trace (discriminate learning vs noise)
+- [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10)
+- [ ] Optionally re-tune λ for poc_a pol_angle
+
+**After above items:**
+- [ ] Proceed to ι-conditioning experiments — test whether providing true
+      inclination as auxiliary input enables ψ and φc recovery
+- [ ] Investigate inclination failure (separate mechanism, Huber loss)
+- [ ] Investigate sky_position degradation in SumDiffTrainer (if still present)
 
 ## Run Log (original)
 
@@ -321,6 +399,17 @@ Runs completed on lab GPU machine. Analysis 2026-07-20.
 | poc_b (PoC, TCN)          | 20260718_150353   | Complete — see below |
 | resnet1d                  | 20260718_152543   | Complete             |
 | tcn                       | 20260718_153301   | Complete             |
+
+### Run 7 — Magnitude penalty retrain (2026-07-20)
+
+Four models retrained with `magnitude_penalty_lambda: 0.01`:
+
+| Config                    | Run ID            | Status               |
+|---------------------------|-------------------|----------------------|
+| poc_a (baseline)          | 20260720_210936   | Complete             |
+| poc_b (PoC)               | 20260720_213202   | Complete             |
+| tcn                       | 20260720_215403   | Complete             |
+| cnn_attention             | 20260720_221625   | Complete             |
 
 **Result:** Mode collapse persists on all PERIODIC heads across all configs.
 Tanh saturation was correctly fixed but was not the root cause. A new

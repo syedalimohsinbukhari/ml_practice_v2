@@ -753,10 +753,420 @@ How to read the outcome:
 
 ---
 
-*Last updated: 2026-07-20 (revised after review + code trace + pre-flight checks)*
-*Summary: Tanh fix necessary but not sufficient. normalize_unit gradient
-pathology (|v| drift → 1/|v| gradient scaling) blocks φc and ψ circular loss.
-Magnitude penalty implemented; five silent-failure modes traced and ruled out.
-Inclination fails through a separate mechanism (Huber loss, no normalize_unit)
-— tracked as an independent open question. Degeneracy hypothesis remains
-untested pending |v| stabilization. Ready for retrain.*
+*Last updated: 2026-07-21 (verification plan Sections A–E completed)*
+*Summary: Magnitude penalty (λ=0.01) prevents |v| drift — std_ratios healthy in
+2/4 models (poc_b, cnn_attention); poc_a pol_angle systematically below 0.5;
+tcn coa_phase still declining. Circular loss never decreases below random baseline
+(~1.0) over all 80 epochs in any model, including the two with clean |v|-space.
+Bootstrap: 11/12 model×head combinations indistinguishable from random. SNR
+stratification: no SNR-dependent ang_MAE improvement. Three independent tests
+converge — φc/ψ cannot be learned from strain alone without ι input. Four small
+remaining items (λ=0 ablation, multi-step trace, tcn λ retune, poc_a pol_angle λ
+check) should be resolved before the ι-conditioning gate. See
+std_ratio_trajectories.md, poc_b_config_diff.md, cnn_attention_config_diff.md,
+bootstrap_output/, and snr_output/ for full verification results.*
+
+---
+
+## Run 7 — 2026-07-20 (magnitude penalty retrain: 4 models)
+
+**Retrained:** poc_a, poc_b, TCN, CNN Attention with `magnitude_penalty_lambda: 0.01`
+in all configs. Magnitude penalty `λ·(|v_raw|−1)²` active in both baseline and PoC
+loss paths (verified by code trace in Run 6 pre-flight checks).
+
+**Training completed:** 2026-07-20. Output: `runs/phic_psi_{poc_a,poc_b,cnn_attention,tcn}/20260720_*`
+
+**Analysis:** `analyse_predictions.py` re-run 2026-07-20 23:43:04. Output:
+`experiments/phic_psi_poc/analysis_output/analysis_report_20260720_234304.md`
+
+**Deep diagnostics:** `diagnostic_checks.py` re-run 2026-07-21 00:03:31. Output:
+`experiments/phic_psi_poc/diagnostic_output/diagnostic_checks_20260721_000331.log`
+
+### Result: Magnitude penalty prevents |v| drift; periodic heads still don't learn
+
+**The magnitude penalty successfully prevents |v| drift**, but the final std_ratio
+state varies by model. Full trajectories extracted at
+[`std_ratio_trajectories.md`](std_ratio_trajectories.md):
+
+| Model | coa_phase std_ratio (ep 79) | Late-epoch trend | pol_angle std_ratio (ep 79) | Late-epoch trend |
+|-------|:---:|:---:|:---:|:---:|
+| poc_b | 0.85 | +0.0037/ep, stable ✅ | 0.67 | +0.0006/ep, stable ✅ |
+| cnn_attention | 0.64 | −0.0002/ep, stable ✅ | 0.62 | −0.0007/ep, stable ✅ |
+| poc_a | 0.69 | −0.0018/ep, mostly stable | 0.44 | +0.0001/ep, flat but below 0.5 ⚠️ |
+| tcn | 0.34 | **−0.0078/ep, still declining** ❌ | 0.62 | +0.0138/ep, recovered from 0.07 ✅ |
+
+**Two of four models are fully healthy on both heads** (poc_b, cnn_attention).
+poc_a pol_angle is stable at the wrong value (30/40 late epochs below 0.5) —
+likely a λ-tuning issue for that specific head. tcn coa_phase has not converged
+(32/40 late epochs below 0.5, still declining) — cannot be used as evidence until
+λ is re-tuned. tcn pol_angle underwent a dramatic recovery (0.07 at epoch 40 →
+0.62 by epoch 60), which is direct evidence the magnitude penalty mechanism works
+— the endpoint-only summary completely obscured this.
+
+**The PERIODIC heads still do not learn.** Final validation metrics from
+`analyse_predictions.py` (2026-07-20):
+
+| Head               | Run 7 circ_r range | Run 7 ang_MAE range | Null expectation   |
+|--------------------|--------------------|----------------------|---------------------|
+| coa_phase          | 0.43–0.99          | 1.54–1.61 rad        | π/2 = 1.571 rad    |
+| polarization_angle | 0.17–0.99          | 0.78–0.80 rad        | π/4 = 0.785 rad    |
+| inclination        | 0.37–0.80          | 1.53–1.59 rad        | π/2 = 1.571 rad    |
+
+poc_b shows COLLAPSE (circ_r ≈ 0.99) on both coa_phase and pol_angle — more severe
+mode collapse than the plain baseline poc_a. This is explained by the curriculum
+design interacting with the degeneracy (see [`poc_b_config_diff.md`](poc_b_config_diff.md)):
+the curriculum suppresses the poorly-constrained combo, funneling gradient through
+a single underdetermined channel. When that channel carries no real angular
+information, the model collapses to the single best constant — worse than poc_a's
+two independent loss terms, which at least create competing pressures.
+
+cnn_attention shows the lowest circ_r (0.43 coa_phase, 0.17 pol_angle) but this
+is a feature-statistics artifact from learned attention pooling producing
+higher-variance trunk features — not evidence of phase learning (see
+[`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)). The ang_MAE
+remains at baseline (1.60 rad for coa_phase — slightly worse than poc_a's 1.57).
+No hidden config difference exists to port to other models; the q_tokens branch
+is present in the architecture but unused (no `per_head` config overrides).
+
+**Scalar heads (mchirp, merger_time, snr) remain healthy** — mchirp R² ≈ 0.93–0.96,
+merger_time R² ≈ 0.91–0.92, snr R² ≈ 0.76–0.79. The split is by loss path: heads
+that use circular loss via normalize_unit (coa_phase, pol_angle) fail; heads that
+use Huber or vMF (scalars, sky_position) train normally. Inclination uses Huber
+and also fails — a separate unresolved issue (see `inclination_loss_trace.md`).
+
+**Sky position is working** — true angular errors are 3.3–10.0° (cnn_attention at
+3.3°, tcn at 4.5°). The kappa-derived proxy previously showing 77–87° was misleading.
+
+### Diagnostic findings (Checks 1–7, 2026-07-21)
+
+All seven checks from `diagnostic_checks.py` re-run on Run 7 checkpoints:
+
+**Check 1 (true labels):** ✅ CLEAN. Labels well-spread, no data pipeline bug.
+
+**Check 2 (loss wiring):** ✅ Correct. `head_loss` shows `huber_loss` for periodic
+heads, but this is **vestigial** from MultiHeadTrainer.__init__ — the SumDiffTrainer
+overrides `_total_loss` to use circular `1−cosΔθ` loss. Verified by code trace:
+`train_step` (losses.py:273) → `self._total_loss()` → dispatched to
+`_baseline_total_loss` or `_poc_total_loss` based on mode. The circular loss IS
+the training objective.
+
+**Check 3 (circular loss trajectories):** 🔴 **Circular loss NEVER decreases**
+from random baseline (~1.0) across all 80 epochs for any model:
+
+| Model | Loss metric                    | Epoch 0 | Epoch 79  | Delta  |
+|-------|--------------------------------|---------|-----------|--------|
+| poc_a | val_circular_loss_coa_phase    | 0.995   | **1.020** | +0.025 |
+| poc_a | val_circular_loss_pol_angle    | 0.990   | **1.006** | +0.016 |
+| poc_b | val_circular_loss_combo_A      | 0.999   | **0.999** | 0.000  |
+| poc_b | val_circular_loss_combo_B      | 1.006   | **0.991** | -0.015 |
+| tcn   | val_circular_loss_coa_phase    | 0.995   | **1.016** | +0.021 |
+| tcn   | val_circular_loss_pol_angle    | 0.992   | **1.006** | +0.014 |
+
+This is the most direct piece of evidence: the training objective literally does
+not improve. The model's optimal strategy under `1−cosΔθ` loss when the input carries
+no φc/ψ information is to output a constant prediction — expected loss ≈ 1.0 (random
+alignment with any particular true angle), but lower variance than random outputs.
+
+**Check 4 (gradient routing, poc_b):** ✅ CONFIRMED. Gradient reaches φc/ψ weights
+via combo path. Prediction perturbation `mean|Δ|` for coa_phase = 1.52e-02 and
+pol_angle = 1.37e-02 — same order of magnitude as healthy heads. The pre-fix
+problem (0.00 gradient, no weight movement) is completely resolved.
+
+**Check 5 (logit saturation):** ✅ Healthy. Post-training est_logit_mag ≈ 0.44–0.49,
+well below saturation threshold. However, the diagnostic script labels this "Pre-tanh
+logit saturation" — this label is misleading since PERIODIC heads have used
+`activation="linear"` since Run 5. The check is measuring kernel norm magnitude, not
+actual tanh saturation. The values are healthy regardless.
+
+**Check 6 (gradient chain, poc_b):** ✅ Healthy throughout the full computation:
+```
+dL/d(combo_A_pred)                    0.425  OK
+dL/d(z_phic_raw) [model output]      0.328  OK
+dL/d(z_psi_raw)  [model output]      0.470  OK
+dL/d(inclination_raw)                 0.704  OK
+```
+All gradient norms are healthy — no vanishing or exploding gradients.
+
+**Check 7 (init-time raw output magnitude):** ⚠️ At init, |z_raw| ≈ 100–250. With
+linear activation, this does NOT cause tanh saturation (there is no tanh). However,
+`normalize_unit`'s backward pass scales gradients by `1/|z|` ≈ 0.004–0.01, slowing
+early learning. The magnitude penalty gradually pulls |z| toward 1 (visible in
+std_ratio trajectories), and by epoch ~40 the gradient scaling is healthy. The
+diagnostic script's `SATURATED` label and `sin=+/-1 cos=+/-1` notation are misleading
+with linear activation — these are just large numbers, not saturation.
+
+**Key insight from diagnostics:** The circular loss stays flat at ~1.0 even during
+epochs 40–79 when |z| ≈ 1 and gradient scaling is healthy (1.0×). The model has
+~40 epochs with unattenuated gradients and still cannot reduce the loss. This is
+NOT a gradient-scaling artifact — it's genuine inability to learn phase.
+
+### Verification plan execution — Sections A–E (2026-07-21)
+
+A verification plan ([`run7_verification_plan.md`](run7_verification_plan.md)) was
+executed to systematically rule out confounds before accepting the degeneracy
+conclusion. Five sections (A–E) were completed. Results are documented in detail at:
+
+- [`std_ratio_trajectories.md`](std_ratio_trajectories.md) — A.2 full trajectories
+- [`poc_b_config_diff.md`](poc_b_config_diff.md) — B: poc_b config diff and collapse mechanism
+- [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md) — C: cnn_attention outlier
+- [`bootstrap_output/bootstrap_ang_mae_20260721_093533.md`](bootstrap_output/bootstrap_ang_mae_20260721_093533.md) — D: significance test
+- [`snr_output/snr_stratification_20260721_094039.md`](snr_output/snr_stratification_20260721_094039.md) — E: SNR stratification
+
+#### A — Gating checks
+
+**A.1 (magnitude penalty applied?): ✅ CONFIRMED.** λ=0.01 in all four configs,
+active in both `_baseline_total_loss` and `_poc_total_loss` via code trace
+(trainer.py:306-333, 415, 496).
+
+**A.2 (std_ratio trajectories): ⚠️ MIXED.** Full epoch-by-epoch trajectories
+extracted for all four models. 2/4 models are fully healthy on both heads
+(poc_b, cnn_attention — 0/40 late epochs below 0.5). poc_a pol_angle is stable
+but systematically below 0.5 (0.44, 30/40 late epochs below threshold; flat
+trend at +0.0001/ep). tcn coa_phase has not converged (0.34, 32/40 late epochs
+below 0.5, still declining at −0.008/ep). The rebuttal's characterization
+"3/4 models healthy" is incorrect — only 2/4 are clean on both heads.
+
+One notable finding: tcn pol_angle underwent a dramatic recovery (0.07 at epoch
+40 → 0.62 by epoch 60, trend +0.014/ep), which is direct evidence the magnitude
+penalty works — the endpoint-only summary completely missed this.
+
+**A.3 (prediction perturbation): ⚠️ QUALIFIED.** Check 4 confirms gradients reach
+φc/ψ weights and predictions change. However, `rel_change` for coa_phase is
+`1.61e-02` vs `1.80e-04` for mchirp — an **89× difference**, not "comparable"
+as the initial rebuttal stated. A single-step perturbation snapshot cannot
+distinguish directional learning from noisy oscillation. A multi-step trace
+(consecutive gradient steps on the same batch) would be needed to discriminate.
+
+#### B — poc_b config diff
+
+**Finding: No config bug.** The only functional differences between poc_a and
+poc_b configs are `loss.mode` (baseline → poc), `combo_log_var_clamp`,
+`well_constrained_combo`, and `sign_dependent_combo` — all intended design
+elements of the PoC. Everything else (data, model architecture, optimizer,
+magnitude_penalty_lambda) is byte-identical.
+
+poc_b's more severe collapse (circ_r ≈ 0.99 vs poc_a's 0.85/0.49) is a
+**prediction of the degeneracy hypothesis**, not a config bug. The curriculum
+`w(ι) = 1 − cos²(ι)` suppresses the poorly-constrained combo's loss, funneling
+gradient through a single underdetermined channel. When neither φc nor ψ is
+learnable, this produces worse collapse than poc_a's two independent loss terms,
+which at least create competing pressures that spread predictions.
+
+The ~5% mchirp MAE regression (0.977 → 1.024) is mild and R² is essentially
+unchanged (0.9594 → 0.9569), consistent with mild dead-head noise in the shared
+trunk rather than a separate bug.
+
+#### C — cnn_attention config diff
+
+**Finding: No hidden config difference to port.** The only difference vs tcn is
+`trunk: cnn_attention` and a trivial `min_lr` difference (1e-7 vs 1e-6). All
+loss, optim, and head settings are identical. The `q_tokens` extra-feature branch
+exists in the architecture but is **unused** — no head has a `per_head.<name>.branch`
+config override pointing to it.
+
+cnn_attention's lower circ_r (0.43/0.17) is a feature-statistics artifact:
+learned attention pooling produces higher-variance trunk features than TCN's fixed
+GAP+GMP, causing more spread in predictions. But ang_MAE confirms the predictions
+are not more correct — coa_phase MAE is 1.597 rad, slightly *worse* than poc_a's
+1.570 rad. Spread ≠ signal. The val_loss scale difference (−1.53 vs −3.79) is a
+log_var calibration artifact from different trunk feature statistics.
+
+The higher-variance features slightly degrade scalar regression (mchirp R² 0.926
+vs tcn's 0.963) while helping sky_position (3.3° vs 4.5°) — a mixed effect
+consistent with a more expressive but noisier trunk readout.
+
+#### D — Bootstrap significance test
+
+N=10,000 bootstrap shuffles, N=5,000 validation samples. One-sided test: is
+observed ang_MAE significantly *below* the null distribution?
+
+| Model | coa_phase | pol_angle | inclination |
+|-------|:---:|:---:|:---:|
+| poc_a | z=−0.20, p=0.579 | z=+0.46, p=0.324 | z=+1.04, p=0.152 |
+| poc_b | z=−1.25, p=0.895 | z=−0.05, p=0.518 | z=+0.07, p=0.464 |
+| tcn | z=−0.56, p=0.711 | z=−0.33, p=0.630 | z=+1.21, p=0.114 |
+| cnn_attention | z=−2.43, p=0.994 | z=+0.07, p=0.472 | **z=+3.17, p=0.0007 ★** |
+
+**Result: 11/12 model×head combinations are indistinguishable from random.**
+coa_phase and polarization_angle are universally non-significant across all four
+models — no model learns either angle at a level distinguishable from guessing.
+
+cnn_attention inclination is significant (z=+3.17, p=0.0007) with a small effect
+(observed 1.534 vs null 1.572, Δ≈0.038 rad ≈ 2.2°). With 12 tests, a single
+significant result at α=0.05 has ~46% probability under the global null
+(Bonferroni-adjusted threshold: p < 0.0042). The effect does not survive
+correction for multiple comparisons and warrants independent replication before
+being interpreted as evidence of learning.
+
+**Validation ordering check (2026-07-21):** A potential confound for any
+bootstrap shuffle-null test is residual ordering in the validation set. If
+injections were generated in parameter-grid blocks and the data not shuffled,
+true inclination could correlate with row index. A model outputting predictions
+that vary smoothly with row position (even without learning from strain) could
+then beat the shuffle-null, since shuffling destroys the row-wise association
+while the original evaluation preserves it. This was tested:
+
+- **r(row_idx, ι)** = −0.032 (p≈0.02) — effectively zero. No parameter shows
+  |r| > 0.035 with row index across all 10 parameters.
+- **Window variance ratio** (window=100) = 0.991 — ratio of mean within-window
+  variance to global variance. A value near 1.0 indicates i.i.d. samples; a
+  value ≪ 1.0 would indicate parameter-grid blocking. The observed 0.991
+  definitively rules out block structure.
+- **Sanity check**: Even a model that perfectly predicted the mean ι of each
+  100-row window (the maximum information extractable from ordering) would
+  achieve ang_MAE ≈ 1.558 rad, giving Δ-from-null ≈ +0.013. cnn_attention's
+  observed Δ of +0.038 is 3× larger — row structure alone cannot explain it.
+- **Lag-1 |Δι|** = 2.12 rad (expected for i.i.d. U[0,π]: π/3 ≈ 1.05 rad).
+  Consecutive rows are more different than random, not more similar — the
+  opposite of blocking.
+
+**The validation set is effectively i.i.d. with respect to row index.** The
+bootstrap shuffle-null is valid. The cnn_attention inclination result is not
+a row-ordering artifact. The remaining interpretation — population-level bias
+vs genuine weak strain→ι mapping — is unchanged from the SNR-stratification
+finding (improvement is uniform across SNR, not concentrated in loud events).
+
+#### E — SNR stratification
+
+Validation set split into terciles by SNR. If real angular information exists in
+the strain, it should be most extractable at high SNR.
+
+**coa_phase:** No model shows ang_MAE meaningfully below null in the high-SNR
+tercile. tcn is the only monotonic improver (1.633→1.557→1.543 rad), but this is
+the model with unresolved std_ratio decline (0.34, still trending down). Three
+other models show no SNR trend or get *worse* at high SNR. Null expectation:
+π/2 = 1.571 rad.
+
+**polarization_angle:** All four models within ±0.006 rad of null at high SNR.
+No model shows SNR-dependent improvement. Null: π/4 = 0.785 rad.
+
+**inclination:** cnn_attention's significant bootstrap result shows no SNR
+dependence — improvement is uniform across terciles (1.526, 1.548, 1.527),
+not concentrated in loud events as a genuine physical signal would be. The
+uniform improvement at all SNR levels is more consistent with learning a
+population-level bias than extracting per-sample angular information.
+
+**Overall:** No compelling SNR-dependent improvement for any head on any model.
+The one model with monotonic improvement (tcn coa_phase) carries an unresolved
+|v|-drift confound. This is consistent with the degeneracy hypothesis: if the
+strain carries no φc/ψ information, the highest-SNR events should be no more
+learnable than the lowest.
+
+### Cross-architecture consistency
+
+The pattern persists across all architectures: PERIODIC heads (coa_phase,
+polarization_angle, inclination) fail; scalar heads + sky_position succeed. The
+division is by loss path:
+
+| Loss path                              | Heads                                     | Status       |
+|----------------------------------------|-------------------------------------------|--------------|
+| Circular (1−cosΔθ via normalize_unit)  | coa_phase, polarization_angle             | All dead     |
+| Huber (standard regression)            | inclination, mchirp, merger_time, snr     | Mixed*       |
+| vMF                                    | sky_position                              | Healthy      |
+
+\* mchirp, merger_time, snr are healthy; inclination is dead — cause still unknown
+(separate open question, see `inclination_loss_trace.md`).
+
+### Key difference from Run 5: the fix works, the physics doesn't change
+
+Run 5 failed because |v| drifted without bound (no magnitude penalty → normalize_unit
+gradient crushed or exploded → PERIODIC heads dead). Run 7 fixes this for two of
+four models (poc_b, cnn_attention have clean, stable std_ratios on both heads;
+poc_a and tcn have one head each with residual |v| issues). The two clean models
+still show flat circular loss at ~1.0 with healthy gradients. With the |v|
+pathology resolved in these models, a flat circular loss is clean evidence that
+φc/ψ cannot be learned from strain alone.
+
+### Hypothesis status (2026-07-21, post-verification)
+
+| Hypothesis | Status | Evidence |
+| --- | --- | --- |
+| Data pipeline bug | Ruled out | Check 1 ×5 |
+| Loss wiring bug | Ruled out | Check 2 confirmed ×4 + code trace |
+| Tanh saturation on PERIODIC heads | **FIXED (R5)** | linear activation since Run 5 |
+| PERIODIC encoding broken | Ruled out | Same encoding for all angular heads |
+| Disconnected computation graph | Ruled out | Checks 4+6: gradients reach φc/ψ weights |
+| normalize_unit gradient attenuation | **FIXED (R7)** | Magnitude penalty λ=0.01; std_ratios stabilized in 2/4 models |
+| poc_b collapse = config bug | Ruled out | Config diff identical except intended PoC design elements; collapse is curriculum+degeneracy prediction |
+| cnn_attention outlier = config difference | Ruled out | Only difference is trunk architecture; q_tokens unused; lower circ_r is feature-variance artifact |
+| ang_MAE distinguishable from random | **REFUTED** | Bootstrap: 11/12 model×head combinations non-significant (D) |
+| SNR-dependent learning | **Not observed** | No model shows SNR-dependent ang_MAE improvement on either φc or ψ head (E) |
+| φc-ψ degeneracy (no ι) | **STRONG EVIDENCE** | Circular loss flat at ~1.0 in models with clean |v| + healthy gradients. Three independent tests (loss trajectory, bootstrap, SNR stratification) converge. |
+| Combo heads break degeneracy | **REFUTED** | poc_b circular loss flat at ~1.0; COLLAPSE worse than baseline |
+| Inclination failure | **OPEN** | Separate mechanism (Huber, no normalize_unit). Bootstrap: cnn_attention significant (z=+3.17, p=0.0007) but SNR-independent — may be population-level bias, not per-sample learning. Does not survive Bonferroni correction. |
+
+### Remaining open items
+
+These were identified during verification and should be resolved before
+ι-conditioning to close out remaining confounds:
+
+1. **Systematic increase in circular loss** — The validation circular loss
+   systematically drifts *upward* (e.g., poc_a coa_phase: 0.995→1.020, +0.025).
+   "No signal" explains a flat trajectory but not a directional upward trend. A
+   short ablation with λ=0 (magnitude penalty disabled) would isolate whether the
+   penalty (or its interaction with log_var uncertainty weighting) is driving the
+   creep. If the creep disappears at λ=0, this is a penalty-interaction artifact;
+   if it persists, it's a genuinely different and more supportive data point.
+
+2. **Multi-step perturbation trace** — Check 4's single-step snapshot shows
+   coa_phase `rel_change = 1.61e-02` vs mchirp `1.80e-04` (89× larger). A
+   multi-step trace (several consecutive gradient steps, same batch) would
+   discriminate between coherent directional learning and noisy oscillation.
+   Several steps of decreasing perturbation → real learning. Oscillation with
+   no net drift → noise.
+
+3. **tcn coa_phase λ retuning** — std_ratio still declining at −0.008/ep
+   (32/40 late epochs below 0.5). Try λ=0.05–0.10 for this architecture before
+   using tcn as supporting evidence.
+
+4. **poc_a pol_angle λ check** — std_ratio stable but systematically below 0.5
+   (0.44, 30/40 late epochs). λ=0.01 may be slightly too weak for this specific
+   head. A small λ increase would test whether this is a tuning issue.
+
+### Overall assessment
+
+The degeneracy case is **stronger post-verification than before it**, but
+qualifiers that the initial rebuttal elided remain:
+
+- **Solid**: The circular loss never decreases from the random baseline, in any
+  model, on any head, at any point in 80 epochs of training. This is robust to
+  architecture choice, loss mode (baseline/poc), and |v|-space health. Three
+  independent tests (loss trajectory, bootstrap significance, SNR stratification)
+  converge on the same answer for coa_phase and polarization_angle. Two models
+  (poc_b, cnn_attention) have fully healthy |v|-space and healthy gradients yet
+  show zero learning — these are clean tests.
+
+- **Qualified**: Two of four models have residual |v| issues (tcn coa_phase still
+  declining; poc_a pol_angle systematically low). The systematic increase in
+  circular loss (F.1/F.2) lacks an explanation. The single-step perturbation
+  snapshot can't distinguish learning from noise. None of these undermine the
+  core finding, but they prevent the verdict from being "airtight."
+
+- **Not yet tested**: Whether the increasing loss is a penalty-interaction
+  artifact (λ=0 ablation pending). Whether the perturbation is directional or
+  oscillatory (multi-step trace pending). Whether tcn coa_phase, with a corrected
+  λ, would also show flat circular loss (strengthening the case) or start to
+  learn (weakening it).
+
+### Next steps
+
+- [x] Root cause: tanh saturation at random init for PERIODIC heads (Run 3–4)
+- [x] Fix: `activation="tanh"` → `"linear"` in heads_spec.py (Run 5)
+- [x] Retrain all 7 configs → normalize_unit pathology found (Run 5)
+- [x] Implement magnitude penalty `λ·(|v_raw|−1)²` (Run 6)
+- [x] Code-trace inclination loss path (Run 6)
+- [x] Five pre-flight silent-failure checks passed (Run 6)
+- [x] Retrain 4 models with magnitude penalty λ=0.01 (Run 7)
+- [x] Run `analyse_predictions.py` on Run 7 checkpoints (2026-07-20)
+- [x] Run full diagnostic checks 1–7 on Run 7 checkpoints (2026-07-21)
+- [x] Verification plan Sections A–E executed (2026-07-21)
+- [x] std_ratio full trajectories extracted (A.2)
+- [x] poc_b config diff + collapse mechanism explained (B)
+- [x] cnn_attention config diff + outlier explained (C)
+- [x] Bootstrap CI on ang_MAE — 11/12 non-significant (D)
+- [x] SNR stratification — no SNR-dependent improvement (E)
+- [ ] Run λ=0 ablation to isolate increasing-loss trend (F.1/F.2)
+- [ ] Run multi-step perturbation trace to discriminate learning vs noise (A.3)
+- [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10) and re-check circular loss
+- [ ] Optionally re-tune λ for poc_a pol_angle
+- [ ] After above items resolved: **proceed to ι-conditioning experiments**

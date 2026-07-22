@@ -1,0 +1,54 @@
+# λ=0.05 retune — same as config_baseline.yaml but magnitude_penalty_lambda
+# raised from 0.01 to 0.05.
+#
+# Purpose: Run 7 found poc_a's polarization_angle std_ratio stable but
+# systematically below the healthy 0.5-2.0 band (0.44, 30/40 late epochs
+# below 0.5) at λ=0.01. Per the diagnostic_log.md Run 7 retrain interpretation
+# guide, this is a λ-tuning question, not a reason to treat poc_a as evidence
+# either way. Sweeping λ up by 5x tests whether a stronger penalty pulls
+# std_ratio into the healthy band without reintroducing the λ=0.01 val-loss
+# creep (already shown to be a λ-interaction artifact, not real drift, in the
+# λ=0 ablation).
+
+name: phic_psi_lam005_retune
+run_dir: runs/phic_psi_lam005_retune
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: baseline
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  variance_penalty: 0.0
+  magnitude_penalty_lambda: 0.05   # ← RETUNE: 5x Run 7's 0.01
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

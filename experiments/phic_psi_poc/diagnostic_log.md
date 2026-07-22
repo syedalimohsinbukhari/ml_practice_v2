@@ -1142,11 +1142,119 @@ qualifiers that the initial rebuttal elided remain:
   snapshot can't distinguish learning from noise. None of these undermine the
   core finding, but they prevent the verdict from being "airtight."
 
-- **Not yet tested**: Whether the increasing loss is a penalty-interaction
-  artifact (λ=0 ablation pending). Whether the perturbation is directional or
-  oscillatory (multi-step trace pending). Whether tcn coa_phase, with a corrected
-  λ, would also show flat circular loss (strengthening the case) or start to
-  learn (weakening it).
+- **Not yet tested**: Whether tcn coa_phase, with a corrected λ, would also
+  show flat circular loss (strengthening the case) or start to learn
+  (weakening it). Whether the perturbation is directional or oscillatory
+  (multi-step trace, now scheduled as part of Run 9 rather than standalone).
+
+---
+
+## Run 8 — 2026-07-21 (λ=0 ablation)
+
+**Purpose:** isolate whether the systematic upward creep in validation
+circular loss at λ=0.01 (item 1 above) was caused by the magnitude penalty
+itself (or its interaction with log_var uncertainty weighting), rather than
+being a genuinely different, more supportive data point for the degeneracy
+conclusion.
+
+**Method:** retrained poc_a and tcn (the same two TCN-trunk baseline configs
+as the λ=0.01 Run 7 pair) with `magnitude_penalty_lambda: 0.0`, 80 epochs
+each. Config: `config_lam0_ablation.yaml`, `config_lam0_ablation_tcn.yaml`.
+Runner: `run_lam0_ablation.py`. Report: `lam0_ablation_output/lam0_ablation_report.md`.
+
+**Result:**
+
+| Model | Head | λ=0 Δ (val circ loss) | λ=0.01 Δ | Verdict |
+|---|---|---|---|---|
+| poc_a | coa_phase | +0.0010 | +0.0249 | drift absent at λ=0 |
+| poc_a | polarization_angle | +0.0002 | +0.0163 | drift absent at λ=0 |
+| tcn | coa_phase | +0.0011 | +0.0204 | drift absent at λ=0 |
+| tcn | polarization_angle | +0.0072 | +0.0136 | **persists — penalty NOT the cause** |
+
+3 of 4 signals: the λ=0.01 creep vanishes at λ=0, confirming it was a
+λ/log-var interaction artifact, not evidence of active anti-learning. 1 of 4
+(tcn pol_angle) still drifts upward at λ=0, about half the λ=0.01 magnitude —
+small, and flagged rather than folded into either the "resolved" or
+"unresolved" bucket. std_ratio diverges hard without the penalty as expected
+(21.8→83.0 for poc_a coa_phase), confirming the ablation is a genuine
+off-state. Final val MAE at λ=0 lands at the same null values as every other
+run (coa_phase≈1.579, pol_angle≈0.780–0.785 rad — both ≈ theoretical null).
+Train circular loss decreases slightly at λ=0 while val stays flat — a small
+train/val split (mild memorization of phase noise), not generalizable signal.
+
+**Item F.1/F.2 closed.** Full writeup: `assessment_lam0_ablation_2026-07-22.md`.
+
+### Hypothesis status update (2026-07-22)
+
+| Hypothesis | Status | Evidence |
+| --- | --- | --- |
+| Val-loss creep at λ=0.01 = penalty artifact | **CONFIRMED (3/4)** | Drift vanishes at λ=0 for poc_a coa_phase, poc_a pol_angle, tcn coa_phase |
+| Val-loss creep = genuinely different signal | **NOT SUPPORTED (3/4), open (1/4)** | tcn pol_angle still drifts at λ=0 — small effect, unexplained, doesn't change headline conclusion |
+
+---
+
+## Run 9 — pre-registration + setup (2026-07-22), execution pending
+
+**Purpose:** retune the magnitude penalty λ for the two remaining |v|-space
+problems from Run 7 — tcn coa_phase (still declining, 0.34 at epoch 79,
+−0.008/ep) and poc_a polarization_angle (stable but below 0.5, 0.44) — and
+re-check whether the circular loss moves once |v|-space is clean.
+
+**Before training anything**, a reviewer flagged that this investigation has
+repeatedly had aggregate metrics look like one thing and mean another —
+mode-collapse posing as R²=0.75 (Round 1), an endpoint-only std_ratio summary
+that hid tcn pol_angle's mid-training crash-and-recovery (Run 7, A.2), and
+now the λ=0.01 val-loss creep that turned out to be mostly a penalty artifact
+(Run 8). The fix each time was procedural, not just "look more carefully" —
+so the success/failure criterion for this retune was written down **before**
+any λ=0.05/0.10 run exists, removing the option to reinterpret the result
+after the fact in either direction. See `preregistration_lam_retune.md` for
+the full reasoning; summary of the decision table:
+
+1. **Step 0 (gate):** std_ratio healthy (<10% of last 40 epochs outside
+   [0.5, 2.0], |trend| < 0.005/ep). Gate failure → **UNINTERPRETABLE**, not
+   counted as null or counter-evidence — retune λ further instead.
+2. **Step 1 (significance):** bootstrap shuffle-null test on val ang_MAE
+   (same procedure as `bootstrap_ang_mae.py`), Bonferroni-corrected for the
+   **2** pre-declared primary tests → significance threshold p < 0.025.
+3. **Step 2 (effect size floor):** Δang_MAE ≥ 0.10 rad, chosen in advance to
+   sit ~3× above the cnn_attention inclination effect (0.038 rad, judged not
+   compelling in Run 7) and ~8× above the row-ordering artifact bound
+   (0.013 rad) — big enough that clearing it can't be explained by either
+   known failure mode.
+4. **Step 3 (SNR-monotonicity):** improvement must be monotonic with SNR
+   tercile (same logic as `snr_stratification.py`) **and** the high-SNR
+   tercile's own effect must independently clear the 0.10 rad floor — guards
+   against a population-level-bias signature (uniform-across-SNR
+   improvement) being mistaken for genuine per-sample learning, exactly the
+   pattern seen in the cnn_attention inclination result.
+
+Only a result that clears gate + significance + effect size + SNR-monotonicity
+counts as **COUNTER-EVIDENCE**. Anything else is a **NULL** result — a clean
+additional data point for the degeneracy conclusion (with sub-flags for
+"replicate independently" or "population-bias signature" as appropriate,
+mirroring how the cnn_attention case was handled).
+
+**Files created (training/execution pending on lab GPU machine):**
+
+- Configs: `config_lam005_retune.yaml`, `config_lam005_retune_tcn.yaml`,
+  `config_lam010_retune.yaml`, `config_lam010_retune_tcn.yaml` — same
+  architecture/data/optimizer as Run 7/8, only `magnitude_penalty_lambda`
+  changed (0.05, 0.10).
+- Runners: `run_lam005_retune.py`, `run_lam010_retune.py` — each chains
+  `train_poc.py` → `plot_poc.py` → `evaluate_poc.py` → its diagnostic script
+  for both configs, then overlays a 3-point λ sweep (0, 0.01, retuned) on
+  circular loss and std_ratio trajectories.
+- Diagnostics: `diagnostic_lam005_retune.py`, `diagnostic_lam010_retune.py`
+  — implement the 4-step decision procedure above mechanically (no manual
+  threshold-picking), plus a 5-step prediction-perturbation trace (folding in
+  item 2/A.3 from Run 7's remaining-open-items list) that checks whether
+  consecutive gradient steps on the same batch move coa_phase/pol_angle
+  predictions coherently (directional learning) or cancel out (noise) —
+  compared against mchirp as a healthy control.
+
+Run λ=0.05 first (`run_lam005_retune.py`); fall back to λ=0.10 only if the
+Step 0 gate fails at 0.05.
 
 ### Next steps
 
@@ -1165,8 +1273,14 @@ qualifiers that the initial rebuttal elided remain:
 - [x] cnn_attention config diff + outlier explained (C)
 - [x] Bootstrap CI on ang_MAE — 11/12 non-significant (D)
 - [x] SNR stratification — no SNR-dependent improvement (E)
-- [ ] Run λ=0 ablation to isolate increasing-loss trend (F.1/F.2)
+- [x] Run λ=0 ablation to isolate increasing-loss trend (F.1/F.2) — **Run 8**,
+      2026-07-21: drift absent at λ=0 in 3/4 signals (artifact, not real
+      drift); tcn pol_angle persists unresolved (small, +0.0072)
+- [x] Pre-register success/failure criterion for the λ retune, before running
+      it — **Run 9 setup**, 2026-07-22, see below
 - [ ] Run multi-step perturbation trace to discriminate learning vs noise (A.3)
+      — folded into Run 9's diagnostic scripts, pending execution
 - [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10) and re-check circular loss
-- [ ] Optionally re-tune λ for poc_a pol_angle
+      — **Run 9**, configs/runners/diagnostics ready, pending execution
+- [ ] Optionally re-tune λ for poc_a pol_angle — **Run 9**, same status
 - [ ] After above items resolved: **proceed to ι-conditioning experiments**

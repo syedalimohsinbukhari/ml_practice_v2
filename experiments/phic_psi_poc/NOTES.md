@@ -30,6 +30,13 @@ Companion to `phic_psi_implementation_plan_v4.md` and
 - Run 7 verification (2026-07-21): four small items identified (λ=0 ablation,
   multi-step perturbation trace, tcn λ retune, poc_a pol_angle λ check) —
   see [`diagnostic_log.md`](diagnostic_log.md) Run 7 section.
+  - λ=0 ablation: done (Run 8) — mostly a λ-interaction artifact, not new
+    evidence either way.
+  - tcn λ retune, poc_a pol_angle λ check, multi-step perturbation trace:
+    folded into Run 9 (λ=0.05/0.10 retune), pending execution on lab GPU.
+    Decision criterion pre-registered in
+    [`preregistration_lam_retune.md`](preregistration_lam_retune.md) before
+    any run exists.
 
 ### Resolved (2026-07-16, rev2)
 
@@ -313,10 +320,19 @@ Output files:
 - [x] cnn_attention config diff + outlier explained
 
 **Remaining before ι-conditioning gate:**
-- [ ] Run λ=0 ablation to isolate increasing-loss trend
-- [ ] Run multi-step perturbation trace (discriminate learning vs noise)
-- [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10)
-- [ ] Optionally re-tune λ for poc_a pol_angle
+- [x] Run λ=0 ablation to isolate increasing-loss trend (Run 8, 2026-07-21) —
+      drift absent at λ=0 in 3/4 signals (λ-interaction artifact, not real
+      drift); persists unresolved in tcn pol_angle (small, +0.0072). See
+      [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md).
+- [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10) — **in progress, Run 9**:
+      [`config_lam005_retune_tcn.yaml`](config_lam005_retune_tcn.yaml),
+      [`config_lam010_retune_tcn.yaml`](config_lam010_retune_tcn.yaml)
+- [ ] Optionally re-tune λ for poc_a pol_angle — **in progress, Run 9**:
+      [`config_lam005_retune.yaml`](config_lam005_retune.yaml),
+      [`config_lam010_retune.yaml`](config_lam010_retune.yaml)
+- [ ] Run multi-step perturbation trace (discriminate learning vs noise) —
+      folded into Run 9's diagnostic scripts (see below) rather than run
+      standalone, since the retuned checkpoints are the ones that need it.
 
 **After above items:**
 - [ ] Proceed to ι-conditioning experiments — test whether providing true
@@ -428,6 +444,70 @@ learn (circ_loss stays at random baseline).
 
 Full postmortem: [`tanh_to_linear_postmortem.md`](tanh_to_linear_postmortem.md)
 Quick comparison: [`pre_post_comparison.csv`](pre_post_comparison.csv)
+
+### Run 8 — λ=0 ablation (2026-07-21)
+
+poc_a and tcn retrained with `magnitude_penalty_lambda: 0.0` to isolate
+whether the systematic upward creep in validation circular loss seen at
+λ=0.01 (Run 7 verification, item F.1/F.2) was caused by the penalty (or its
+interaction with log_var uncertainty weighting).
+
+**Result:** drift absent at λ=0 in 3 of 4 signals (poc_a coa_phase, poc_a
+pol_angle, tcn coa_phase) — confirms the λ=0.01 creep was a penalty
+interaction artifact, not real anti-learning. tcn polarization_angle still
+drifts upward at λ=0 (+0.0072, about half the λ=0.01 magnitude) — this one
+signal doesn't resolve cleanly and is noted rather than rounded away.
+std_ratio diverges hard without the penalty as expected (confirms the
+ablation is a genuine off-state, not a no-op). Final validation metrics at
+λ=0 land at the same null values as every other run (coa_phase MAE≈1.579,
+pol_angle≈0.780–0.785, both ≈ theoretical null).
+
+Config: [`config_lam0_ablation.yaml`](config_lam0_ablation.yaml),
+[`config_lam0_ablation_tcn.yaml`](config_lam0_ablation_tcn.yaml).
+Runner: [`run_lam0_ablation.py`](run_lam0_ablation.py).
+Report: [`lam0_ablation_output/lam0_ablation_report.md`](lam0_ablation_output/lam0_ablation_report.md).
+Full assessment: [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md).
+
+### Run 9 — λ retune, 0.05 and 0.10 (pending — configs/runners ready 2026-07-22)
+
+Targets the two open std_ratio problems from Run 7: tcn coa_phase (still
+declining at λ=0.01, 0.34 at epoch 79, trend −0.008/ep) and poc_a
+polarization_angle (stable but below the healthy band, 0.44). Both poc_a-
+and tcn-equivalent configs are retrained at each λ so the std_ratio fix and
+the degeneracy read are checked together, same pattern as Run 8.
+
+**Before running:** the success/failure criterion for "still null" vs
+"started to learn" was written down in advance — see
+[`preregistration_lam_retune.md`](preregistration_lam_retune.md). This
+matters because this investigation has repeatedly had aggregate metrics mean
+the opposite of what they first looked like (mode-collapse posing as
+R²=0.75; an endpoint-only std_ratio summary that missed tcn pol_angle's
+mid-training crash-and-recovery in Run 7; the Run 8 val-loss creep that
+turned out to be a λ-interaction artifact). The criterion combines a
+std_ratio interpretability gate, a Bonferroni-corrected bootstrap
+significance test, a pre-registered effect-size floor (0.10 rad — chosen to
+sit well above both the row-ordering artifact bound and the cnn_attention
+inclination population-bias effect from Run 7), and an SNR-monotonicity
+check, computed mechanically rather than eyeballed after the fact.
+
+Configs: [`config_lam005_retune.yaml`](config_lam005_retune.yaml),
+[`config_lam005_retune_tcn.yaml`](config_lam005_retune_tcn.yaml),
+[`config_lam010_retune.yaml`](config_lam010_retune.yaml),
+[`config_lam010_retune_tcn.yaml`](config_lam010_retune_tcn.yaml).
+
+Runners (each chains train_poc.py → plot_poc.py → evaluate_poc.py → its
+diagnostic script, then overlays a 3-point λ sweep against λ=0 and λ=0.01):
+[`run_lam005_retune.py`](run_lam005_retune.py),
+[`run_lam010_retune.py`](run_lam010_retune.py).
+
+Diagnostics (std_ratio gate + bootstrap + effect size + SNR check + 5-step
+prediction-perturbation trace, producing the mechanical verdict from the
+pre-registration decision table):
+[`diagnostic_lam005_retune.py`](diagnostic_lam005_retune.py),
+[`diagnostic_lam010_retune.py`](diagnostic_lam010_retune.py).
+
+Run λ=0.05 first; only fall back to λ=0.10 if the std_ratio gate fails at
+0.05 (per each diagnostic script's own guidance).
 
 ### Run C (ι=0 slice) — not yet configured
 

@@ -1,0 +1,29 @@
+====================================================================================================
+λ=0.05 RETUNE DIAGNOSTICS — mechanical verdict per preregistration_lam_retune.md
+====================================================================================================
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_a (baseline)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Step 0 — std_ratio gate (polarization_angle):
+    frac unhealthy (last 40 ep) = 0.350
+    late-epoch trend/ep         = +0.00718
+    GATE FAILED
+
+  → UNINTERPRETABLE at λ=0.05. Try λ=0.10 (run_lam010_retune.py) before drawing any conclusion.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: tcn
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Step 0 — std_ratio gate (coa_phase):
+    frac unhealthy (last 40 ep) = 0.050
+    late-epoch trend/ep         = -0.00638
+    GATE FAILED
+
+  → UNINTERPRETABLE at λ=0.05. Try λ=0.10 (run_lam010_retune.py) before drawing any conclusion.
+
+
+Markdown report: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc/lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md
+Done.

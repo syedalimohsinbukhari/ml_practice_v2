@@ -27,16 +27,10 @@ Companion to `phic_psi_implementation_plan_v4.md` and
 
 ### Still to verify
 - None remaining — all Step 1 prerequisite gates passed.
-- Run 7 verification (2026-07-21): four small items identified (λ=0 ablation,
-  multi-step perturbation trace, tcn λ retune, poc_a pol_angle λ check) —
-  see [`diagnostic_log.md`](diagnostic_log.md) Run 7 section.
-  - λ=0 ablation: done (Run 8) — mostly a λ-interaction artifact, not new
-    evidence either way.
-  - tcn λ retune, poc_a pol_angle λ check, multi-step perturbation trace:
-    folded into Run 9 (λ=0.05/0.10 retune), pending execution on lab GPU.
-    Decision criterion pre-registered in
-    [`preregistration_lam_retune.md`](preregistration_lam_retune.md) before
-    any run exists.
+- Run 7 verification (2026-07-21) flagged four follow-up items (λ=0 ablation,
+  multi-step perturbation trace, tcn λ retune, poc_a pol_angle λ check). All
+  four resolved as of 2026-07-22 (Run 8, Run 9a, Run 9b) — see "Next steps
+  (revised after verification)" below for current status.
 
 ### Resolved (2026-07-16, rev2)
 
@@ -477,7 +471,7 @@ Runner: [`run_lam0_ablation.py`](run_lam0_ablation.py).
 Report: [`lam0_ablation_output/lam0_ablation_report.md`](lam0_ablation_output/lam0_ablation_report.md).
 Full assessment: [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md).
 
-### Run 9 — λ retune, 0.05 and 0.10 (pending — configs/runners ready 2026-07-22)
+### Run 9 — λ retune, 0.05 and 0.10 (setup 2026-07-22 — results in Run 9a/9b below)
 
 Targets the two open std_ratio problems from Run 7: tcn coa_phase (still
 declining at λ=0.01, 0.34 at epoch 79, trend −0.008/ep) and poc_a

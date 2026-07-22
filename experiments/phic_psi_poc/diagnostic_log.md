@@ -512,10 +512,16 @@ heads we care about. Inclination's failure is a separate open question
 - [x] Re-run analysis (2026-07-20) → **mode collapse persists; new pathology found**
 - [x] **Implement magnitude penalty** `λ·(|v_raw|−1)²` in the loss pipeline —
       **completed in Run 6 (2026-07-20)**
-- [ ] **Retrain poc_a + poc_b on TCN only** (minimal cost to test the fix)
-- [ ] **Track std_ratio** over full training — success = stabilizes near 1.0
-- [ ] **Only then evaluate physics:** if std_ratio is healthy and PERIODIC heads
-      still don't learn, that's clean evidence about the degeneracy
+- [x] **Retrain poc_a + poc_b on TCN only** (minimal cost to test the fix) —
+      done in Run 7 (2026-07-20), alongside plain TCN and CNN Attention
+- [x] **Track std_ratio** over full training — success = stabilizes near 1.0 —
+      done (Run 7, `std_ratio_trajectories.md`); 2/4 models fully healthy at
+      λ=0.01, the other two carried forward and closed via the Run 9a/9b
+      λ retune
+- [x] **Only then evaluate physics:** if std_ratio is healthy and PERIODIC heads
+      still don't learn, that's clean evidence about the degeneracy — done
+      (Run 7 verification Sections A–E): the two models with clean |v|-space
+      show zero learning
 - [x] Do NOT conclude the degeneracy is fundamental, pivot to ι-conditioning,
       or explore alternative representations until the |v| fix is tested —
       **premature conclusion retired; see Run 6**
@@ -704,12 +710,19 @@ is retired.
 - [x] Pre-flight 3: penalty NOT scaled by w(ι) ✓
 - [x] Pre-flight 4: sign-dependent combo is per-sample (literal source verified) ✓
 - [x] Pre-flight 5: sky_position anomaly not SumDiffTrainer-specific ✓
-- [ ] **Retrain poc_a + poc_b on TCN only** with magnitude penalty
-- [ ] **Track std_ratio every epoch** — success = stabilizes 0.5–2.0, not diverging
-- [ ] **Track combo circular loss trajectory** — success = departing from ~1.0 random baseline
-- [ ] **Rerun Check 4 (prediction-perturbation) at early epochs** — verify real gradient-driven
-      weight movement resumes for coa_phase/pol_angle (mean|Δ| comparable to healthy heads)
-- [ ] **Only then evaluate physics** — see interpretation guide below
+- [x] **Retrain poc_a + poc_b on TCN only** with magnitude penalty — done in
+      Run 7 (2026-07-20), plus plain TCN and CNN Attention for broader coverage
+- [x] **Track std_ratio every epoch** — success = stabilizes 0.5–2.0, not diverging —
+      done (Run 7, `std_ratio_trajectories.md`); 2/4 models fully healthy, the
+      other two carried forward and closed via Run 9a/9b
+- [x] **Track combo circular loss trajectory** — success = departing from ~1.0 random baseline —
+      done (Run 7 Check 3); **outcome: did not depart** — flat at ~1.0 across
+      all 80 epochs, every model (the central null-result finding)
+- [x] **Rerun Check 4 (prediction-perturbation) at early epochs** — verify real gradient-driven
+      weight movement resumes for coa_phase/pol_angle (mean|Δ| comparable to healthy heads) —
+      done (Run 7 Check 4): confirmed, gradient reaches φc/ψ weights
+- [x] **Only then evaluate physics** — see interpretation guide below — done
+      (Run 7 verification Sections A–E, extended by Run 8/9)
 
 ### Retrain interpretation guide
 
@@ -750,21 +763,6 @@ How to read the outcome:
   random-guess baseline across every config (same signature as everything
   else that turned out to be a bug in this investigation), but it doesn't
   touch anything about how to read the φc/ψ retrain. Worth a trace later.
-
----
-
-*Last updated: 2026-07-21 (verification plan Sections A–E completed)*
-*Summary: Magnitude penalty (λ=0.01) prevents |v| drift — std_ratios healthy in
-2/4 models (poc_b, cnn_attention); poc_a pol_angle systematically below 0.5;
-tcn coa_phase still declining. Circular loss never decreases below random baseline
-(~1.0) over all 80 epochs in any model, including the two with clean |v|-space.
-Bootstrap: 11/12 model×head combinations indistinguishable from random. SNR
-stratification: no SNR-dependent ang_MAE improvement. Three independent tests
-converge — φc/ψ cannot be learned from strain alone without ι input. Four small
-remaining items (λ=0 ablation, multi-step trace, tcn λ retune, poc_a pol_angle λ
-check) should be resolved before the ι-conditioning gate. See
-std_ratio_trajectories.md, poc_b_config_diff.md, cnn_attention_config_diff.md,
-bootstrap_output/, and snr_output/ for full verification results.*
 
 ---
 
@@ -1393,6 +1391,7 @@ not a plateau-window artifact at all.
       again, much worse than λ=0.05 (frac 0.35→0.73) — crashes early,
       recovers late, crosses 0.5 only in the last ~11 of 80 epochs. Verdict:
       **λ alone insufficient**; branch closed.
-- [ ] λ sweep exhausted for both primary targets (0, 0.01, 0.05, 0.10) — next
+- [x] λ sweep exhausted for both primary targets (0, 0.01, 0.05, 0.10) — next
       lever, if pursued, is architecture-level, not a further λ value.
-- [ ] After above items resolved: **proceed to ι-conditioning experiments**
+- [ ] After above items resolved: **proceed to ι-conditioning experiments** —
+      not yet started

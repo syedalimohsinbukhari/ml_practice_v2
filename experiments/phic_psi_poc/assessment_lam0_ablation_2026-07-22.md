@@ -87,33 +87,55 @@ coa_phase std_ratio.
 | Item | Status before | Status now |
 |---|---|---|
 | F.1/F.2 — isolate increasing-loss trend | Open | **Resolved (3/4 clean; 1/4 small residual, noted)** |
-| A.3 — multi-step perturbation trace | Open | Still open |
-| tcn coa_phase λ retune (try 0.05–0.10) | Open | Still open |
-| poc_a pol_angle λ check | Open | Still open |
+| A.3 — multi-step perturbation trace | Open | Still open — blocked by design (gated behind Step 0 passing; see below) |
+| tcn coa_phase λ retune (try 0.05–0.10) | Open | **Resolved — λ alone insufficient (Run 9a/9b)** |
+| poc_a pol_angle λ check | Open | **Resolved — λ alone insufficient (Run 9a/9b)** |
 
-Three of the four pre-ι-conditioning punch-list items from `diagnostic_log.md`
-Run 7 remain outstanding. Only the loss-drift question has been closed.
+**Update (2026-07-22, post Run 9a/9b):** the λ retune was carried out under a
+pre-registered decision criterion (`preregistration_lam_retune.md`, locked
+before either run) at λ=0.05 (Run 9a) and λ=0.10 (Run 9b). Both primary
+targets failed the Step 0 interpretability gate at both values, and got worse
+at λ=0.10, not better — tcn coa_phase went from 5% of late epochs unhealthy at
+λ=0.05 to 28% at λ=0.10 with no discernible convergence; poc_a pol_angle went
+from 35% to 73%, with a hard mid-training crash. Per the pre-registered
+decision table, this outcome is filed as **neither null nor counter-evidence**
+for the degeneracy hypothesis — it means λ alone cannot stabilize `std_ratio`
+for either combination, not that the underlying phase signal was probed and
+found absent. The λ-sweep (0, 0.01, 0.05, 0.10) is exhausted for these two
+heads; the next lever, if pursued, is architecture-level. Full results:
+`NOTES.md` and `diagnostic_log.md`, Run 9a/9b sections.
+
+Only the perturbation trace (A.3) remains from this punch list, and it is
+blocked by design rather than merely unscheduled: it's implemented inside
+`diagnostic_lam005_retune.py` / `diagnostic_lam010_retune.py` but gated behind
+each config's Step 0 passing, which never happened for either primary target.
 
 ## 5. Recommendation
 
 The degeneracy conclusion (φc/ψ carry no strain-only recoverable signal, at
 least not in a form this architecture/loss combination extracts) remains the
 best-supported reading of the evidence, and this ablation removes one of the
-loose threads rather than adding a new one. But per the interpretation guide
-already in `diagnostic_log.md`, don't advance to ι-conditioning yet — the
-remaining three items are cheap relative to the seven training runs already
-done, and finishing them keeps the eventual go/no-go call airtight rather than
-"probably fine":
+loose threads rather than adding a new one.
 
-1. **tcn coa_phase λ retune** (0.05, 0.10) — the highest-value remaining item.
+**Update (2026-07-22):** items 1 and 2 below have since run to completion —
+see the Section 4 update above. Neither started to learn; both failed the
+std_ratio interpretability gate at λ=0.05 and λ=0.10, so neither result
+counts toward the degeneracy verdict either way. Item 3 remains open, blocked
+by design (see Section 4). Original recommendation text, for record:
+
+1. ~~**tcn coa_phase λ retune** (0.05, 0.10) — the highest-value remaining item.
    If a higher λ stabilizes std_ratio and the circular loss still doesn't move,
    that's a fifth clean-|v| null result strengthening the case. If it starts
    to learn, that's the first real counter-evidence in eight runs and would be
-   worth chasing hard.
-2. **poc_a pol_angle λ check** — cheaper, same logic, lower stakes (already
-   stable, just at the wrong magnitude).
-3. **Multi-step perturbation trace** — no retraining needed, just a script
-   against existing checkpoints; resolves whether the 89× perturbation
-   asymmetry (Run 7, Check 4) is directional learning or noise.
+   worth chasing hard.~~ Done (Run 9a/9b) — gate failed at both values.
+2. ~~**poc_a pol_angle λ check** — cheaper, same logic, lower stakes (already
+   stable, just at the wrong magnitude).~~ Done (Run 9a/9b) — gate failed at
+   both values.
+3. **Multi-step perturbation trace** — blocked behind Step 0 gate passing
+   (see Section 4); not run. Deciding whether to decouple it into a
+   standalone script is an open question.
 
-After those three, the ι-conditioning gate is clean to open.
+With the λ-sweep branch closed, the next decision is whether to scope an
+architecture-level fix for these two combinations or deprioritize that thread
+and move on to ι-conditioning regardless — see
+`experiment_summary_2026-07-22.md` §7 for the current priority order.

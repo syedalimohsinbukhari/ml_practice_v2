@@ -1,7 +1,7 @@
 # φc/ψ Degeneracy PoC — Experiment Index
 
 **Branch**: `poc/phic-psi-degeneracy`
-**Last updated**: 2026-07-21
+**Last updated**: 2026-07-22
 
 ---
 
@@ -9,6 +9,7 @@
 
 | File | Description |
 |------|-------------|
+| [`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) | Self-contained synthesis of the full investigation (Runs 1–9b) — best single entry point for onboarding; compresses `NOTES.md`/`diagnostic_log.md` |
 | [`NOTES.md`](NOTES.md) | Running notes: design decisions, run log, setup, next steps |
 | [`diagnostic_log.md`](diagnostic_log.md) | **Thesis reference**: chronological log of every diagnostic run, hypothesis tested, outcome, and wrong turns. Definitive record. |
 | [`results.md`](results.md) | Detailed run-by-run results tables |
@@ -29,6 +30,32 @@
 | **D** | [`bootstrap_output/bootstrap_ang_mae_20260721_093533.md`](bootstrap_output/bootstrap_ang_mae_20260721_093533.md) | Bootstrap CI on ang_MAE: N=10,000 shuffles, all models, all periodic heads |
 | — | (validation ordering check) | Data is i.i.d. (window variance ratio=0.99). Bootstrap shuffle-null is valid — no row-ordering confound. |
 | **E** | [`snr_output/snr_stratification_20260721_094039.md`](snr_output/snr_stratification_20260721_094039.md) | SNR-stratified ang_MAE: tercile analysis, all models, all periodic heads |
+
+---
+
+## Run 8/9 — λ ablation and retune (2026-07-21 – 2026-07-22)
+
+| Item | File | Description |
+|------|------|-------------|
+| Run 8 (λ=0 ablation) | [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md) | Write-up: isolates Run 7's val-loss creep as a λ/log-var interaction artifact (3/4 clean); closes item F.1/F.2 |
+| Run 8 outputs | [`lam0_ablation_output/`](lam0_ablation_output/) | Auto-generated report + trajectories, λ=0 |
+| Pre-registration | [`preregistration_lam_retune.md`](preregistration_lam_retune.md) | Locked decision criteria for Run 9a/9b, written before either result existed — do not edit retroactively |
+| Run 9a (λ=0.05) | [`lam005_retune_output/lam005_retune_report.md`](lam005_retune_output/lam005_retune_report.md), [`lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md`](lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md) | Both primary targets (tcn coa_phase, poc_a pol_angle) failed the Step 0 gate — close but unhealthy in the last 40 epochs |
+| Run 9b (λ=0.10) | [`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/lam010_retune_report.md), [`lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md`](lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md) | Both primary targets failed the gate again, worse than λ=0.05 — verdict: λ alone insufficient, neither null nor counter-evidence |
+
+Scripts: [`run_lam0_ablation.py`](run_lam0_ablation.py), [`run_lam005_retune.py`](run_lam005_retune.py),
+[`run_lam010_retune.py`](run_lam010_retune.py) (each chains train→plot→evaluate→diagnostic, then overlays
+the λ sweep); [`diagnostic_lam005_retune.py`](diagnostic_lam005_retune.py),
+[`diagnostic_lam010_retune.py`](diagnostic_lam010_retune.py) (mechanical Step 0–3 gate evaluation, per
+`preregistration_lam_retune.md`). Configs: [`config_lam0_ablation.yaml`](config_lam0_ablation.yaml),
+[`config_lam0_ablation_tcn.yaml`](config_lam0_ablation_tcn.yaml),
+[`config_lam005_retune.yaml`](config_lam005_retune.yaml),
+[`config_lam005_retune_tcn.yaml`](config_lam005_retune_tcn.yaml),
+[`config_lam010_retune.yaml`](config_lam010_retune.yaml),
+[`config_lam010_retune_tcn.yaml`](config_lam010_retune_tcn.yaml).
+
+Full narrative and verdict language: `NOTES.md` / `diagnostic_log.md`, Run 9a/9b sections;
+compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) §3.
 
 ---
 
@@ -154,8 +181,12 @@
 ## Quick-reference: key results at a glance
 
 ### Does the magnitude penalty prevent |v| drift?
-**Yes**, for 2/4 models (poc_b, cnn_attention). poc_a pol_angle and tcn coa_phase need λ tuning.
-→ [`std_ratio_trajectories.md`](std_ratio_trajectories.md)
+**Yes**, for 2/4 models (poc_b, cnn_attention) at λ=0.01. poc_a pol_angle and tcn coa_phase
+were retuned at λ=0.05 and λ=0.10 (Run 9a/9b) — **both still fail the std_ratio
+interpretability gate at every λ tried, and get worse at λ=0.10.** Filed as "λ alone
+insufficient," not resolved by tuning.
+→ [`std_ratio_trajectories.md`](std_ratio_trajectories.md) (λ=0.01 baseline),
+[`lam005_retune_output/`](lam005_retune_output/), [`lam010_retune_output/`](lam010_retune_output/)
 
 ### Does the circular loss decrease during training?
 **No.** Flat at ~1.0 (random baseline) for all 80 epochs, all models, all heads.
@@ -178,5 +209,8 @@
 → [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)
 
 ### What's still open?
-Four small items before ι-conditioning: λ=0 ablation, multi-step perturbation trace, tcn λ retune, poc_a pol_angle λ check.
-→ [`diagnostic_log.md`](diagnostic_log.md) (Remaining open items)
+The λ=0 ablation (Run 8) and both λ retunes (Run 9a/9b) are done. Only the multi-step
+perturbation trace remains — and it's blocked by design (gated behind the Step 0 gate
+passing, which never happened), not merely unscheduled.
+→ [`diagnostic_log.md`](diagnostic_log.md) (Remaining open items),
+[`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) §5

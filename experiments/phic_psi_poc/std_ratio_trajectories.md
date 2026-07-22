@@ -4,6 +4,16 @@
 **Data**: Run 7 checkpoints (`runs/phic_psi_{model}/20260720_*/history.csv`)
 **Context**: Rebuttal to `run7_verification_rebuttal.md` Section A.2, which relied on endpoint-only (epoch 0, epoch 79) summaries. Full trajectories reveal dynamics the two-point summary missed.
 
+> **Forward pointer (2026-07-22):** the λ re-tuning this file recommends below
+> was carried out at λ=0.05 (Run 9a) and λ=0.10 (Run 9b) under a pre-registered
+> gate. **Neither tcn coa_phase nor poc_a polarization_angle passed at either
+> value** — both got worse at λ=0.10 than at λ=0.05. Filed as "λ alone
+> insufficient," not resolved. The trajectories and diagnosis below (λ=0.01)
+> are unchanged and remain the correct historical record; only the
+> "Recommendation" section's forward-looking suggestion is superseded. See
+> `experiment_summary_2026-07-22.md` §3 (Run 9a/9b) or `diagnostic_log.md` for
+> the full result.
+
 ---
 
 ## coa_phase (φc)

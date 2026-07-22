@@ -1256,6 +1256,102 @@ mirroring how the cnn_attention case was handled).
 Run λ=0.05 first (`run_lam005_retune.py`); fall back to λ=0.10 only if the
 Step 0 gate fails at 0.05.
 
+### Run 9a — λ=0.05 result (2026-07-22)
+
+**Both primary tests FAILED the Step 0 gate — mechanical verdict UNINTERPRETABLE
+for both, per the pre-registered decision table.** Since neither cleared the
+gate, Steps 1–3 (bootstrap, effect size, SNR check, perturbation trace) did
+not run — this is by design, not a missing analysis.
+
+| Model | Head | frac unhealthy (last 40 ep) | late trend/ep | Gate |
+|---|---|---|---|---|
+| tcn | coa_phase | 0.05 (passes <0.10) | −0.00638 (fails \|·\|<0.005) | **FAIL** |
+| poc_a (baseline) | polarization_angle | 0.35 (fails <0.10) | +0.00718 (fails) | **FAIL** |
+
+Full trace (`runs/phic_psi_lam005_retune{,_tcn}/20260722_*/history.csv`) shows
+*why* each failed differently, and it's worth recording precisely because a
+coarser read could misclassify both:
+
+- **tcn coa_phase**: noisy early in the 40-epoch window (0.45–1.1), but the
+  last ~15 epochs sit in a tight, stable band (0.58–0.62) — comfortably
+  inside [0.5, 2.0]. The failing trend statistic is measuring the decline
+  *into* that plateau, not ongoing instability at the end of training. Close
+  to passing; a few more epochs at this λ might clear the trend criterion on
+  its own.
+- **poc_a polarization_angle**: spends epochs ~41–58 well below 0.5 (0.2–0.45,
+  climbing), then settles cleanly into 0.53–0.56 for the last ~20 epochs. The
+  35% unhealthy fraction is almost entirely from that early ramp, not from
+  current instability. Also close to passing, same shape.
+
+Both models: **val circular loss for the primary head stays flat at
+1.004–1.008 across the same window** — no movement, same as every prior run.
+This doesn't change the verdict (the gate failing means the significance test
+never ran, so no "peek ahead" conclusion is being drawn here), but it means
+even in the epochs where std_ratio looks closest to healthy, there's no
+visible loss movement to explain either.
+
+**Per the pre-committed plan, the next step is λ=0.10** (`run_lam010_retune.py`
+/ `diagnostic_lam010_retune.py`), not yet executed. One thing worth deciding
+before that run, given the settling-then-plateau shape seen here: whether the
+40-epoch/0.005-trend window is the right lens for a `plateau` LR schedule that
+takes ~15–20 epochs to fully settle after each LR drop, or whether it's overly
+strict early in that settling period. Any change to the gate window should be
+made as a documented revision to `preregistration_lam_retune.md` *before*
+looking at the λ=0.10 results — not decided after seeing them, for the same
+reason the criterion was pre-registered in the first place.
+
+### Run 9b — λ=0.10 result (2026-07-22)
+
+**Both primary tests FAILED the Step 0 gate again — mechanical verdict per
+the pre-registration:** "gate fail at λ=0.10 too → report λ alone
+insufficient, not counted either way." Steps 1–3 correctly did not run.
+This closes the λ-sweep branch (0, 0.01, 0.05, 0.10) for both primary
+targets.
+
+| Model | Head | frac unhealthy (last 40 ep) | late trend/ep | Gate | vs λ=0.05 |
+|---|---|---|---|---|---|
+| tcn | coa_phase | 0.28 (fails <0.10) | −0.00255 (passes \|·\|<0.005) | **FAIL** | worse (0.05→0.28) |
+| poc_a (baseline) | polarization_angle | 0.73 (fails) | +0.00731 (fails) | **FAIL** | much worse (0.35→0.73) |
+
+Unlike Run 9a, this is not a near-miss on either primary target. Raw traces
+(`runs/phic_psi_lam010_retune{,_tcn}/20260722_*/history.csv`) show two
+distinct failure shapes:
+
+- **poc_a polarization_angle**: crashes hard through epochs ~30–48 (down to
+  0.18–0.4, well below the healthy band), then climbs steadily and
+  monotonically — 0.33 at epoch 49 up to 0.51 by epoch 68, then hovers at
+  0.50–0.51 for the last ~11 epochs. It looks like it may be converging, but
+  the recovery only started late enough that the 40-epoch window is mostly
+  still below 0.5 (29 of 40 epochs) — the gate correctly doesn't credit an
+  in-progress climb. Trend is positive and consistent with genuine (if slow)
+  convergence, not divergence.
+- **tcn coa_phase**: oscillates in roughly [0.2, 0.95] across the entire
+  last-40-epoch window with no discernible convergence in either direction —
+  qualitatively different from the "settled late" pattern at λ=0.05. This
+  reads as instability, not a transient.
+
+Non-primary combos mostly regressed too (see
+[`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/lam010_retune_report.md)):
+poc_a coa_phase HEALTHY (λ=0.05) → STILL UNHEALTHY (λ=0.10, frac 0.60); tcn
+pol_angle "improved, not stable" (λ=0.05) → STILL UNHEALTHY (λ=0.10, frac
+0.90). λ=0.10 helped none of the four head/model combos and made three
+worse — raising λ further is not indicated.
+
+**Verdict, filed per the pre-registered table, not re-derived after the
+fact:** λ alone is insufficient to stabilize std_ratio for tcn coa_phase or
+poc_a polarization_angle. This is explicitly neither a null result nor
+counter-evidence for the degeneracy hypothesis — the pre-registration
+anticipated exactly this outcome and specified it be reported as such rather
+than forced into either bucket. The λ sweep for these two heads (0, 0.01,
+0.05, 0.10) is exhausted; the next lever, if pursued, is architecture-level
+(each diagnostic script's own gate-fail message says the same), not a
+further λ value. The open question flagged in Run 9a — whether the 40-epoch
+gate window is well-calibrated for the `plateau` schedule's settling
+behavior — remains open but is now moot for this specific λ-sweep decision,
+since λ=0.10's poc_a failure mode (still-crashing-then-slowly-recovering) is
+not simply "settled late," and tcn's failure mode at λ=0.10 (oscillatory) is
+not a plateau-window artifact at all.
+
 ### Next steps
 
 - [x] Root cause: tanh saturation at random init for PERIODIC heads (Run 3–4)
@@ -1278,9 +1374,25 @@ Step 0 gate fails at 0.05.
       drift); tcn pol_angle persists unresolved (small, +0.0072)
 - [x] Pre-register success/failure criterion for the λ retune, before running
       it — **Run 9 setup**, 2026-07-22, see below
-- [ ] Run multi-step perturbation trace to discriminate learning vs noise (A.3)
-      — folded into Run 9's diagnostic scripts, pending execution
-- [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10) and re-check circular loss
-      — **Run 9**, configs/runners/diagnostics ready, pending execution
-- [ ] Optionally re-tune λ for poc_a pol_angle — **Run 9**, same status
+- [x] Run multi-step perturbation trace to discriminate learning vs noise (A.3)
+      — **will not run for these two primary targets**: gate-failed at both
+      λ=0.05 and λ=0.10, so Steps 1–3 correctly never execute, by design
+      (see Run 9a, Run 9b). Branch closed.
+- [x] Re-tune λ=0.05 for tcn coa_phase — **Run 9a**, 2026-07-22: gate FAILED
+      (close — last ~15 epochs stable at 0.58–0.62, but trend/ep from the
+      earlier settling period fails the strict threshold). Verdict:
+      UNINTERPRETABLE, not null or counter-evidence.
+- [x] Re-tune λ=0.10 for tcn coa_phase — **Run 9b**, 2026-07-22: gate FAILED
+      again, worse than λ=0.05 (frac 0.05→0.28) — oscillatory, not a
+      settling transient. Verdict: **λ alone insufficient**; branch closed.
+- [x] Re-tune λ=0.05 for poc_a pol_angle — **Run 9a**, 2026-07-22: gate FAILED
+      (35% of last-40-epoch window unhealthy, almost entirely from the
+      pre-plateau ramp; last ~20 epochs stable at 0.53–0.56). Verdict:
+      UNINTERPRETABLE.
+- [x] Re-tune λ=0.10 for poc_a pol_angle — **Run 9b**, 2026-07-22: gate FAILED
+      again, much worse than λ=0.05 (frac 0.35→0.73) — crashes early,
+      recovers late, crosses 0.5 only in the last ~11 of 80 epochs. Verdict:
+      **λ alone insufficient**; branch closed.
+- [ ] λ sweep exhausted for both primary targets (0, 0.01, 0.05, 0.10) — next
+      lever, if pursued, is architecture-level, not a further λ value.
 - [ ] After above items resolved: **proceed to ι-conditioning experiments**

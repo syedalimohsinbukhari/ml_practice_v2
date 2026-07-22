@@ -324,17 +324,26 @@ Output files:
       drift absent at λ=0 in 3/4 signals (λ-interaction artifact, not real
       drift); persists unresolved in tcn pol_angle (small, +0.0072). See
       [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md).
-- [ ] Re-tune λ for tcn coa_phase (try 0.05–0.10) — **in progress, Run 9**:
-      [`config_lam005_retune_tcn.yaml`](config_lam005_retune_tcn.yaml),
-      [`config_lam010_retune_tcn.yaml`](config_lam010_retune_tcn.yaml)
-- [ ] Optionally re-tune λ for poc_a pol_angle — **in progress, Run 9**:
-      [`config_lam005_retune.yaml`](config_lam005_retune.yaml),
-      [`config_lam010_retune.yaml`](config_lam010_retune.yaml)
+- [x] Re-tune λ for tcn coa_phase (0.05, then 0.10) — **gate FAILED at both**
+      (Run 9a: 0.05, frac 0.05, trend −0.0064; Run 9b: 0.10, frac 0.28, trend
+      −0.0026 — oscillatory, not a clean transient). Mechanical verdict per
+      pre-registration: **λ alone insufficient**; closed, not counted as null
+      or counter-evidence.
+- [x] Re-tune λ for poc_a pol_angle (0.05, then 0.10) — **gate FAILED at
+      both, and worse at 0.10** (Run 9a: 0.05, frac 0.35, trend +0.0072;
+      Run 9b: 0.10, frac 0.73, trend +0.0073 — crashed early then climbed
+      steadily, crossing 0.5 only in the last ~11 of 80 epochs). Mechanical
+      verdict per pre-registration: **λ alone insufficient**; closed.
 - [ ] Run multi-step perturbation trace (discriminate learning vs noise) —
-      folded into Run 9's diagnostic scripts (see below) rather than run
-      standalone, since the retuned checkpoints are the ones that need it.
+      **will not run for these two primary targets**: both gate-failed at
+      λ=0.05 and λ=0.10, so Steps 1–3 (incl. the perturbation trace)
+      correctly never execute, by design (see `diagnostic_log.md` Run 9b).
 
 **After above items:**
+- [ ] λ sweep for tcn coa_phase / poc_a pol_angle is exhausted (0, 0.01,
+      0.05, 0.10 all tested) — next step for these two heads, if pursued, is
+      an architecture-level fix, not a further λ value (per each diagnostic
+      script's own gate-fail guidance).
 - [ ] Proceed to ι-conditioning experiments — test whether providing true
       inclination as auxiliary input enables ψ and φc recovery
 - [ ] Investigate inclination failure (separate mechanism, Huber loss)
@@ -508,6 +517,82 @@ pre-registration decision table):
 
 Run λ=0.05 first; only fall back to λ=0.10 if the std_ratio gate fails at
 0.05 (per each diagnostic script's own guidance).
+
+### Run 9a — λ=0.05 result (2026-07-22)
+
+**Both primary tests failed the Step 0 gate.** Mechanical verdict for both:
+UNINTERPRETABLE (not null, not counter-evidence) — Steps 1–3 correctly did
+not run.
+
+| Model | Head | frac unhealthy (last 40 ep) | trend/ep | Gate |
+|---|---|---|---|---|
+| tcn | coa_phase | 0.05 | −0.00638 | FAIL |
+| poc_a | polarization_angle | 0.35 | +0.00718 | FAIL |
+
+Both are *close*, and fail for a similar reason: each settles into a stable,
+healthy std_ratio plateau only in the back portion of training (tcn coa_phase:
+0.58–0.62 for the last ~15 epochs; poc_a pol_angle: 0.53–0.56 for the last
+~20), but the 40-epoch window used by the gate also captures the earlier
+transient while std_ratio was still climbing into the band — which is enough
+to fail the strict frac/trend thresholds even though the current state looks
+healthy. Circular loss for both stayed flat at 1.004–1.008 throughout, same
+as every prior run.
+
+**Next (pre-committed): run λ=0.10** (`run_lam010_retune.py`, not yet
+executed). Whether the 40-epoch gate window is too strict for a `plateau`
+LR schedule that takes ~15–20 epochs to settle after each drop is worth
+deciding — but any change to that criterion should be a dated revision to
+[`preregistration_lam_retune.md`](preregistration_lam_retune.md) made
+*before* the λ=0.10 results are seen, not after.
+
+Full detail: [`diagnostic_log.md`](diagnostic_log.md) Run 9a section.
+Reports: [`lam005_retune_output/lam005_retune_report.md`](lam005_retune_output/lam005_retune_report.md),
+[`lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md`](lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md).
+
+### Run 9b — λ=0.10 result (2026-07-22)
+
+**Both primary tests failed the Step 0 gate again.** Per the pre-registered
+decision table (`preregistration_lam_retune.md`): "gate fail at λ=0.10 too →
+report λ alone insufficient, not counted either way." This closes the λ
+sweep for both primary targets — Steps 1–3 (bootstrap, effect size, SNR,
+perturbation trace) correctly never ran.
+
+| Model | Head | frac unhealthy (last 40 ep) | trend/ep | Gate | vs λ=0.05 |
+|---|---|---|---|---|---|
+| tcn | coa_phase | 0.28 | −0.00255 | FAIL | worse (0.05→0.28) |
+| poc_a | polarization_angle | 0.73 | +0.00731 | FAIL | much worse (0.35→0.73) |
+
+Raising λ from 0.05 to 0.10 did not help either primary target, and made
+poc_a pol_angle substantially worse by the mechanical metric. The two
+failure signatures are qualitatively different, for the record (though this
+is descriptive, not part of the mechanical verdict):
+
+- **poc_a pol_angle:** std_ratio crashes hard early (epochs ~30–48, down to
+  0.18–0.4), then climbs steadily and monotonically, crossing 0.5 only in
+  the last ~11 of 80 epochs (0.501→0.513). This looks like it might
+  eventually stabilize with more epochs — but the pre-registered 40-epoch
+  window (correctly) doesn't credit an in-progress recovery.
+- **tcn coa_phase:** genuinely oscillatory in [0.2, 0.95] throughout the
+  last 40 epochs, not a one-time transient — no clear convergence trend
+  either direction.
+
+Non-primary combos also mostly regressed at λ=0.10 vs λ=0.05 (see
+[`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/lam010_retune_report.md)):
+poc_a coa_phase went HEALTHY (λ=0.05) → STILL UNHEALTHY (λ=0.10, frac 0.60);
+tcn pol_angle went "improved, not stable" (λ=0.05) → STILL UNHEALTHY
+(λ=0.10, frac 0.90). Net picture: λ=0.10 is not a strict improvement over
+λ=0.05 across the board — it helped nothing and hurt three of four
+head/model combos.
+
+**Verdict: λ alone is insufficient to stabilize std_ratio for tcn coa_phase
+or poc_a polarization_angle.** Per the pre-registered decision table, this
+is filed as neither null nor counter-evidence — the λ-sweep branch
+(0, 0.01, 0.05, 0.10) is exhausted for these two heads. Next step, if
+pursued, is an architecture-level fix rather than a further λ value.
+
+Full detail: [`diagnostic_log.md`](diagnostic_log.md) Run 9b section.
+Reports: [`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/lam010_retune_report.md),
+[`lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md`](lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md).
 
 ### Run C (ι=0 slice) — not yet configured
 

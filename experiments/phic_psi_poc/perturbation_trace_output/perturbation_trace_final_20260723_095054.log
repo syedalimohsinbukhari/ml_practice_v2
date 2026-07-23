@@ -1,0 +1,61 @@
+==========================================================================================
+STANDALONE MULTI-STEP PERTURBATION TRACE (A.3) — stage=final, 25 steps, random-walk ref net/sum = 0.200
+==========================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_a (baseline) [final]
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_poc_a/20260720_210936
+               coa_phase: rel/step (first 5) = [2.82e-01, 2.32e-01, 9.79e-02, 5.16e-02, 4.16e-02] ...
+                          mean_cos_sim = +0.929   net/sum = 0.302   → AMBIGUOUS
+                          probe Δcirc = -0.0177 ± 0.0205 (paired SE)   t = -0.86   frac improved = 0.54
+      polarization_angle: rel/step (first 5) = [4.09e-01, 4.66e-01, 2.96e-01, 1.40e-01, 1.15e-01] ...
+                          mean_cos_sim = +0.964   net/sum = 0.626   → DIRECTIONAL (coherent drift)
+                          probe Δcirc = +0.0426 ± 0.0519 (paired SE)   t = +0.82   frac improved = 0.50
+                  mchirp: rel/step (first 5) = [7.86e-01, 5.29e-01, 5.81e-01, 8.24e-02, 1.92e-01] ...
+                          mean_cos_sim = +0.602   net/sum = 0.038   → AMBIGUOUS
+                          probe Δmse = +0.0208 ± 0.0050 (paired SE)   t = +4.18   frac improved = 0.34
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_b (poc) [final]
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_poc_b/20260720_213202
+               coa_phase: rel/step (first 5) = [1.23e-01, 1.13e-01, 8.62e-02, 6.89e-02, 5.88e-02] ...
+                          mean_cos_sim = +0.955   net/sum = 0.390   → AMBIGUOUS
+                          probe Δcirc = -0.0132 ± 0.0132 (paired SE)   t = -1.00   frac improved = 0.51
+      polarization_angle: rel/step (first 5) = [8.96e-02, 3.11e-02, 3.43e-02, 2.87e-02, 2.09e-02] ...
+                          mean_cos_sim = +0.801   net/sum = 0.234   → AMBIGUOUS
+                          probe Δcirc = +0.0039 ± 0.0023 (paired SE)   t = +1.72   frac improved = 0.46
+                  mchirp: rel/step (first 5) = [9.65e-01, 5.70e-01, 6.38e-01, 7.20e-02, 2.35e-01] ...
+                          mean_cos_sim = +0.544   net/sum = 0.035   → AMBIGUOUS
+                          probe Δmse = +0.0404 ± 0.0045 (paired SE)   t = +8.99   frac improved = 0.24
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: tcn [final]
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_tcn/20260720_215403
+               coa_phase: rel/step (first 5) = [1.39e-01, 1.54e-01, 2.71e-01, 2.67e-01, 2.91e-01] ...
+                          mean_cos_sim = +0.941   net/sum = 0.923   → DIRECTIONAL (coherent drift)
+                          probe Δcirc = -0.0097 ± 0.0491 (paired SE)   t = -0.20   frac improved = 0.50
+      polarization_angle: rel/step (first 5) = [3.14e-01, 8.74e-02, 1.09e-01, 1.81e-01, 2.19e-01] ...
+                          mean_cos_sim = +0.816   net/sum = 0.356   → AMBIGUOUS
+                          probe Δcirc = +0.0504 ± 0.0312 (paired SE)   t = +1.61   frac improved = 0.47
+                  mchirp: rel/step (first 5) = [8.91e-01, 4.84e-01, 6.17e-01, 1.87e-01, 1.30e-01] ...
+                          mean_cos_sim = +0.591   net/sum = 0.028   → AMBIGUOUS
+                          probe Δmse = +0.0169 ± 0.0039 (paired SE)   t = +4.28   frac improved = 0.38
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: cnn_attention [final]
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_cnn_attention/20260720_221625
+               coa_phase: rel/step (first 5) = [2.03e-01, 3.01e-01, 8.71e-02, 6.09e-02, 5.51e-02] ...
+                          mean_cos_sim = +0.632   net/sum = 0.407   → DIRECTIONAL (coherent drift)
+                          probe Δcirc = -0.0439 ± 0.0400 (paired SE)   t = -1.10   frac improved = 0.51
+      polarization_angle: rel/step (first 5) = [2.88e-01, 3.35e-01, 1.28e-01, 8.54e-02, 9.68e-02] ...
+                          mean_cos_sim = +0.603   net/sum = 0.335   → AMBIGUOUS
+                          probe Δcirc = +0.0232 ± 0.0337 (paired SE)   t = +0.69   frac improved = 0.49
+                  mchirp: rel/step (first 5) = [2.69e-01, 1.20e-01, 9.85e-02, 4.46e-02, 3.83e-02] ...
+                          mean_cos_sim = +0.502   net/sum = 0.186   → AMBIGUOUS
+                          probe Δmse = +0.0647 ± 0.0148 (paired SE)   t = +4.37   frac improved = 0.38
+
+Report: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc/perturbation_trace_output/perturbation_trace_final_20260723_095054.md

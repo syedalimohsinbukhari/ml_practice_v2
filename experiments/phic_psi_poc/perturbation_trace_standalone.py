@@ -31,6 +31,7 @@ Writes log + markdown report to perturbation_trace_output/.
 
 from __future__ import annotations
 
+import gc
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -63,8 +64,9 @@ HEADS = ["mchirp", "merger_time", "snr", "sky_position",
          "coa_phase", "polarization_angle", "inclination"]
 TRACK = ["coa_phase", "polarization_angle", "mchirp"]
 N_STEPS = 25
-PROBE_SIZE = 512
-N_SAMPLES = 5000
+PROBE_SIZE = 512     # fixed probe set, predictions tracked across steps
+BATCH_SIZE = 128     # gradient-step batch, disjoint from the probe set
+PRED_BATCH = 64      # probe forward-pass chunk size (memory bound)
 SEED = 42
 
 
@@ -82,6 +84,16 @@ class _Tee:
         self.file.flush()
 
 
+def predict_heads(trainer, strain_arr, heads):
+    """Chunked forward pass — a single 512-sample call OOMs on the TCN."""
+    outs = {h: [] for h in heads}
+    for i in range(0, len(strain_arr), PRED_BATCH):
+        y = trainer(strain_arr[i:i + PRED_BATCH], training=False)
+        for h in heads:
+            outs[h].append(y[h].numpy())
+    return {h: np.concatenate(v, axis=0) for h, v in outs.items()}
+
+
 def circular_loss(pred_vec, true_vec):
     """Mean 1 - cos(dtheta) from (sin, cos) 2-vectors, unit-normalizing both."""
     def unit(v):
@@ -94,7 +106,7 @@ def trace_model(trainer, strain_batch, targets, probe_strain, probe_targets):
     per_step_vecs = {h: [] for h in TRACK}
     rel_changes = {h: [] for h in TRACK}
 
-    pred_prev = {h: trainer(probe_strain, training=False)[h].numpy() for h in TRACK}
+    pred_prev = predict_heads(trainer, probe_strain, TRACK)
     pred_start = dict(pred_prev)
 
     loss_before = {
@@ -110,7 +122,7 @@ def trace_model(trainer, strain_batch, targets, probe_strain, probe_targets):
         gv = [(g, v) for g, v in zip(grads, trainer.trainable_weights) if g is not None]
         trainer.optimizer.apply_gradients(gv)
 
-        pred_now = {h: trainer(probe_strain, training=False)[h].numpy() for h in TRACK}
+        pred_now = predict_heads(trainer, probe_strain, TRACK)
         for h in TRACK:
             delta = (pred_now[h] - pred_prev[h]).ravel()
             per_step_vecs[h].append(delta)
@@ -180,15 +192,20 @@ def main():
         if keras_seed:
             keras_seed(SEED)
 
+        # Only PROBE_SIZE + BATCH_SIZE samples are ever used — loading the
+        # full 5000-sample validation split just wastes host/GPU memory.
         strain, params = load_arrays(cfg["data"]["path"], "validation",
-                                     max_samples=N_SAMPLES)
+                                     max_samples=PROBE_SIZE + BATCH_SIZE)
         transforms = TargetTransforms(heads=HEADS)
         transforms.fit(params)
         trainer = build_sumdiff_trainer(cfg)
         trainer(strain[:1])
         trainer.load_weights(str(weights))
 
-        ds = make_dataset(strain, params, transforms, 128, shuffle=False)
+        # Gradient-step batch is disjoint from the probe set, so the steps
+        # never optimize on the samples whose predictions are being tracked.
+        ds = make_dataset(strain[PROBE_SIZE:], params[PROBE_SIZE:],
+                          transforms, BATCH_SIZE, shuffle=False)
         strain_batch, targets = next(iter(ds))
 
         probe_strain = strain[:PROBE_SIZE]
@@ -212,6 +229,13 @@ def main():
             print(f"    probe circular loss {h}: "
                   f"{loss_before[h]:.4f} → {loss_after[h]:.4f} "
                   f"(Δ = {loss_after[h] - loss_before[h]:+.4f})")
+
+        # Free this model's graph, weights, and optimizer slots before the
+        # next config — without this the four models accumulate on the GPU
+        # and the third/fourth OOM.
+        del trainer, ds, probe_ds, strain, params, strain_batch, targets
+        tf.keras.backend.clear_session()
+        gc.collect()
 
     md = OUT_DIR / f"perturbation_trace_{ts}.md"
     with open(md, "w") as f:

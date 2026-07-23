@@ -31,6 +31,7 @@
 | — | (validation ordering check) | Data is i.i.d. (window variance ratio=0.99). Bootstrap shuffle-null is valid — no row-ordering confound. |
 | **E** | [`snr_output/snr_stratification_20260721_094039.md`](snr_output/snr_stratification_20260721_094039.md) | SNR-stratified ang_MAE: tercile analysis, all models, all periodic heads |
 | — (2026-07-23) | [`inclination_output/inclination_stratification_20260723_130630.md`](inclination_output/inclination_stratification_20260723_130630.md) | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3, all models, all periodic heads). No cross-model edge-on-favoring recovery; every φ_c/ψ deviation falls within its own model's ι-control noise floor except tcn/φ_c (wrong-signed, already-flagged std_ratio instability). Written up as Table 6.6 / §6.7 in the thesis chapter. |
+| — (2026-07-23) | [`inclination_output/inclination_control_stratification_20260723_140016.md`](inclination_output/inclination_control_stratification_20260723_140016.md) | v2-review follow-up: same face-on/mixed/edge-on bands applied to chirp mass (known-good, non-angular). R² spread 0.005–0.010, MAE spread 0.034–0.080 M_⊙ across bands for every model — banding itself does not inject variance at a scale relevant to the φ_c/ψ deviations. Written up as Table 6.7 / §6.7. |
 
 ---
 
@@ -168,6 +169,8 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 | [`bootstrap_ang_mae.py`](bootstrap_ang_mae.py) | Section D: bootstrap CI on ang_MAE (N=10,000 shuffles) |
 | [`snr_stratification.py`](snr_stratification.py) | Section E: SNR-stratified ang_MAE (tercile analysis) |
 | [`inclination_stratification.py`](inclination_stratification.py) | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3) — **run 2026-07-23**; results in `inclination_output/`, written up as Table 6.6 / §6.7 |
+| [`plot_certified_memorization.py`](plot_certified_memorization.py) | v2-review follow-up: train-vs-validation circular loss for the two certified models (poc_b, cnn_attention) specifically, read directly from each run's `history.csv` — no model loading, no GPU. Output: `diagnostic_output/certified_models_train_val_loss.png`, written up as Fig. 8.1 / §8.2 |
+| [`inclination_control_stratification.py`](inclination_control_stratification.py) | v2-review follow-up: chirp-mass MAE/R² stratified by the same face-on/mixed/edge-on bands as `inclination_stratification.py`, to check whether banding itself injects spurious variance into a known-good non-angular head — **run 2026-07-23**; R² spread only 0.005–0.010 across bands for every model, ruling out banding-induced noise at a scale relevant to Table 6.6. Results in `inclination_output/`, written up as Table 6.7 / §6.7 |
 | [`prereq_checks.py`](prereq_checks.py) | Step 1.1–1.6 prerequisite verification (combo ratio sweep, w(ι) derivation, cos ι histogram) |
 | [`validation_script.py`](validation_script.py) | Manual validation utilities |
 
@@ -252,3 +255,42 @@ added a waveform-approximant provenance caveat (IMRPhenomD, dominant-mode-only, 
 by the author but not recorded anywhere in the repo/dataset), and flagged the inclination
 prior as uniform-in-ι rather than the astrophysically correct uniform-in-cos ι.
 → [`thesis/reviews/`](thesis/reviews/) (the three review files), `thesis/chapter_phic_psi_degeneracy.{md,tex}` (revised)
+
+**Round 2 (2026-07-23, same day):** three v2 adversarial reviews of the revised chapter
+(`thesis/reviews/*_v2.md`) — Qwen: "accept as is" (one stale copy-edit, already fixed);
+DeepSeek: "defensible" with six mostly-wording asks; Kimi: substantially harder, arguing the
+null is "certified on two points in configuration space" and demanding new evidence.
+**Addressed by text/analysis, no new training:**
+- Verified from existing `history.csv` (no new run) that the memorization-gap argument in
+  §8.2 only directly covers cnn_attention among the two certified models — poc_b (and poc_a,
+  tcn) show *no* train/val gap at all. Wrote [`plot_certified_memorization.py`](plot_certified_memorization.py)
+  (reads existing CSVs only) and added Fig. 8.1 + prose arguing this is not a capacity failure
+  (same TCN trunk hits R²=0.97 on chirp mass) and, if anything, a cleaner null for poc_b.
+- Reworded the §7.3 "exhausted" language (tripped up DeepSeek in both v1 and v2) to remove
+  the friction entirely rather than re-argue it.
+- Reframed §8.3's waveform-provenance bullet around reproducibility (Kimi/DeepSeek's actual
+  concern) rather than only "it would sharpen the null" (which Qwen found sufficient but the
+  other two did not).
+- Added an honest "this is a diagnostic calibration, not a formal statistical test" caveat to
+  §6.7, plus a sky-position-based rebuttal to Kimi's "shared upstream angular-pathology" concern.
+  Prepared and then ran the cheap chirp-mass-by-inclination-band follow-up
+  (`inclination_control_stratification.py`) rather than leaving it as future work: R² spread
+  only 0.005–0.010 across bands for every model, ruling out banding-induced noise as an
+  alternative explanation for the φ_c/ψ deviations — written up as Table 6.7 in §6.7.
+- Softened "memorization" language (§5.5), tightened the certified-vs-corroborating framing (§1),
+  reframed the perturbation trace as supporting-not-primary evidence (§9), added a Table 6.6
+  caption clarification and an honest scope-limit note on the SNR-monotonicity dismissal (§6.3).
+**Consciously deferred, not attempted — needs a scope decision, not a text fix:**
+- Kimi's demand for a synthetic-data ablation (deterministic recoverable A/B combinations) to
+  rule out the curriculum itself forcing poc_b's collapse — this is a new training experiment.
+- Kimi's demand for a high-SNR (25–30) validation set or a Fisher-matrix bound, to distinguish
+  "degeneracy" from "signal below the SNR 7–15 sensitivity floor" — new injections or a nontrivial
+  new physics calculation.
+- Kimi's demand to regenerate the dataset (or a small validation slice) from a version-controlled
+  generator script and re-confirm the null — closes the provenance gap for good but is new data
+  generation, not a chapter edit.
+- Kimi's either/or on A.3: pre-register a fresh-holdout replication of the paired-statistic trace,
+  or downgrade A.3 from "closed" to "open." Chose a middle path (Conclusion now states the
+  perturbation trace is corroborating, not primary, evidence) rather than either extreme.
+None of these four are done; they are the actual next-tier asks if the chapter needs to withstand
+a harder examiner than this round.

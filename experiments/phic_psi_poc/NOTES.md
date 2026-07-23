@@ -618,3 +618,11 @@ Same-day review caught that the trace's positive control failed — mchirp (R² 
 Per-case check: poc_a/pol_angle fails the two-part escalation rule individually (probe loss +0.048, increased); tcn/coa_phase (net/sum 0.925) nominally triggers it (−0.010) and the prior "inside noise" dismissal used the wrong (marginal, not paired) standard error.
 `perturbation_trace_standalone.py` now has an `early` calibration stage (fresh init + ~1-epoch warmup; per-epoch checkpoints were never saved) and per-sample paired statistics; pending lab-machine execution.
 Full decision tree in `diagnostic_log.md`'s review addendum.
+
+### Calibration run — A.3 closed for good (2026-07-23)
+
+The `early` calibration stage ran (`perturbation_trace_early_20260723_095357`).
+Calibration criterion FAILED — mchirp never read DIRECTIONAL early (ambiguous ×3, oscillatory ×1) *while its paired probe MSE collapsed at t = −3.4 to −8.5* — so the displacement-geometry classifier is retired per the pre-stated tree: it labeled the fastest-learning head "noise-like."
+The paired probe-loss channel passed its positive control in the same run and reads every periodic head as null at both stages (early |t| ≤ 1.6, final |t| ≤ 1.7, mixed signs) — a within-run, stage-matched, positive-controlled contrast.
+**A.3 CLOSED** on the validated channel (post-hoc channel choice recorded as a caveat in the chapter's threats list); tcn/coa_phase escalation branch extinguished (paired t = −0.20).
+Nothing from the Run 7 verification battery remains open.

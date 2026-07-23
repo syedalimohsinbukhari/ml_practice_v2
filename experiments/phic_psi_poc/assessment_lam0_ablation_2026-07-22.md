@@ -134,13 +134,14 @@ by design (see Section 4). Original recommendation text, for record:
 3. **Multi-step perturbation trace** — blocked behind Step 0 gate passing
    (see Section 4); not run at the time of this assessment.
    **Update (2026-07-23):** decoupled into a standalone un-gated script
-   (`perturbation_trace_standalone.py`) and executed against the Run 7
-   λ=0.01 checkpoints. **Provisionally closed** — the 89× asymmetry reads
-   as coherent but dominantly radial raw-output drift (movement without
-   angular learning), but same-day review found the mchirp positive
-   control failed at the converged checkpoints, so the verdict awaits the
-   script's `early`-stage calibration run; see `diagnostic_log.md`'s A.3
-   closure section + review addendum and `perturbation_trace_output/`.
+   (`perturbation_trace_standalone.py`), executed, reviewed (failed mchirp
+   positive control caught), re-instrumented with paired statistics, and
+   calibrated with an `early` stage. **CLOSED** — the geometry classifier
+   was retired per its failed calibration, and on the paired-statistic
+   channel (whose control passed in the same run) every periodic head is
+   null at both training stages: the 89× asymmetry is radial movement
+   without angular learning. See `diagnostic_log.md`'s calibration
+   adjudication and `perturbation_trace_output/`.
 
 With the λ-sweep branch closed, the next decision is whether to scope an
 architecture-level fix for these two combinations or deprioritize that thread

@@ -1400,11 +1400,14 @@ not a plateau-window artifact at all.
       closed — movement without angular learning**, downgraded from CLOSED
       by same-day review (failed mchirp positive control); see the closure
       section and its review addendum below.
-- [ ] Perturbation-trace calibration run (`early` stage: fresh init +
-      ~1-epoch warmup, per-sample paired stats) — script updated 2026-07-23;
-      pending lab-machine execution. Must show mchirp DIRECTIONAL-early /
-      AMBIGUOUS-late to validate the A.3 verdicts; also re-adjudicates the
-      nominal tcn/coa_phase escalation trigger with paired statistics.
+- [x] Perturbation-trace calibration run (`early` stage) — **executed
+      2026-07-23** (`perturbation_trace_early_20260723_095357.{md,log}`).
+      Calibration criterion FAILED (mchirp never read DIRECTIONAL early) →
+      geometry classifier retired per the pre-stated tree; but the paired
+      probe-loss channel PASSED its control in the same run (early mchirp
+      t = −3.4 to −8.5, learning detected) and reads every periodic head
+      as null at both stages. **A.3 CLOSED on the validated channel**; see
+      the calibration adjudication below.
 - [ ] After above items resolved: **proceed to ι-conditioning experiments** —
       not yet started
 
@@ -1465,3 +1468,39 @@ If calibration passes and tcn/coa_phase's Δcirc is paired-insignificant, A.3 cl
 If calibration passes and the effect is paired-significant, tcn/coa_phase escalates per the pre-stated rule — it would be the most interesting number in the nine-run investigation.
 If calibration fails, A.3 reverts to open with the trace methodology retired.
 Chapter updated to match (§6.6 provisional framing, threats-list bullet restored, calibration run added as future-work item 0).
+
+##### Paired-statistics rerun (2026-07-23, `perturbation_trace_final_20260723_095054`)
+
+The final-stage trace was rerun with the per-sample paired statistics added by the review addendum.
+Review objection 2 is now settled with the correct statistic:
+
+- **tcn/coa_phase** (the nominal escalation trigger): probe Δcirc = **−0.0097 ± 0.0491 (paired SE), t = −0.20** — decisively insignificant. The trigger dissolves.
+- **poc_a/pol_angle**: +0.0426 ± 0.0519, t = +0.82 — insignificant, and an increase besides.
+- All periodic-head probe deltas are paired-insignificant (|t| ≤ 1.72); directionality/net-sum values reproduce the first run (tcn/coa_phase net/sum 0.923).
+- Side observation supporting the convergence explanation: the converged mchirp head's probe MSE got significantly *worse* under the 25 single-batch steps (t = +4.2 to +9.0 across models) — steps on one repeated batch pull a converged head away from its global optimum, exactly the regime in which the instrument reads a learned head as AMBIGUOUS.
+
+**Status: A.3 remains PROVISIONALLY closed** — the only outstanding condition is the `early`-stage mchirp calibration run (must read DIRECTIONAL early / AMBIGUOUS late). The tcn/coa_phase escalation branch is closed under the paired statistic unless the early-stage run revives it.
+
+##### Calibration run adjudication (2026-07-23, `perturbation_trace_early_20260723_095357`) — A.3 CLOSED
+
+The `early` calibration stage (fresh init + 200 warmup steps ≈ 1 epoch, then the standard 25-step trace) executed on the lab GPU machine for all four configs.
+
+**Mechanical verdict per the pre-stated tree: calibration FAILED.**
+mchirp never read DIRECTIONAL early — AMBIGUOUS in three models (net/sum 0.091, 0.128, 0.096) and OSCILLATORY in cnn_attention (net/sum 0.286, cos-sim +0.089).
+Per the fail branch, the displacement-geometry classifier (cos-sim/net-sum → DIRECTIONAL/AMBIGUOUS/OSCILLATORY) is **retired**; no verdict from that column, in either run, is usable.
+
+**What the same run validated.**
+While the classifier read the early mchirp head as ambiguous-to-noise-like, that head's paired probe MSE was collapsing: Δ = −0.158 (t = −5.2), −0.129 (t = −3.4), −0.113 (t = −4.1), −0.646 (t = −8.5).
+The classifier labeled the fastest-learning head in the table "noise-like" — the definitive demonstration that displacement geometry does not measure learning (per-step deltas decorrelate as different samples' errors are corrected; learning is not rigid drift).
+The paired probe-loss channel therefore has a **passed positive control** from this very run.
+
+**On the validated channel, every periodic head is null at both stages:**
+early |t| ≤ 1.56 (poc_a coa_phase, the largest), final |t| ≤ 1.72, signs mixed across models and heads.
+The early stage is a within-run, stage-matched, positive-controlled contrast: over the same 25 steps, the same instrument watches mchirp learn steeply while coa_phase/pol_angle sit at the random baseline.
+
+**Disposition, in the required order:** the pre-stated fail branch is honored (classifier retired, verdict columns void); the closure of A.3 is then re-founded — transparently post hoc — on the paired-statistic channel, which was added by the review (not pre-registered) but carries its own passed control from the same run.
+The tcn/coa_phase escalation branch is extinguished (paired t = −0.20 at the final stage); the radial explanation of the 89× asymmetry stands on arithmetic independent of the retired classifier.
+**A.3: CLOSED — radial movement without angular learning.**
+The post-hoc channel choice is recorded as a residual caveat in the chapter's threats-to-validity list.
+Nothing from the Run 7 verification battery remains open.
+Chapter updated (§6.6 two-stage table + adjudication, threats bullet, future work back to three items) in both formats.

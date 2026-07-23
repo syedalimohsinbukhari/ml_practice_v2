@@ -297,17 +297,22 @@ cleanly null.
   has never run. Blocked by design, not forgotten; whether it's still
   worth running via a standalone script (decoupled from the λ-retune gate)
   is an open question, not yet decided.
-  **Update (2026-07-23): decided; PROVISIONALLY closed.** Decoupled into
-  `perturbation_trace_standalone.py` and executed against all four Run 7
-  checkpoints — the asymmetry reads as coherent but dominantly *radial*
-  raw-output drift (movement without angular learning). Same-day review
-  downgraded the closure to provisional: the mchirp positive control
-  failed at the converged checkpoints (AMBIGUOUS in all four models), so
-  an `early`-stage calibration run (fresh init + ~1-epoch warmup, paired
-  statistics) must land before the verdicts are trusted; it also
-  re-adjudicates the nominal tcn/coa_phase escalation trigger (net/sum
-  0.925, Δcirc −0.010). See `diagnostic_log.md`'s A.3 closure section +
-  review addendum and `perturbation_trace_output/`.
+  **Update (2026-07-23): CLOSED**, after a three-round sequence worth
+  recording: (1) trace decoupled into `perturbation_trace_standalone.py`
+  and executed; (2) review caught a failed mchirp positive control at the
+  converged checkpoints and a wrong (marginal, not paired) noise
+  comparator; (3) the instrument gained per-sample paired statistics and
+  an `early` calibration stage (fresh init + ~1-epoch warmup) — which
+  FAILED its pre-stated criterion: the displacement-geometry classifier
+  labeled the fastest-learning head (early mchirp, paired t = −3.4 to
+  −8.5) "noise-like" and was retired. On the paired probe-loss channel,
+  which passed its control in that same run, every periodic head is null
+  at both training stages (early |t| ≤ 1.6, final |t| ≤ 1.7); the
+  tcn/coa_phase escalation trigger dissolves (paired t = −0.20). Verdict:
+  the 89× asymmetry is radial movement without angular learning. Nothing
+  from the Run 7 verification battery remains open. See
+  `diagnostic_log.md`'s calibration adjudication and
+  `perturbation_trace_output/`.
 - Whether the pre-registered 40-epoch/0.005-trend gate window is
   well-calibrated for the `plateau` LR schedule's ~15–20 epoch settling
   behavior — flagged during Run 9a as a real question, but explicitly

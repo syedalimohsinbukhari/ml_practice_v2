@@ -209,13 +209,14 @@ insufficient," not resolved by tuning.
 → [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)
 
 ### What's still open?
-One item: the perturbation-trace **calibration run**. The trace itself executed
-2026-07-23 ([`perturbation_trace_standalone.py`](perturbation_trace_standalone.py),
-reading: coherent but dominantly *radial* raw-output drift — movement without angular
-learning), but same-day review found its positive control failed (mchirp AMBIGUOUS at
-all four converged checkpoints), so **A.3 is provisionally closed**, pending the
-script's `early` stage (fresh init + ~1-epoch warmup, paired statistics) showing
-mchirp directional-early/ambiguous-late. That run also re-adjudicates the nominal
-tcn/coa_phase escalation trigger (net/sum 0.925, Δcirc −0.010).
+**Nothing from the Run 7 verification battery.** The last item (A.3, the 89× asymmetry)
+closed 2026-07-23 after a three-round sequence: trace executed → review caught a failed
+mchirp positive control → paired statistics + an `early` calibration stage added →
+calibration FAILED its pre-stated criterion (the displacement-geometry classifier labeled
+the fastest-learning head "noise-like" and was retired), while the paired probe-loss
+channel passed its control in the same run and reads every periodic head as null at both
+stages. Verdict: radial movement without angular learning; tcn/coa_phase escalation
+branch extinguished (paired t = −0.20). Remaining threads are scoped future work
+(architecture-level std_ratio fix, finer λ mini-sweep, ι-conditioning).
 → [`perturbation_trace_output/`](perturbation_trace_output/),
-[`diagnostic_log.md`](diagnostic_log.md) (A.3 closure section + review addendum, 2026-07-23)
+[`diagnostic_log.md`](diagnostic_log.md) (calibration adjudication, 2026-07-23)

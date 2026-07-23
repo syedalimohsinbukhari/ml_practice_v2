@@ -589,6 +589,42 @@ This is adequate for A.3's mechanistic role: the degeneracy verdict itself is ca
 \textbf{A.3 is closed}: the $89\times$ asymmetry was radial movement without angular learning.
 The disposition honors the pre-stated decision tree in order --- the calibration criterion failed, so the classifier it governed is retired --- and the closure is then re-founded, transparently post hoc, on the surviving channel, which carries its own passed control from the same run; that residual caveat is recorded in the threats-to-validity list rather than hidden.
 
+\subsection{Inclination stratification: does the degeneracy weaken edge-on?}
+\label{sec:phicpsi:inclination}
+
+The one population slice never separately reported in the original verification battery is inclination itself.
+The analytic study of \S\ref{sec:phicpsi:prereq} predicts the $\varphi_c/\psi$ degeneracy is exact face-on and only partially breakable edge-on, so a recoverable signal, if present, should concentrate there.
+\texttt{inclination\_stratification.py} was run against the four $\lambda$-matched Run~7 checkpoints, splitting the 5{,}000-sample validation set into the same face-on ($|\cos\iota| > 0.9$, $n=1{,}442$), mixed ($0.5 \le |\cos\iota| \le 0.9$, $n=1{,}918$), and edge-on ($|\cos\iota| < 0.5$, $n=1{,}640$) bands used throughout \S\ref{sec:phicpsi:prereq}.
+
+\begin{table}[tbp]
+    \centering
+    \caption{Inclination-stratified ang\_MAE, edge-on band vs null (rad).}
+    \label{tab:phicpsi:inclination}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Model & $\varphi_c$ edge-on $\Delta$ vs null & $\psi$ edge-on $\Delta$ vs null & Same-model $\iota$-band noise floor ($\max|\Delta|$) \\
+        \midrule
+        poc\_a         & $+0.0241$ & $-0.0227$ & 0.0569 \\
+        poc\_b         & $+0.0096$ & $+0.0054$ & 0.0215 \\
+        tcn            & $-0.0407$ & $-0.0083$ & 0.0225 \\
+        cnn\_attention & $-0.0087$ & $-0.0189$ & 0.0944 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+No model shows a cross-consistent, edge-on-favoring recovery of either angle.
+Of the eight $\varphi_c/\psi$ deviations, the largest in the \emph{hoped-for} direction is poc\_a/$\varphi_c$ ($+0.0241$\,rad, and the only one of the eight monotonic across all three bands: $1.6042 \to 1.5623 \to 1.5467$); the largest in the \emph{anti} direction is tcn/$\varphi_c$ ($-0.0407$\,rad).
+
+Neither is evidence of recovered signal, for the same reason \S\ref{sec:phicpsi:snr} already established for the SNR axis, extended here with a model-matched calibration.
+Because inclination is itself a labeled quantity, each model's already-diagnosed, uninformative $\iota$ head (\S\ref{sec:phicpsi:pathology2}) provides a same-model, same-binning noise floor for exactly this stratification: $\iota$ carries no information about $\varphi_c/\psi$ by construction, so its own band-to-band swings measure how much a completely uninformative head fluctuates from finite-band sampling alone at these $N$.
+That floor is $0.0569$\,rad for poc\_a, $0.0215$ for poc\_b, $0.0225$ for tcn, and $0.0944$ for cnn\_attention (the last consistent with its already-diagnosed high-variance attention-pooling readout, \S\ref{sec:phicpsi:confounds}) --- and every $\varphi_c/\psi$ deviation above falls at or below its own model's floor, with one exception.
+tcn/$\varphi_c$'s $-0.0407$\,rad edge-on deviation exceeds tcn's own $0.0225$-rad floor, but in the \emph{worse-than-null} direction and on the one head this chapter already flags as never achieving certified metric health (std\_ratio never converged, \S\ref{sec:phicpsi:confounds}, \S\ref{sec:phicpsi:prereg}): an unstable head producing an oversized swing, in the direction a real signal could not produce, is consistent with its documented instability, not a new finding.
+
+This closes the gap the adversarial reviews correctly identified.
+The axis along which the analytic study predicts the degeneracy should weaken was tested directly, and no model recovers a signal there that exceeds its own uninformative control's sampling noise.
+The null of \S\ref{sec:phicpsi:results} is not confined to the face-on-dominated aggregate; it holds, band by band, across the one population split most likely to break it.
+
 
 \section{The Pre-Registered $\lambda$ Retune}
 \label{sec:phicpsi:prereg}
@@ -685,7 +721,8 @@ The degeneracy hypothesis --- $\varphi_c$ and $\psi$ carry no strain-only recove
 \item 0 of 8 $\varphi_c/\psi$ bootstrap tests significant (11 of 12 overall), with the single scalar-head detection explained as a population bias;
 \item no SNR-dependent improvement anywhere --- the direction any real strain-derived effect must point;
 \item the combination-space model, purpose-built to exploit the analytically confirmed conditioning structure of \S\ref{sec:phicpsi:prereq}, collapsing \emph{into} the constant predictor exactly as it should if the residual per-sample information is nil;
-\item positive controls learned to high fidelity from the same features throughout.
+\item positive controls learned to high fidelity from the same features throughout;
+\item no model recovers an edge-on signal exceeding its own uninformative $\iota$-control's sampling noise (\S\ref{sec:phicpsi:inclination}) --- the one population axis along which the analytic study predicts the degeneracy should weaken shows no cross-model, edge-on-favoring trend either.
 \end{enumerate}
 
 Two points sharpen what is and is not being claimed.
@@ -758,9 +795,8 @@ The payoff was concrete: a near-miss that endpoint-eyeballing would have waved t
 \subsection{Future work}
 \label{sec:phicpsi:future}
 
-One immediate empirical check and three successors are scoped, in priority order.
-An \textbf{inclination-stratified breakdown of the existing Run~7 checkpoints} (\texttt{inclination\_stratification.py}, prepared alongside this revision, mirroring the SNR-tercile analysis of \S\ref{sec:phicpsi:snr} but binning on $|\cos\iota|$ against the face-on / mixed / edge-on bands of \S\ref{sec:phicpsi:prereq}) directly tests the one population slice never separately reported: if edge-on systems --- where the analytic degeneracy is weakest --- already show measurably lower ang\_MAE than face-on systems in the existing data, that sharpens the null's boundary without requiring new training; if flat, it corroborates the null's uniformity across the one axis not yet checked.
-The script requires only a CPU-light inference pass over the four $\lambda$-matched checkpoints and no retraining; it is prepared but not yet executed, and its output belongs in a revision of \S\ref{sec:phicpsi:results} once run.
+Three successors are scoped, in priority order.
+(The inclination-stratified breakdown originally listed here as an immediate check has since run; its results are in \S\ref{sec:phicpsi:inclination} and no longer future work.)
 (i)~\textbf{Inclination conditioning}: supply true $(\sin\iota, \cos\iota)$ as an auxiliary input --- the analytic structure of \S\ref{sec:phicpsi:prereq} says the well-constrained combination is knowable \emph{given} $\iota$, so this tests whether the degeneracy is breakable with side information; a full implementation plan exists (train-time truth, with inference-time $\iota$ estimation explicitly out of scope).
 (ii)~An \textbf{architecture-level attack on the std\_ratio instability} for the two uninterpretable pairs (the pre-registered $\lambda$-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered $\lambda$ mini-sweep over $[0.02, 0.08]$, motivated by the peaked $\lambda$-response observed in \S\ref{sec:phicpsi:prereg}.
 (iii)~A \textbf{posterior-estimation reformulation}: the natural follow-on from ``point estimation is hopeless'' is not resignation but a conditional-density head (e.g.\ a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.

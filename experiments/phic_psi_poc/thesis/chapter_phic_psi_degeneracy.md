@@ -391,6 +391,33 @@ This is adequate for A.3's mechanistic role: the degeneracy verdict itself is ca
 **A.3 is closed**: the 89× asymmetry was radial movement without angular learning.
 The disposition honors the pre-stated decision tree in order — the calibration criterion failed, so the classifier it governed is retired — and the closure is then re-founded, transparently post hoc, on the surviving channel, which carries its own passed control from the same run; that residual caveat is recorded in § 8.3 rather than hidden.
 
+### 6.7 Inclination stratification: does the degeneracy weaken edge-on?
+
+The one population slice never separately reported in the original verification battery is inclination itself.
+The analytic study of § 3 predicts the φ_c/ψ degeneracy is exact face-on and only partially breakable edge-on, so a recoverable signal, if present, should concentrate there.
+`inclination_stratification.py` was run against the four λ-matched Run 7 checkpoints, splitting the 5,000-sample validation set into the same face-on (|cos ι| > 0.9, n = 1,442), mixed (0.5 ≤ |cos ι| ≤ 0.9, n = 1,918), and edge-on (|cos ι| < 0.5, n = 1,640) bands used throughout § 3.
+
+**Table 6.6 — Inclination-stratified ang_MAE, edge-on band vs null (rad).** Source: `inclination_output/inclination_stratification_20260723_130630.md`.
+
+| Model | φ_c edge-on Δ vs null | ψ edge-on Δ vs null | Same-model ι-band noise floor (max \|Δ\|) |
+|---|---|---|---|
+| poc_a | +0.0241 | −0.0227 | 0.0569 |
+| poc_b | +0.0096 | +0.0054 | 0.0215 |
+| tcn | −0.0407 | −0.0083 | 0.0225 |
+| cnn_attention | −0.0087 | −0.0189 | 0.0944 |
+
+No model shows a cross-consistent, edge-on-favoring recovery of either angle.
+Of the eight φ_c/ψ deviations, the largest in the *hoped-for* direction is poc_a/φ_c (+0.0241 rad, and the only one of the eight monotonic across all three bands: 1.6042 → 1.5623 → 1.5467); the largest in the *anti* direction is tcn/φ_c (−0.0407 rad).
+
+Neither is evidence of recovered signal, for the same reason § 6.4 already established for the SNR axis, extended here with a model-matched calibration.
+Because inclination is itself a labeled quantity, each model's already-diagnosed, uninformative ι head (§ 5.4) provides a same-model, same-binning noise floor for exactly this stratification: ι carries no information about φ_c/ψ by construction, so its own band-to-band swings measure how much a completely uninformative head fluctuates from finite-band sampling alone at these N.
+That floor is 0.0569 rad for poc_a, 0.0215 for poc_b, 0.0225 for tcn, and 0.0944 for cnn_attention (the last consistent with its already-diagnosed high-variance attention-pooling readout, § 6.2) — and every φ_c/ψ deviation above falls at or below its own model's floor, with one exception.
+tcn/φ_c's −0.0407 rad edge-on deviation exceeds tcn's own 0.0225-rad floor, but in the *worse-than-null* direction and on the one head this chapter already flags as never achieving certified metric health (std_ratio never converged, § 6.2, § 7): an unstable head producing an oversized swing, in the direction a real signal could not produce, is consistent with its documented instability, not a new finding.
+
+This closes the gap the adversarial reviews correctly identified.
+The axis along which the analytic study predicts the degeneracy should weaken was tested directly, and no model recovers a signal there that exceeds its own uninformative control's sampling noise.
+The null of § 6 is not confined to the face-on-dominated aggregate; it holds, band by band, across the one population split most likely to break it.
+
 ## 7. The Pre-Registered λ Retune
 
 ### 7.1 Why pre-register an engineering sweep
@@ -449,7 +476,8 @@ The degeneracy hypothesis — φ_c and ψ carry no strain-only recoverable signa
 2. 0 of 8 φ_c/ψ bootstrap tests significant (11 of 12 overall), with the single scalar-head detection explained as a population bias;
 3. no SNR-dependent improvement anywhere — the direction any real strain-derived effect must point;
 4. the combination-space model, purpose-built to exploit the analytically confirmed conditioning structure of § 3, collapsing *into* the constant predictor exactly as it should if the residual per-sample information is nil;
-5. positive controls learned to high fidelity from the same features throughout.
+5. positive controls learned to high fidelity from the same features throughout;
+6. no model recovers an edge-on signal exceeding its own uninformative ι-control's sampling noise (§ 6.7) — the one population axis along which the analytic study predicts the degeneracy should weaken shows no cross-model, edge-on-favoring trend either.
 
 Two points sharpen what is and is not being claimed.
 First, the claim is *conditional*: it applies to point-estimating regression on this SNR-7–15, two-detector, dominant-mode population, under circular loss — not to Bayesian posterior recovery (a sampler still recovers a meaningful *joint* posterior over (φ_c, ψ)), not to louder signals, not to alternative data representations (e.g. frequency-domain or time–frequency inputs), and not to configurations with inclination supplied as side information (§ 8.5).
@@ -507,9 +535,8 @@ The payoff was concrete: a near-miss that endpoint-eyeballing would have waved t
 
 ### 8.5 Future work
 
-One immediate empirical check and three successors are scoped, in priority order.
-An **inclination-stratified breakdown of the existing Run 7 checkpoints** (`inclination_stratification.py`, prepared alongside this revision, mirroring the SNR-tercile analysis of § 6.4 but binning on |cos ι| against the face-on / mixed / edge-on bands of § 3) directly tests the one population slice never separately reported: if edge-on systems — where the analytic degeneracy is weakest — already show measurably lower ang_MAE than face-on systems in the existing data, that sharpens the null's boundary without requiring new training; if flat, it corroborates the null's uniformity across the one axis not yet checked.
-The script requires only a CPU-light inference pass over the four λ-matched checkpoints and no retraining; it is prepared but not yet executed, and its output belongs in a revision of § 6 once run.
+Three successors are scoped, in priority order.
+(The inclination-stratified breakdown originally listed here as an immediate check has since run; its results are in § 6.7 and no longer future work.)
 (i) **Inclination conditioning**: supply true (sin ι, cos ι) as an auxiliary input — the analytic structure of § 3 says the well-constrained combination is knowable *given* ι, so this tests whether the degeneracy is breakable with side information; a full implementation plan exists (train-time truth, with inference-time ι estimation explicitly out of scope).
 (ii) An **architecture-level attack on the std_ratio instability** for the two uninterpretable pairs (the pre-registered λ-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered λ mini-sweep over [0.02, 0.08], motivated by the peaked λ-response observed in § 7.3.
 (iii) A **posterior-estimation reformulation**: the natural follow-on from "point estimation is hopeless" is not resignation but a conditional-density head (e.g. a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.
@@ -545,6 +572,7 @@ All paths relative to `experiments/phic_psi_poc/`.
 | SNR stratification (§6.4) | `snr_output/snr_stratification_20260721_094039.md` |
 | Run 8 ablation (Table 6.4, Fig. 6.2) | `lam0_ablation_output/`, `assessment_lam0_ablation_2026-07-22.md` |
 | Perturbation trace (Table 6.5, § 6.6) | `perturbation_trace_standalone.py`, `perturbation_trace_output/` |
+| Inclination stratification (Table 6.6, § 6.7) | `inclination_stratification.py`, `inclination_output/inclination_stratification_20260723_130630.{log,md}` |
 | Pre-registration (§7.1) | `preregistration_lam_retune.md` |
 | Runs 9a/9b (Table 7.1, Figs. 7.1–7.2) | `lam005_retune_output/`, `lam010_retune_output/` |
 | Verification plan / superseded rebuttal | `run7_verification_plan.md`, `run7_verification_rebuttal.md` |

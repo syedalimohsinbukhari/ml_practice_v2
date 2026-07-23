@@ -132,6 +132,7 @@ def one_train_step(trainer, strain_batch, targets):
     grads = tape.gradient(loss, trainer.trainable_weights)
     gv = [(g, v) for g, v in zip(grads, trainer.trainable_weights) if g is not None]
     trainer.optimizer.apply_gradients(gv)
+    return float(loss)
 
 
 def trace_model(trainer, strain_batch, targets, probe_strain, probe_targets):
@@ -142,8 +143,12 @@ def trace_model(trainer, strain_batch, targets, probe_strain, probe_targets):
     pred_prev = predict_heads(trainer, probe_strain, TRACK)
     pred_start = dict(pred_prev)
 
+    # Batch total loss per step: if it falls while the probe loss rises, that
+    # is the direct signature of single-batch overfitting (the mechanism
+    # behind the significantly positive final-stage mchirp probe deltas).
+    batch_losses = []
     for _ in range(N_STEPS):
-        one_train_step(trainer, strain_batch, targets)
+        batch_losses.append(one_train_step(trainer, strain_batch, targets))
         pred_now = predict_heads(trainer, probe_strain, TRACK)
         for h in TRACK:
             delta = (pred_now[h] - pred_prev[h]).ravel()
@@ -165,6 +170,9 @@ def trace_model(trainer, strain_batch, targets, probe_strain, probe_targets):
     after = mse_per_sample(pred_prev["mchirp"], probe_targets["mchirp"])
     probe["mchirp"] = paired_stats(before, after)
     probe["mchirp"]["metric"] = "mse"
+
+    print(f"    batch total loss: {batch_losses[0]:.4f} → {batch_losses[-1]:.4f} "
+          f"(Δ = {batch_losses[-1] - batch_losses[0]:+.4f} over {N_STEPS} steps)")
 
     results = {}
     for h in TRACK:

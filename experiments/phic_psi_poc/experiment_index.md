@@ -1,7 +1,7 @@
 # φc/ψ Degeneracy PoC — Experiment Index
 
 **Branch**: `poc/phic-psi-degeneracy`
-**Last updated**: 2026-07-22
+**Last updated**: 2026-07-23
 
 ---
 
@@ -56,6 +56,19 @@ the λ sweep); [`diagnostic_lam005_retune.py`](diagnostic_lam005_retune.py),
 
 Full narrative and verdict language: `NOTES.md` / `diagnostic_log.md`, Run 9a/9b sections;
 compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) §3.
+
+---
+
+## Closing phase — A.3 trace, review cycle, thesis chapter (2026-07-23)
+
+| Item | File | Description |
+|------|------|-------------|
+| Punch list | [`phic_psi_closing_punch_list.md`](phic_psi_closing_punch_list.md) | Reviewer-supplied closing checklist separating pre-finalization items from future work; all items dispositioned (see `diagnostic_log.md` same-date sections) |
+| Trace script | [`perturbation_trace_standalone.py`](perturbation_trace_standalone.py) | Un-gated A.3 trace; `final` and `early` (calibration) stages, per-sample paired statistics, per-step batch-loss logging |
+| Trace outputs | [`perturbation_trace_output/`](perturbation_trace_output/) | Auto-generated reports/logs: first run (091229), final-stage rerun with paired stats (095054), early-stage calibration (095357). **Reading note:** the `Verdict` column is the retired geometry classifier — read the numeric columns |
+| Reviewer memo | [`reviewer_response_a3_2026-07-23.md`](reviewer_response_a3_2026-07-23.md) | Point-by-point response to the A.3 review (per-case statistics, calibration outcome, classifier retirement, mchirp-degradation explanation, MDE note) |
+| Thesis chapter | [`thesis/chapter_phic_psi_degeneracy.md`](thesis/chapter_phic_psi_degeneracy.md), [`thesis/chapter_phic_psi_degeneracy.tex`](thesis/chapter_phic_psi_degeneracy.tex) | The chapter, one document in two formats (edit both in the same session); claim-to-artifact map in its appendix |
+| Prose tooling | [`thesis/sentence_per_line.py`](thesis/sentence_per_line.py) | One-sentence-per-line reflow tool for prose files (see root `CLAUDE.md` conventions) |
 
 ---
 

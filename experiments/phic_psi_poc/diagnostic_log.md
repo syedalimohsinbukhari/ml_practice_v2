@@ -1504,3 +1504,10 @@ The tcn/coa_phase escalation branch is extinguished (paired t = −0.20 at the f
 The post-hoc channel choice is recorded as a residual caveat in the chapter's threats-to-validity list.
 Nothing from the Run 7 verification battery remains open.
 Chapter updated (§6.6 two-stage table + adjudication, threats bullet, future work back to three items) in both formats.
+
+##### Follow-up review note (2026-07-23): final-stage mchirp degradation explained; MDE stated
+
+Two additions per follow-up review, folded into chapter §6.6:
+(1) the significantly positive final-stage mchirp probe deltas (+0.017 to +0.065, t = +4.2 to +9.0) are single-batch resumption overfitting — confirmed by the stage-dependent sign flip on the identical probe pipeline, probe/batch disjointness by construction, and the effect's confinement to the one head with a converged real mapping; claimed as an unplanned second positive control for the final stage.
+(2) per-combo minimum detectable effect (≈ 2× paired SE) spans ≈ 0.005–0.10 loss units — the final-stage per-combo null is bounded at the few-percent level, not excluded to arbitrary precision; adequate for A.3's mechanistic role, with the degeneracy verdict carried by the bootstrap and SNR stratification.
+`perturbation_trace_standalone.py` now also logs batch total loss per step (the direct batch-overfitting signature) for any future rerun.

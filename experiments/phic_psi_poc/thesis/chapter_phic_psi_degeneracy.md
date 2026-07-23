@@ -271,7 +271,7 @@ Table 6.2 summarizes.
 |---|---|---|---|
 | A.1 | Penalty silently inactive | config + code-path inspection | λ = 0.01 confirmed active in all four configs |
 | A.2 | Raw-magnitude drift invalidates metrics | full 80-epoch std_ratio trajectories | 2/4 models fully healthy (poc_b, cnn_attention); tcn φ_c still declining (0.34, −0.0078/epoch), poc_a ψ stable-but-low (0.44) → flagged, pursued in §7 |
-| A.3 | Gradient path dead | perturbation + gradient-chain trace | path healthy; an 89× prediction-sensitivity asymmetry vs a scalar head flagged as unresolved (§8.3) |
+| A.3 | Gradient path dead | perturbation + gradient-chain trace | path healthy; an 89× prediction-sensitivity asymmetry initially flagged, provisionally closed by the standalone multi-step trace pending instrument calibration (§ 6.6) |
 | B | poc_b config bug | config diff vs poc_a | four intentional keys only; worse collapse *explained* by curriculum (below) |
 | C | cnn_attention hides real learning | config diff + architecture trace | outlier metrics are attention-pooling variance artifacts; ang_MAE at null |
 | D | Sub-null MAE is real signal | 10,000-permutation bootstrap | 11/12 model×head tests non-significant; φ_c and ψ: 0/8 |
@@ -330,6 +330,36 @@ The fourth (tcn ψ) persists at +0.0072 on a loss of ~1.0 and is recorded as une
 The ablation also confirmed it was genuinely an off-state — without the penalty, std_ratio diverged to 73–83 — and final MAEs at λ = 0 landed on the same nulls as every other run (φ_c ≈ 1.579; ψ ≈ 0.780–0.785).
 
 > **Figure 6.2.** (`../lam0_ablation_output/lam0_ablation_trajectories.png`) λ = 0 ablation for poc_a and tcn: validation/training circular loss and validation std_ratio for φ_c (top) and ψ (bottom); λ = 0 (solid) vs the λ = 0.01 references (dashed). Removing the penalty eliminates the upward validation-loss drift (e.g. +0.0010 vs +0.0249 for poc_a φ_c) but lets ‖v‖ diverge (std_ratio > 140 at peak). Circular loss remains at ≈ 1.0 in every configuration.
+
+### 6.6 Closing the last open probe: the 89× sensitivity asymmetry
+
+Verification item A.3 left one mechanistic loose end: after a single optimizer step, the periodic heads' predictions moved with relative change ~1.6 × 10⁻², some 89× more than the converged chirp-mass head's 1.8 × 10⁻⁴ — movement a one-step snapshot cannot classify as slow learning or noise.
+The multi-step trace built to resolve this was gated behind the pre-registered stability gate and therefore never ran during the retune; after the retune closed, it was decoupled into a standalone script and executed against the Run 7 checkpoints (25 consecutive gradient steps on a fixed 128-sample batch, with predictions tracked on a disjoint 512-sample probe).
+
+**Table 6.5 — Standalone multi-step perturbation trace.** net/sum is the ratio of net displacement to summed per-step displacements (random-walk reference 1/√25 = 0.20; directional drift → 1). Δ circ. loss is the probe circular-loss change over the 25 steps. Source: `perturbation_trace_output/`.
+
+| Model | φ_c: cos-sim / net-sum / Δloss | ψ: cos-sim / net-sum / Δloss | mchirp: cos-sim / net-sum |
+|---|---|---|---|
+| poc_a | +0.93 / 0.29 / −0.017 | +0.96 / 0.59 / +0.048 | +0.60 / 0.04 |
+| poc_b | +0.96 / 0.39 / −0.013 | +0.80 / 0.23 / +0.004 | +0.54 / 0.04 |
+| tcn | +0.94 / 0.93 / −0.010 | +0.87 / 0.39 / +0.051 | +0.59 / 0.03 |
+| cnn_attention | +0.66 / 0.40 / −0.046 | +0.64 / 0.32 / +0.029 | +0.51 / 0.16 |
+
+Two observations stand on arithmetic alone.
+First, the asymmetry is real and now explained: the periodic heads' raw outputs move coherently and far (net/sum up to 0.93 against the 0.20 random-walk reference), while the converged scalar control barely moves net (net/sum 0.03–0.16; its positive cosine similarity is attributable to Adam momentum, which correlates consecutive steps for every head).
+Second, the coherent movement is dominantly *radial*, not angular: the circular loss depends only on the predicted angle, and its change over 25 steps is bounded by |Δ| ≤ 0.051 on a loss of ≈ 1.0 while the raw displacement is a large fraction of the output norm — large coherent raw movement with near-zero angular consequence is precisely the ‖**v**‖-magnitude dynamics of § 5.4, and the two most directional cases (tcn/φ_c, poc_a/ψ) are exactly the two heads with the known std_ratio pathologies.
+
+The closure is nonetheless **provisional**, for two reasons surfaced in internal review — and stated here rather than smoothed over, in keeping with the discipline of § 8.4.
+First, *the positive control failed*: mchirp, the best-learned head in the investigation (R² ≈ 0.96 throughout), read AMBIGUOUS in all four models, its net/sum (0.03–0.16) sitting at the random-walk reference.
+An instrument that cannot distinguish a demonstrably well-learned head from a dead one at these checkpoints cannot certify the periodic heads' verdicts either.
+The plausible explanation is a convergence effect — an epoch-79 head sits at its optimum and takes small, locally noisy correction steps that mimic "never learned" on a 25-step probe — and it is testable: rerun the trace near the start of training, where a genuinely learning mchirp must read directional.
+Because per-epoch checkpoints were not saved, the calibration uses a fresh initialization plus a ~one-epoch warmup rather than a loaded early checkpoint.
+Second, *per-case discipline on the two directional periodic cases*: poc_a/ψ fails the pre-stated two-part escalation rule outright — its probe loss *increased* (+0.048) — but tcn/φ_c nominally triggers it (probe loss −0.010 with net/sum 0.93, the closest number to the theoretical ceiling in the whole table).
+The strongest per-case dismissal is arithmetic: 25 steps is ~0.13 epochs of gradient, so a real angular improvement at this rate would imply epoch-scale loss movement two orders of magnitude larger than the same head's flat 80-epoch history shows.
+But the accompanying "inside sampling noise" claim compared against the probe's *marginal* standard error (~0.03), where the correct comparator for a before/after change on the same fixed samples is the *paired* standard error — not recoverable from the recorded output, and added to the instrument for the calibration rerun.
+
+A.3 therefore stands as *provisionally closed*: movement-without-angular-learning is the best-supported reading, pending an early-training calibration run that must show mchirp directional-early/ambiguous-late for the final-stage verdicts to be trusted at face value.
+Should tcn/φ_c's directionality survive that calibration as a paired-significant angular effect, it would be the most interesting number in the entire investigation and would be escalated per the pre-stated rule, not filed.
 
 ## 7. The Pre-Registered λ Retune
 
@@ -420,7 +450,7 @@ A single modern-family spot-check (e.g. a state-space sequence model at λ = 0.0
 We record the limitations explicitly, in roughly descending order of concern.
 
 - **Two configurations remain uninterpretable.** tcn/φ_c and poc_a/ψ never achieved certified metric health at any λ; the clean degeneracy test rests on poc_b and cnn_attention (plus the ablation and pre/post-fix consistency of every other configuration). The null is multiply corroborated, but its *certified* base is narrower than its table count.
-- **An unexplained 89× sensitivity asymmetry.** A single-step perturbation probe found φ_c predictions ~89× more sensitive (relative change 1.6 × 10⁻² vs 1.8 × 10⁻⁴) than a scalar head's. The multi-step trace designed to resolve this was gated, by pre-registration, behind a stability gate that never passed, and has therefore never run. It is a flagged unknown; a one-step snapshot cannot distinguish learning from oscillation around a constant.
+- **The perturbation-trace instrument is uncalibrated at converged checkpoints.** Its positive control (mchirp) read AMBIGUOUS on all four epoch-79 checkpoints (§ 6.6), so the trace's periodic-head verdicts — including the nominal tcn/φ_c escalation trigger — are provisional until the early-training calibration run lands. If calibration fails (mchirp ambiguous even early), the trace methodology is unsound and A.3 reverts to open; if it passes but tcn/φ_c's directionality persists as a paired-significant angular effect, that case escalates.
 - **Residual anomalies.** tcn/ψ's +0.0072 validation-loss drift at λ = 0 remains unexplained (small, on a loss of ~1.0); the inclination head's failure mechanism (Huber path, no normalization) is documented as distinct but is itself unresolved; and a sky-position degradation specific to the `SumDiffTrainer` runs (8.2°–10.0° vs 3.3°–4.5° for the plain baselines) was flagged in the record but never investigated — a known open issue, out of scope for this chapter.
 - **Design constraints.** Single seed (42) per configuration — replication is across architectures and λ values, not across seeds; the five-trunk comparison is not λ-matched (three trunks trained at λ = 0), though the four models carrying the verified null are matched; the curriculum used the analytic sin²ι weight, not the Jacobian-fitted variant it was validated against; fixed 80-epoch budget with no early stopping; a single simulated dataset with a single noise realization per event.
 - **Metric-versioning note.** Two evaluation passes over the Run 7 checkpoints differ by up to 0.026 rad in periodic ang_MAE (both straddling the null; no verdict affected). Tables 6.1 and 6.3 use the self-consistent bootstrap/stratification set.
@@ -445,10 +475,10 @@ The payoff was concrete: a near-miss that endpoint-eyeballing would have waved t
 ### 8.5 Future work
 
 Four successors are scoped, in priority order.
+(0) The **perturbation-trace calibration run** (§ 6.6): the `early` stage of `perturbation_trace_standalone.py` (fresh init + ~one-epoch warmup, per-sample paired statistics), which either validates the provisional A.3 closure, invalidates the instrument, or escalates tcn/φ_c — cheap, and first in line because § 6.6's status depends on it.
 (i) **Inclination conditioning**: supply true (sin ι, cos ι) as an auxiliary input — the analytic structure of § 3 says the well-constrained combination is knowable *given* ι, so this tests whether the degeneracy is breakable with side information; a full implementation plan exists (train-time truth, with inference-time ι estimation explicitly out of scope).
-(ii) A **standalone multi-step perturbation trace** to retire the 89× asymmetry independently of the retired λ-gate; a decoupled script (`perturbation_trace_standalone.py`, targeting the Run 7 checkpoints) has been prepared and awaits execution.
-(iii) An **architecture-level attack on the std_ratio instability** for the two uninterpretable pairs (the pre-registered λ-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered λ mini-sweep over [0.02, 0.08], motivated by the peaked λ-response observed in § 7.3.
-(iv) A **posterior-estimation reformulation**: the natural follow-on from "point estimation is hopeless" is not resignation but a conditional-density head (e.g. a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.
+(ii) An **architecture-level attack on the std_ratio instability** for the two uninterpretable pairs (the pre-registered λ-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered λ mini-sweep over [0.02, 0.08], motivated by the peaked λ-response observed in § 7.3.
+(iii) A **posterior-estimation reformulation**: the natural follow-on from "point estimation is hopeless" is not resignation but a conditional-density head (e.g. a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.
 
 ## 9. Conclusion
 
@@ -479,6 +509,7 @@ All paths relative to `experiments/phic_psi_poc/`.
 | Bootstrap (Table 6.3) | `bootstrap_output/bootstrap_ang_mae_20260721_093533.md` |
 | SNR stratification (§6.4) | `snr_output/snr_stratification_20260721_094039.md` |
 | Run 8 ablation (Table 6.4, Fig. 6.2) | `lam0_ablation_output/`, `assessment_lam0_ablation_2026-07-22.md` |
+| Perturbation trace (Table 6.5, § 6.6) | `perturbation_trace_standalone.py`, `perturbation_trace_output/` |
 | Pre-registration (§7.1) | `preregistration_lam_retune.md` |
 | Runs 9a/9b (Table 7.1, Figs. 7.1–7.2) | `lam005_retune_output/`, `lam010_retune_output/` |
 | Verification plan / superseded rebuttal | `run7_verification_plan.md`, `run7_verification_rebuttal.md` |

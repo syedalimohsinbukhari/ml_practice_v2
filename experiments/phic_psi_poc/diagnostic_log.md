@@ -1393,10 +1393,18 @@ not a plateau-window artifact at all.
       **λ alone insufficient**; branch closed.
 - [x] λ sweep exhausted for both primary targets (0, 0.01, 0.05, 0.10) — next
       lever, if pursued, is architecture-level, not a further λ value.
-- [ ] Standalone perturbation trace (A.3, un-gated) — **script created
-      2026-07-23** (`perturbation_trace_standalone.py`, targets Run 7 λ=0.01
-      checkpoints, 25 steps + net-vs-sum random-walk diagnostic); pending
-      execution on the lab GPU machine
+- [x] Standalone perturbation trace (A.3, un-gated) — **executed 2026-07-23**
+      (`perturbation_trace_standalone.py` on the lab GPU machine, Run 7
+      λ=0.01 checkpoints; output `perturbation_trace_output/
+      perturbation_trace_20260723_091229.{md,log}`). **A.3 PROVISIONALLY
+      closed — movement without angular learning**, downgraded from CLOSED
+      by same-day review (failed mchirp positive control); see the closure
+      section and its review addendum below.
+- [ ] Perturbation-trace calibration run (`early` stage: fresh init +
+      ~1-epoch warmup, per-sample paired stats) — script updated 2026-07-23;
+      pending lab-machine execution. Must show mchirp DIRECTIONAL-early /
+      AMBIGUOUS-late to validate the A.3 verdicts; also re-adjudicates the
+      nominal tcn/coa_phase escalation trigger with paired statistics.
 - [ ] After above items resolved: **proceed to ι-conditioning experiments** —
       not yet started
 
@@ -1412,3 +1420,48 @@ Dispositions:
 - **Known-but-unresolved items stated as such** (in the record and in the chapter's threats-to-validity list): inclination's separate Huber-path failure mechanism (traced, ruled out as a φc/ψ confound, not itself resolved); the `SumDiffTrainer`-specific sky_position degradation (flagged, never investigated, out of scope); the 40-epoch/±0.005 gate window vs the plateau-schedule settling time (raised at Run 9a, correctly not retroactively changed, open for future gates).
 - **Deferred to future work by name:** the finer λ mini-sweep; the architecture-level std_ratio fix for tcn/coa_phase and poc_a/pol_angle; ι-conditioning as the start of a new investigation rather than a tail of this one.
 - **Thesis chapter** drafted from this record at `thesis/chapter_phic_psi_degeneracy.{md,tex}` (2026-07-22, punch-list amendments 2026-07-23); scope-of-conclusion paragraph verified present (§8.1 conditional-claim list, conclusion scoped to the model class tested).
+
+### Standalone perturbation trace executed — A.3 closed (2026-07-23)
+
+`perturbation_trace_standalone.py` ran on the lab GPU machine against all four Run 7 λ=0.01 checkpoints (run dirs confirmed: 20260720_210936 / _213202 / _215403 / _221625).
+Design: 25 consecutive gradient steps on one fixed 128-sample batch, predictions tracked on a disjoint 512-sample probe; per head, mean consecutive-step cosine similarity, net-vs-sum displacement ratio (random-walk reference 1/√25 = 0.20), and probe circular loss before/after.
+Output: `perturbation_trace_output/perturbation_trace_20260723_091229.{md,log}`.
+
+Result summary (cos-sim / net-sum / probe Δ circ loss):
+
+| Model | coa_phase | polarization_angle | mchirp (control) |
+|---|---|---|---|
+| poc_a | +0.93 / 0.29 / −0.017 | +0.96 / 0.59 / +0.048 | +0.60 / 0.04 / — |
+| poc_b | +0.96 / 0.39 / −0.013 | +0.80 / 0.23 / +0.004 | +0.54 / 0.04 / — |
+| tcn | +0.94 / 0.93 / −0.010 | +0.87 / 0.39 / +0.051 | +0.59 / 0.03 / — |
+| cnn_attention | +0.66 / 0.40 / −0.046 | +0.64 / 0.32 / +0.029 | +0.51 / 0.16 / — |
+
+Reading:
+
+1. The Run 7 A.3 asymmetry (periodic-head rel_change 89× the scalar control's) is real and explained — periodic raw outputs move coherently and far while the converged mchirp control barely moves net (its positive cos-sim is Adam momentum, which correlates consecutive steps for every head).
+2. The coherent movement is dominantly radial, not angular: circular loss depends only on the predicted angle, and |Δloss| ≤ 0.051 over 25 steps while raw displacement is a large fraction of the output norm; the two most directional cases (tcn/coa_phase net/sum 0.93, poc_a/pol_angle 0.59) are exactly the two heads with the known std_ratio pathologies — this is the documented |v|-magnitude dynamics, not phase decoding.
+3. No learning signature in the angular residue: coa_phase probe loss down slightly in all four models (−0.010 to −0.046), pol_angle UP in all four (+0.004 to +0.051); all an order of magnitude below the 0.10 rad-equivalent effect floor and within the ~0.03 sampling scale of a 512-sample probe, straddling the random baseline 1.0.
+
+One nominal trigger of the report's own escalation rule (tcn/coa_phase: DIRECTIONAL + Δloss −0.010) is evaluated and dismissed with stated reasons, not silently: sub-noise magnitude, the one head with non-converged std_ratio (radial drift), and arithmetic incompatibility with its flat 80-epoch validation history (a real per-step improvement of this size would have moved the epoch-scale loss by orders of magnitude more than observed).
+
+**Disposition: A.3 CLOSED, consistent with the null.** The last open item from the Run 7 verification battery is resolved; nothing from the battery remains open.
+Thesis chapter updated (§6.6 + threats list + future work) in `thesis/chapter_phic_psi_degeneracy.{md,tex}`.
+
+#### Review addendum (2026-07-23, same day): closure downgraded to PROVISIONAL
+
+An internal review of the trace output raised two objections; both are accepted and the CLOSED status above is downgraded to PROVISIONALLY CLOSED.
+
+1. **The positive control failed.** mchirp — the one head with an unambiguous strong signal (R² ≈ 0.96 in every run) — read AMBIGUOUS in all four models, net/sum 0.029–0.164 sitting at the 0.200 random-walk reference.
+   An instrument that cannot distinguish a known-learned head from a dead one at these checkpoints cannot certify the periodic-head verdicts.
+   Likely cause: epoch-79 checkpoints are converged — a head at its optimum takes small, locally noisy correction steps that mimic "never learned" on a 25-step probe.
+   Testable: rerun near the start of training. Since per-epoch checkpoints were never saved (best/final only), the script's new `early` stage substitutes fresh init + ~1-epoch warmup (200 steps).
+   Pass = mchirp DIRECTIONAL early, AMBIGUOUS late (convergence effect confirmed; final-stage table interpretable). Fail = mchirp AMBIGUOUS even early (trace methodology unsound; A.3 reverts to open, no verdict from it usable).
+2. **Per-case discipline on the two DIRECTIONAL periodic cases** (per the λ=0-ablation standard of naming exceptions instead of averaging them away):
+   - poc_a/pol_angle (net/sum 0.586): probe Δcirc = **+0.0478** — loss INCREASED; fails the two-part escalation rule (DIRECTIONAL + decreasing) outright, individually. Clean.
+   - tcn/coa_phase (net/sum 0.925 — closest number to the 1.0 ceiling in the table): probe Δcirc = **−0.0098** — nominal trigger, individually. The arithmetic dismissal stands (25 steps ≈ 0.13 epochs; a real −0.0098 at that rate implies epoch-scale movement ~2 orders larger than the flat 80-epoch history). The "inside sampling noise" dismissal does NOT stand as stated: it compared against the probe's marginal SE (~0.03), but the correct comparator for a before/after change on the same fixed 512 samples is the paired SE, which is not recoverable from the recorded output. Per-sample paired statistics (mean ± SE, t, frac improved) are now built into the script for the rerun.
+
+**Status: A.3 PROVISIONALLY CLOSED**, pending the `early` calibration run.
+If calibration passes and tcn/coa_phase's Δcirc is paired-insignificant, A.3 closes for good.
+If calibration passes and the effect is paired-significant, tcn/coa_phase escalates per the pre-stated rule — it would be the most interesting number in the nine-run investigation.
+If calibration fails, A.3 reverts to open with the trace methodology retired.
+Chapter updated to match (§6.6 provisional framing, threats-list bullet restored, calibration run added as future-work item 0).

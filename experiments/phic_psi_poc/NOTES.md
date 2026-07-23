@@ -604,3 +604,17 @@ Summary:
 - Known-but-unresolved stated as such: inclination Huber-path mechanism, SumDiffTrainer sky_position degradation, gate-window calibration question.
 - Deferred by name: finer λ mini-sweep, architecture-level std_ratio fix, ι-conditioning (new investigation).
 - Thesis chapter at `thesis/chapter_phic_psi_degeneracy.{md,tex}` reflects all of the above.
+
+### A.3 perturbation trace executed — closed (2026-07-23)
+
+`perturbation_trace_standalone.py` ran on the lab GPU machine against all four Run 7 checkpoints; output in `perturbation_trace_output/`.
+Verdict: the 89× rel_change asymmetry is movement without angular learning — coherent but dominantly radial raw-output drift (the known |v| dynamics; the two most directional cases are exactly the two std_ratio-pathology heads), with probe circular-loss changes ≤ |0.051|, sign-inconsistent between heads, and inside probe sampling noise.
+The one nominal escalation trigger (tcn/coa_phase) is dismissed with stated reasons in `diagnostic_log.md` (same-date section).
+**Nothing from the Run 7 verification battery remains open.**
+
+### Review addendum (2026-07-23): A.3 downgraded to provisionally closed
+
+Same-day review caught that the trace's positive control failed — mchirp (R² ≈ 0.96, the known-learned head) read AMBIGUOUS at all four converged checkpoints, so the instrument is uncalibrated for epoch-79 weights and its periodic-head verdicts cannot be taken at face value.
+Per-case check: poc_a/pol_angle fails the two-part escalation rule individually (probe loss +0.048, increased); tcn/coa_phase (net/sum 0.925) nominally triggers it (−0.010) and the prior "inside noise" dismissal used the wrong (marginal, not paired) standard error.
+`perturbation_trace_standalone.py` now has an `early` calibration stage (fresh init + ~1-epoch warmup; per-epoch checkpoints were never saved) and per-sample paired statistics; pending lab-machine execution.
+Full decision tree in `diagnostic_log.md`'s review addendum.

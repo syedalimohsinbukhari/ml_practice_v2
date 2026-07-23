@@ -133,9 +133,14 @@ by design (see Section 4). Original recommendation text, for record:
    both values.
 3. **Multi-step perturbation trace** — blocked behind Step 0 gate passing
    (see Section 4); not run at the time of this assessment.
-   **Update (2026-07-23):** the decoupling question is decided — a standalone
-   un-gated script now exists (`perturbation_trace_standalone.py`, targeting
-   the Run 7 λ=0.01 checkpoints); pending execution on the lab GPU machine.
+   **Update (2026-07-23):** decoupled into a standalone un-gated script
+   (`perturbation_trace_standalone.py`) and executed against the Run 7
+   λ=0.01 checkpoints. **Provisionally closed** — the 89× asymmetry reads
+   as coherent but dominantly radial raw-output drift (movement without
+   angular learning), but same-day review found the mchirp positive
+   control failed at the converged checkpoints, so the verdict awaits the
+   script's `early`-stage calibration run; see `diagnostic_log.md`'s A.3
+   closure section + review addendum and `perturbation_trace_output/`.
 
 With the λ-sweep branch closed, the next decision is whether to scope an
 architecture-level fix for these two combinations or deprioritize that thread

@@ -297,6 +297,17 @@ cleanly null.
   has never run. Blocked by design, not forgotten; whether it's still
   worth running via a standalone script (decoupled from the λ-retune gate)
   is an open question, not yet decided.
+  **Update (2026-07-23): decided; PROVISIONALLY closed.** Decoupled into
+  `perturbation_trace_standalone.py` and executed against all four Run 7
+  checkpoints — the asymmetry reads as coherent but dominantly *radial*
+  raw-output drift (movement without angular learning). Same-day review
+  downgraded the closure to provisional: the mchirp positive control
+  failed at the converged checkpoints (AMBIGUOUS in all four models), so
+  an `early`-stage calibration run (fresh init + ~1-epoch warmup, paired
+  statistics) must land before the verdicts are trusted; it also
+  re-adjudicates the nominal tcn/coa_phase escalation trigger (net/sum
+  0.925, Δcirc −0.010). See `diagnostic_log.md`'s A.3 closure section +
+  review addendum and `perturbation_trace_output/`.
 - Whether the pre-registered 40-epoch/0.005-trend gate window is
   well-calibrated for the `plateau` LR schedule's ~15–20 epoch settling
   behavior — flagged during Run 9a as a real question, but explicitly

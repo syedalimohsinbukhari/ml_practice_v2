@@ -209,10 +209,13 @@ insufficient," not resolved by tuning.
 → [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)
 
 ### What's still open?
-The λ=0 ablation (Run 8) and both λ retunes (Run 9a/9b) are done. Only the multi-step
-perturbation trace remains — formerly blocked by design (gated behind the Step 0 gate
-passing, which never happened), it has since been decoupled into
-[`perturbation_trace_standalone.py`](perturbation_trace_standalone.py) (2026-07-23) and
-awaits execution on the lab GPU machine.
-→ [`diagnostic_log.md`](diagnostic_log.md) (Remaining open items / Closing punch list),
-[`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) §5
+One item: the perturbation-trace **calibration run**. The trace itself executed
+2026-07-23 ([`perturbation_trace_standalone.py`](perturbation_trace_standalone.py),
+reading: coherent but dominantly *radial* raw-output drift — movement without angular
+learning), but same-day review found its positive control failed (mchirp AMBIGUOUS at
+all four converged checkpoints), so **A.3 is provisionally closed**, pending the
+script's `early` stage (fresh init + ~1-epoch warmup, paired statistics) showing
+mchirp directional-early/ambiguous-late. That run also re-adjudicates the nominal
+tcn/coa_phase escalation trigger (net/sum 0.925, Δcirc −0.010).
+→ [`perturbation_trace_output/`](perturbation_trace_output/),
+[`diagnostic_log.md`](diagnostic_log.md) (A.3 closure section + review addendum, 2026-07-23)

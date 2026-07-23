@@ -22,6 +22,7 @@ This chapter asks the question directly:
 > **Can φ_c and ψ be recovered from strain alone by a deep neural network — individually, or through their better-conditioned sum/difference combinations — or is the degeneracy effectively exact for a realistic detection-scale population?**
 
 The answer we converge on is a **null result**: across five trunk architectures, two head parameterizations, four values of a magnitude-regularization coefficient, and roughly nine full training campaigns, no model ever performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
+The fully certified evidential base — the subset that also passed the pre-declared magnitude-health interpretability gate (§ 8.2) — is two λ-matched configurations, poc_b and cnn_attention; the remaining five corroborate under progressively relaxed certification, not as independent repeats of the same test.
 
 A null result of this kind is only as strong as the effort spent trying to break it.
 The scientific contribution of this chapter is therefore twofold.
@@ -107,8 +108,10 @@ Whatever the networks subsequently failed to learn, they did not fail for want o
 
 All experiments use a single pre-generated HDF5 dataset of simulated two-detector observations: **25,000 training and 5,000 validation samples**, each a pair of 4,096-sample noisy strain series for the H1 and L1 detectors — a **2 s window at 2,048 Hz** — stacked as a (4096, 2) input tensor.
 The merger is placed at 1.6–1.8 s (80–90% of the window).
-Marginal parameter distributions (verified empirically; § 5.2, Check 1): chirp mass 8.84–43.45 M_⊙, mass ratio 0.20–1.00, network SNR uniform in **[7, 15]**, and — critically — φ_c, ψ, ι, and right ascension uniform over their supports, with declination following the cos-weighted sky prior.
-Strain is fed raw; the first layer of every trunk is a batch-normalization layer.
+All injections use the dominant quadrupole (ℓ = 2, |m| = 2) mode only (IMRPhenomD), with no higher-order modes — the condition under which the face-on degeneracy argument of § 1 is exact rather than approximate.
+This detail is not preserved as HDF5 metadata or in any generation script retained in this repository (the generator itself lives outside the tracked pipeline); it is recorded here from the authors' knowledge of how the dataset was produced, an honest provenance gap flagged in § 8.3.
+Marginal parameter distributions (verified empirically; § 5.2, Check 1): chirp mass 8.84–43.45 M_⊙, mass ratio 0.20–1.00, network SNR uniform in **[7, 15]**, and — critically — φ_c, ψ, ι, and right ascension uniform over their supports (ι uniform in ι itself rather than in cos ι, a deviation from the astrophysically correct isotropic prior discussed in § 8.3), with declination following the cos-weighted sky prior.
+Strain is fed to the model already whitened and otherwise raw: PSD-whitening is applied at dataset-generation time, and the only further transform before the trunk is the batch-normalization layer that starts every architecture.
 Targets are transformed per § 2.2; transform statistics are fitted on the training split only.
 No data augmentation or SNR-dependent sample weighting is used.
 
@@ -232,6 +235,7 @@ The learned uncertainty weighting corroborates this reading from a different dir
 ### 5.6 Positive controls
 
 The same checkpoints recover the control parameters well (Fig. 5.4): chirp mass R² = 0.926–0.963 (MAE 0.95–1.36 M_⊙), merger time R² = 0.909–0.921, SNR R² = 0.755–0.785, and sky position to 3.3°–10.0° mean angular error (median 0.0°) — with cnn_attention, the *worst* periodic-head model by ang_MAE, achieving the *best* sky localization (3.3°).
+Inclination, though nominally a control head (§ 2.1), is deliberately absent from this list: § 5.4 traced its failure to an independent, unresolved mechanism (a Huber loss on its raw two-vector, with no `normalize_unit` in its path) unrelated to the φ_c/ψ pathologies, so its own null result neither corroborates nor undermines the claim below — it is excluded from the positive-control set for a documented, code-level reason, not omitted quietly.
 Information that is present in the strain is extracted by this pipeline; the two phase angles specifically are not.
 
 > **Figure 5.4.** (`../analysis_output/scatter_mchirp_20260720_234304.png`) Chirp-mass recovery on the validation set for the four Run 7 models (R² = 0.93–0.96). Together with merger time, SNR (`../analysis_output/scatter_snr_20260720_234304.png`), and sky position, these positive controls establish that the shared trunk and training pipeline learn strain-derived parameters when the information is present.
@@ -242,6 +246,10 @@ Information that is present in the strain is extracted by this pipeline; the two
 
 Table 6.1 collects the final validation angular MAE for every architecture, before and after the activation fix, against the analytic null.
 The values are not merely *close to* the null; they bracket it within a few hundredths of a radian in both directions, across seven architectures, two head parameterizations, and every λ.
+
+One scope note belongs here rather than in the Discussion, because it bears on how to read every number below.
+These are *point* estimates under circular loss, and circular loss cannot distinguish "no information" from "a genuinely multimodal or ridge-like true posterior that no single-valued output can express" — a sampler retains a meaningful joint posterior over (φ_c, ψ) even where the degeneracy is exact (§ 8.1).
+The claim defended below is about point-estimation regression specifically, not about the information-theoretic content of the strain.
 
 **Table 6.1 — Validation angular MAE (rad) against the random-guessing null.** ("Pre-fix" = tanh outputs, Round 1; "post-fix" = linear outputs with λ = 0.01 where configured, Run 7 era.
 Dashes: no pre-fix run.
@@ -254,6 +262,8 @@ Source: `pre_post_comparison.csv`.)
 | ψ (0.785) pre | 0.787 | 0.787 | 0.787 | — | 0.792 | 0.779 | 0.779 |
 | ψ post | 0.786 | 0.786 | 0.793 | 0.790 | 0.780 | 0.780 | 0.791 |
 | ι (1.571) post | 1.544 | 1.588 | 1.570 | 1.559 | 1.571 | 1.560 | 1.573 |
+
+The ι row is carried for diagnostic completeness, not as a positive control: as § 5.4 and § 5.6 establish, ι fails through a mechanism disjoint from the φ_c/ψ pathologies, so its presence at the null here is neither confirming nor disconfirming evidence for the degeneracy claim.
 
 What distinguishes models is not accuracy but *failure style*, visible in the prediction distributions (Fig. 6.1): poc_a and tcn collapse most predictions onto one narrow mode (circ_r = 0.85–0.86); poc_b collapses almost totally (circ_r = 0.989); cnn_attention spreads its predictions broadly (circ_r = 0.43 for φ_c, 0.17 for ψ) — varied wrong answers instead of one constant wrong answer — with ang_MAE identical to everyone else's.
 Output diversity is an architectural artifact; information recovery is uniformly nil.
@@ -301,15 +311,22 @@ Source: `bootstrap_output/bootstrap_ang_mae_20260721_093533.md`.
 | tcn | −0.56, 0.712 | −0.33, 0.630 | +1.21, 0.114 |
 | cnn_attention | −2.43, 0.994 | +0.07, 0.472 | **+3.17, 0.0007** |
 
-Eleven of twelve tests are non-significant; **all eight φ_c/ψ tests fail**, six of them on the *worse-than-shuffled* side.
-The single nominal detection — cnn_attention on inclination — does not survive scrutiny: its effect size is Δ = 0.038 rad (2.2°), below the 12-test Bonferroni threshold (p < 0.0042 required against p = 0.0007 is passed, but the effect is uniform across SNR terciles, 1.526/1.548/1.527 — the signature of a population-level output-distribution bias, not of per-event information extraction; a genuinely strain-derived effect must grow with SNR).
+Eleven of twelve tests are non-significant; **all eight φ_c/ψ tests fail**, six of them on the *worse-than-shuffled* side, and every one of the eight observed values falls inside its own null 95% confidence interval (`bootstrap_output/bootstrap_ang_mae_20260721_093533.md` reports the null CI directly for each; e.g. tcn/φ_c: observed 1.578 against null CI [1.561, 1.588]).
+Across the eight φ_c/ψ tests the null-CI half-widths range ≈ 0.002–0.023 rad, so this is not merely "not significant" — it is a comparatively tight bound against even a small real effect for most model–head pairs.
+The single nominal detection — cnn_attention on inclination — is a genuine statistical outlier (z = +3.17, p = 0.0007), and it *does* survive Bonferroni correction across the twelve tests (threshold p < 0.0042; observed p = 0.0007 clears it) — we do not dismiss it on multiple-comparisons grounds.
+We dismiss it because it fails the same test this chapter applies to every other candidate signal: whether the effect grows with SNR.
+Its effect size is Δ = 0.038 rad (2.2°), and that effect is uniform across SNR terciles (1.526/1.548/1.527) — flat, not increasing with signal strength.
+This is not an ad hoc criterion invoked only here: it is the identical logic of the SNR stratification (§ 6.4) and of Step 3 of the pre-registered λ-retune gate (§ 7.1), applied consistently — a per-event phase-recovery effect must be stronger in louder events, while a population-level output-distribution bias need not be, and the inclination detection has the signature of the latter.
 A row-ordering audit additionally bounded the largest possible ordering artifact at 0.013 rad and confirmed the permutation null is valid (validation data i.i.d.; window variance ratio 0.991).
 
 ### 6.4 SNR stratification
 
 If weak phase information were present but diluted, it would concentrate in loud events.
 It does not.
-Across terciles (SNR [7.0, 9.6] / [9.7, 12.3] / [12.3, 15.0], n ≈ 1,666 each): every ψ result lies within 0.007 rad of the null in every tercile for every model; three of four models are non-monotonic in φ_c; the single monotonic case (tcn: 1.633 → 1.557 → 1.543) has a high-SNR improvement of only 0.027 rad — beneath the 0.038-rad artifact scale established in § 6.3, and produced by the one model whose φ_c std_ratio never converged (§ 7), rendering it doubly uninterpretable as evidence of learning.
+Across terciles (SNR [7.0, 9.6] / [9.7, 12.3] / [12.3, 15.0], n ≈ 1,666 each): every ψ result lies within 0.007 rad of the null in every tercile for every model; three of four models are non-monotonic in φ_c; the single monotonic case (tcn: 1.633 → 1.557 → 1.543) drops by 0.090 rad from low to high SNR — larger than the 0.038-rad artifact scale established in § 6.3, and large enough that, read in isolation, it could look like a genuine SNR-dependent trend.
+Two facts argue against that reading.
+First, the more diagnostic comparison is not tercile-to-tercile but each tercile against the null (1.5708 rad): the low tercile sits *worse* than random guessing (1.633, Δ = −0.062 vs null), and even the high tercile clears the null by only 0.027 rad — itself beneath the artifact scale — so the 0.090-rad swing is mostly the low tercile's anomalous departure *from* the null, not the high tercile's departure *toward* a genuine signal; a real degeneracy-breaking effect should make high-SNR predictions better than random, not merely less bad than an anomalously poor low-SNR estimate.
+Second, tcn/φ_c is the one model whose std_ratio never converged to the healthy band (§ 7) at λ = 0.01, so its ang_MAE trend across any stratification is doubly uninterpretable as evidence of learning.
 
 ### 6.5 Run 8: the λ = 0 ablation
 
@@ -464,8 +481,11 @@ We record the limitations explicitly, in roughly descending order of concern.
 
 - **Two configurations remain uninterpretable.** tcn/φ_c and poc_a/ψ never achieved certified metric health at any λ; the clean degeneracy test rests on poc_b and cnn_attention (plus the ablation and pre/post-fix consistency of every other configuration). The null is multiply corroborated, but its *certified* base is narrower than its table count.
 - **The A.3 closure rests on a within-run-validated channel.** The trace's pre-stated displacement-geometry classifier failed its positive control at calibration and was retired (§ 6.6); the closure rests on the paired probe-loss statistic, whose own control passed emphatically in the same run (early mchirp |t| = 3.4–8.5) but which was added on review rather than pre-registered. The evidence is positive-controlled; the channel choice is post hoc — recorded here rather than hidden.
+- **Waveform-model provenance is asserted, not recorded.** All injections are understood to use the dominant quadrupole (ℓ = 2, |m| = 2) mode only (IMRPhenomD, no higher-order modes) — the condition under which the face-on degeneracy argument of § 1 is exact.
+This is not preserved as metadata in the HDF5 dataset, nor in any generation script retained in this repository; it is recorded here from the authors' knowledge of how the dataset was produced.
+If this recollection were wrong and higher-order modes were in fact present, the degeneracy would be only approximately exact even face-on, which would *sharpen* rather than weaken the null (a network failing to exploit even a HOM-broken degeneracy is stronger evidence of no recoverable signal) — but the provenance gap itself should be closed by regenerating the dataset with a script that records its own configuration.
 - **Residual anomalies.** tcn/ψ's +0.0072 validation-loss drift at λ = 0 remains unexplained (small, on a loss of ~1.0); the inclination head's failure mechanism (Huber path, no normalization) is documented as distinct but is itself unresolved; and a sky-position degradation specific to the `SumDiffTrainer` runs (8.2°–10.0° vs 3.3°–4.5° for the plain baselines) was flagged in the record but never investigated — a known open issue, out of scope for this chapter.
-- **Design constraints.** Single seed (42) per configuration — replication is across architectures and λ values, not across seeds; the five-trunk comparison is not λ-matched (three trunks trained at λ = 0), though the four models carrying the verified null are matched; the curriculum used the analytic sin²ι weight, not the Jacobian-fitted variant it was validated against; fixed 80-epoch budget with no early stopping; a single simulated dataset with a single noise realization per event.
+- **Design constraints.** Single seed (42) per configuration — replication is across architectures and λ values, not across seeds; the five-trunk comparison is not λ-matched (three trunks trained at λ = 0), though the four models carrying the verified null are matched; the curriculum used the analytic sin²ι weight, not the Jacobian-fitted variant it was validated against; fixed 80-epoch budget with no early stopping; a single simulated dataset with a single noise realization per event; and the inclination prior is uniform in ι itself rather than in cos ι, the astrophysically correct isotropic choice, which over-represents edge-on systems relative to reality — since edge-on is where the degeneracy is weakest, this deviation does not appear to bias the claim in a self-serving direction, but it should have been isotropic and was not.
 - **Metric-versioning note.** Two evaluation passes over the Run 7 checkpoints differ by up to 0.026 rad in periodic ang_MAE (both straddling the null; no verdict affected). Tables 6.1 and 6.3 use the self-consistent bootstrap/stratification set.
 
 None of these, alone or jointly, provides a mechanism by which a real, useful φ_c/ψ signal could have hidden from all of § 6 — but they bound the strength of the claim honestly.
@@ -487,7 +507,9 @@ The payoff was concrete: a near-miss that endpoint-eyeballing would have waved t
 
 ### 8.5 Future work
 
-Three successors are scoped, in priority order.
+One immediate empirical check and three successors are scoped, in priority order.
+An **inclination-stratified breakdown of the existing Run 7 checkpoints** (`inclination_stratification.py`, prepared alongside this revision, mirroring the SNR-tercile analysis of § 6.4 but binning on |cos ι| against the face-on / mixed / edge-on bands of § 3) directly tests the one population slice never separately reported: if edge-on systems — where the analytic degeneracy is weakest — already show measurably lower ang_MAE than face-on systems in the existing data, that sharpens the null's boundary without requiring new training; if flat, it corroborates the null's uniformity across the one axis not yet checked.
+The script requires only a CPU-light inference pass over the four λ-matched checkpoints and no retraining; it is prepared but not yet executed, and its output belongs in a revision of § 6 once run.
 (i) **Inclination conditioning**: supply true (sin ι, cos ι) as an auxiliary input — the analytic structure of § 3 says the well-constrained combination is knowable *given* ι, so this tests whether the degeneracy is breakable with side information; a full implementation plan exists (train-time truth, with inference-time ι estimation explicitly out of scope).
 (ii) An **architecture-level attack on the std_ratio instability** for the two uninterpretable pairs (the pre-registered λ-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered λ mini-sweep over [0.02, 0.08], motivated by the peaked λ-response observed in § 7.3.
 (iii) A **posterior-estimation reformulation**: the natural follow-on from "point estimation is hopeless" is not resignation but a conditional-density head (e.g. a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.
@@ -497,6 +519,7 @@ Three successors are scoped, in priority order.
 We set out to determine whether the coalescence phase and polarization angle of compact-binary signals are recoverable from strain by direct neural regression, individually or in their physically motivated sum/difference combinations.
 After eliminating two genuine optimization pathologies that initially masqueraded as (and then obscured) the answer — tanh saturation at initialization, and magnitude drift induced by a norm-blind circular loss — and after subjecting the resulting flat learning curves to a verification battery spanning configuration audits, permutation tests, population stratification, an ablation, and a pre-registered two-arm regularization sweep, the answer is: **no**.
 Every model, at every capacity and every regularization strength, converged to the optimal constant predictor, at the analytic random-guessing error, while learning four other parameters well from the same shared representation — and no result at any point cleared even the first gate of a pre-declared path to counter-evidence.
+The fully certified base of that claim is two λ-matched configurations (§ 8.2); the wider table of seven architectures corroborates without independently repeating the same test.
 The degeneracy is effectively exact for this population as a point-estimation problem.
 The value of the chapter lies as much in the demonstrated discipline — mechanism before metrics, code-validated controls, pre-registered criteria inside the engineering loop — as in the null it certifies, and both carry directly into the inclination-conditioned and posterior-based formulations that follow.
 

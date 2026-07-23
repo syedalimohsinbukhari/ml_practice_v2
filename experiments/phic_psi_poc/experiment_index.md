@@ -166,6 +166,7 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 | [`diagnostic_checks.py`](diagnostic_checks.py) | Seven deep diagnostic checks (true labels, loss wiring, log-var trajectory, gradient routing, logit saturation, gradient chain, init saturation timing) |
 | [`bootstrap_ang_mae.py`](bootstrap_ang_mae.py) | Section D: bootstrap CI on ang_MAE (N=10,000 shuffles) |
 | [`snr_stratification.py`](snr_stratification.py) | Section E: SNR-stratified ang_MAE (tercile analysis) |
+| [`inclination_stratification.py`](inclination_stratification.py) | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3) — **prepared 2026-07-23, not yet run**; needs a lab-machine CPU/GPU inference pass, no retraining |
 | [`prereq_checks.py`](prereq_checks.py) | Step 1.1–1.6 prerequisite verification (combo ratio sweep, w(ι) derivation, cos ι histogram) |
 | [`validation_script.py`](validation_script.py) | Manual validation utilities |
 
@@ -233,3 +234,18 @@ branch extinguished (paired t = −0.20). Remaining threads are scoped future wo
 (architecture-level std_ratio fix, finer λ mini-sweep, ι-conditioning).
 → [`perturbation_trace_output/`](perturbation_trace_output/),
 [`diagnostic_log.md`](diagnostic_log.md) (calibration adjudication, 2026-07-23)
+
+**One new item from the adversarial-review pass (2026-07-23):** three AI reviewers (DeepSeek,
+Kimi, Qwen) independently flagged that the chapter never stratifies φ_c/ψ ang_MAE by
+inclination, despite the analytic degeneracy being inclination-dependent. `inclination_stratification.py`
+is written (mirrors `snr_stratification.py`, bins on |cos ι| against the face-on/mixed/edge-on
+bands of §3) but has not been run — it needs a lab-machine inference pass (CPU-light, no
+retraining) against the four existing λ-matched checkpoints. The chapter's §8.5 future-work
+list and threats-to-validity section (§8.3) have been updated to describe this as pending;
+its actual output still needs to land in a chapter revision once run.
+Same pass also caught and fixed a real numeric error in §6.4 (an SNR-tercile improvement
+was reported as 0.027 rad when the source artifact gives 0.090 rad for that comparison),
+added a waveform-approximant provenance caveat (IMRPhenomD, dominant-mode-only, confirmed
+by the author but not recorded anywhere in the repo/dataset), and flagged the inclination
+prior as uniform-in-ι rather than the astrophysically correct uniform-in-cos ι.
+→ [`thesis/reviews/`](thesis/reviews/) (the three review files), `thesis/chapter_phic_psi_degeneracy.{md,tex}` (revised)

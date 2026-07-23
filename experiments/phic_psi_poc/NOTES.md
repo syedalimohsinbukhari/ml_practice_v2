@@ -626,3 +626,25 @@ Calibration criterion FAILED — mchirp never read DIRECTIONAL early (ambiguous 
 The paired probe-loss channel passed its positive control in the same run and reads every periodic head as null at both stages (early |t| ≤ 1.6, final |t| ≤ 1.7, mixed signs) — a within-run, stage-matched, positive-controlled contrast.
 **A.3 CLOSED** on the validated channel (post-hoc channel choice recorded as a caveat in the chapter's threats list); tcn/coa_phase escalation branch extinguished (paired t = −0.20).
 Nothing from the Run 7 verification battery remains open.
+
+## Adversarial review pass (2026-07-23)
+
+Three independent AI reviewers (DeepSeek, Kimi, Qwen) were run against the finished thesis chapter; full reviews in `thesis/reviews/{deepseek,kimi,qwen}_ai_adversarial_review.md`.
+Each was fact-checked against the chapter's own source artifacts before acting on it, rather than accepted at face value.
+
+**Fixed (confirmed real):**
+- §6.4 conflated a null-referenced deviation (0.027 rad, high-SNR tercile vs null) with a tercile-to-tercile swing (actually 0.090 rad, low→high) when arguing the sole monotonic SNR trend (tcn/φ_c) was an artifact. Verified against `snr_output/snr_stratification_20260721_094039.log`; rewritten to state both numbers correctly and explain, via the low tercile's own anomalous departure from null, why the swing still doesn't read as a real effect.
+- §6.3's Bonferroni sentence read as if the cnn_attention/inclination detection failed multiple-comparison correction; the numbers actually show it *survives* Bonferroni (p=0.0007 < 0.0042 threshold). Rewritten to say so plainly and to ground the dismissal in the SNR-uniformity criterion already used chapter-wide (§6.4, and Step 3 of §7.1's pre-registration), not in an ad hoc post-hoc test. Also added explicit null-CI half-width language (from the already-published `bootstrap_output/` CIs), per Kimi's suggestion.
+- Waveform approximant/mode content was undocumented anywhere in the repo (no generator script, no HDF5 metadata). Author confirmed out-of-band: IMRPhenomD, dominant (2,2) mode only, no HOMs — this *strengthens* the face-on-exact argument rather than weakening it. Added to §4.1 (Methods) and §8.3 (Threats), with the provenance gap itself flagged honestly.
+- §4.1's "fed raw" was ambiguous (could read as unwhitened); confirmed via `docs/pipeline/data.md` and `loader.py` that strain is PSD-whitened at generation time and "raw" only meant "no further code-level normalization." Reworded for clarity.
+- Population-balance numbers (28.7%/32.7%) confirmed arithmetically consistent with ι drawn uniform-in-ι, not the astrophysically correct uniform-in-cos ι (isotropic) prior — an unexamined default, never discussed at generation time. Flagged in §8.3; noted the direction is not self-serving (edge-on over-representation works against, not for, the null).
+- ι's absence from the §5.6 positive-controls list was correct but unsignposted at the place readers look; all three reviewers independently flagged this as the biggest apparent vulnerability. Added explicit cross-referenced sentences in §5.6 and by Table 6.1's ι row.
+- Surfaced the "certified base is 2 of 4 models" fact (already accurate in §8.2/8.3) into the §1 headline and §9 conclusion, so it isn't only visible to a reader who reaches the Discussion.
+- Added a §6.1 forward-reference to the point-estimation-vs-multimodal-posterior scope limit (already stated in §8.1) so it's visible before, not only after, the results.
+
+**Declined (reviewed and judged not to hold, argued inline rather than silently ignored):**
+- DeepSeek's claim that §7.3's "exhausted" (of the pre-registered sweep) contradicts "a finer sweep might succeed" (of the λ dimension) — the existing text already disambiguates this explicitly; no change needed.
+- The A.3 post-hoc-closure complaint (all three reviews) — §6.6/§8.3 already document this as transparently post hoc with its own passed control; already maximally honest.
+- Deeper bootstrap-power critique beyond the CI/Bonferroni fix above — the tight null-CI half-widths added to §6.3 already answer "is non-significance just underpowering."
+
+**Deferred to a follow-up run:** `inclination_stratification.py` (new script, mirrors `snr_stratification.py`, bins on |cos ι| per §3's face-on/mixed/edge-on bands) is written but not executed — needs a lab-machine inference pass against the four existing checkpoints, no retraining. Chapter's §8.5/§8.3 describe it as pending; results belong in a further chapter revision once it runs.

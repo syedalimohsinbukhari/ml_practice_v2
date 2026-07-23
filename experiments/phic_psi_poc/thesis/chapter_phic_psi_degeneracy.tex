@@ -51,6 +51,7 @@ This chapter asks directly:
 \end{quote}
 
 The answer we converge on is a \textbf{null result}: across five trunk architectures, two head parameterizations, four values of a magnitude-regularization coefficient, and roughly nine full training campaigns, no model ever performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
+The fully certified evidential base --- the subset that also passed the pre-declared magnitude-health interpretability gate (\S\ref{sec:phicpsi:pool}) --- is two $\lambda$-matched configurations, poc\_b and cnn\_attention; the remaining five corroborate under progressively relaxed certification, not as independent repeats of the same test.
 
 A null result of this kind is only as strong as the effort spent trying to break it.
 The scientific contribution of this chapter is therefore twofold.
@@ -166,8 +167,10 @@ Whatever the networks subsequently failed to learn, they did not fail for want o
 
 All experiments use a single pre-generated HDF5 dataset of simulated two-detector observations: \textbf{25{,}000 training and 5{,}000 validation samples}, each a pair of 4{,}096-sample noisy strain series for the H1 and L1 detectors --- a 2\,s window at 2048\,Hz --- stacked as a $(4096, 2)$ input tensor.
 The merger is placed at 1.6--1.8\,s (80--90\% of the window).
-Marginal parameter distributions (verified empirically; \S\ref{sec:phicpsi:suite}, Check~1): chirp mass 8.84--43.45\,$M_\odot$, mass ratio 0.20--1.00, network SNR uniform in $[7, 15]$, and --- critically --- $\varphi_c$, $\psi$, $\iota$, and right ascension uniform over their supports, with declination following the cos-weighted sky prior.
-Strain is fed raw; the first layer of every trunk is a batch-normalization layer.
+All injections use the dominant quadrupole ($\ell=2$, $|m|=2$) mode only (IMRPhenomD), with no higher-order modes --- the condition under which the face-on degeneracy argument of \S\ref{sec:phicpsi:intro} is exact rather than approximate.
+This detail is not preserved as HDF5 metadata or in any generation script retained in this repository (the generator itself lives outside the tracked pipeline); it is recorded here from the authors' knowledge of how the dataset was produced, an honest provenance gap flagged in \S\ref{sec:phicpsi:threats}.
+Marginal parameter distributions (verified empirically; \S\ref{sec:phicpsi:suite}, Check~1): chirp mass 8.84--43.45\,$M_\odot$, mass ratio 0.20--1.00, network SNR uniform in $[7, 15]$, and --- critically --- $\varphi_c$, $\psi$, $\iota$, and right ascension uniform over their supports ($\iota$ uniform in $\iota$ itself rather than in $\cos\iota$, a deviation from the astrophysically correct isotropic prior discussed in \S\ref{sec:phicpsi:threats}), with declination following the cos-weighted sky prior.
+Strain is fed to the model already whitened and otherwise raw: PSD-whitening is applied at dataset-generation time, and the only further transform before the trunk is the batch-normalization layer that starts every architecture.
 Targets are transformed per \S\ref{sec:phicpsi:circular}; transform statistics are fitted on the training split only.
 No data augmentation or SNR-dependent sample weighting is used.
 
@@ -355,6 +358,7 @@ The learned uncertainty weighting corroborates this reading from a different dir
 \label{sec:phicpsi:controls}
 
 The same checkpoints recover the control parameters well (Fig.~\ref{fig:phicpsi:mchirp}): chirp mass $R^2 = 0.926$--0.963 (MAE 0.95--1.36\,$M_\odot$), merger time $R^2 = 0.909$--0.921, SNR $R^2 = 0.755$--0.785, and sky position to $3.3^\circ$--$10.0^\circ$ mean angular error (median $0.0^\circ$) --- with cnn\_attention, the \emph{worst} periodic-head model by ang\_MAE, achieving the \emph{best} sky localization ($3.3^\circ$).
+Inclination, though nominally a control head (\S\ref{subsec:targets-and-the-degeneracy-hypothesis}), is deliberately absent from this list: \S\ref{sec:phicpsi:pathology2} traced its failure to an independent, unresolved mechanism (a Huber loss on its raw two-vector, with no \texttt{normalize\_unit} in its path) unrelated to the $\varphi_c/\psi$ pathologies, so its own null result neither corroborates nor undermines the claim below --- it is excluded from the positive-control set for a documented, code-level reason, not omitted quietly.
 Information that is present in the strain is extracted by this pipeline; the two phase angles specifically are not.
 
 \begin{figure}[tbp]
@@ -374,6 +378,10 @@ Information that is present in the strain is extracted by this pipeline; the two
 
 Table~\ref{tab:phicpsi:prepost} collects the final validation angular MAE for every architecture, before and after the activation fix, against the analytic null.
 The values are not merely \emph{close to} the null; they bracket it within a few hundredths of a radian in both directions, across seven architectures, two head parameterization, and every $\lambda$.
+
+One scope note belongs here rather than in the Discussion, because it bears on how to read every number below.
+These are \emph{point} estimates under circular loss, and circular loss cannot distinguish ``no information'' from ``a genuinely multimodal or ridge-like true posterior that no single-valued output can express'' --- a sampler retains a meaningful joint posterior over $(\varphi_c, \psi)$ even where the degeneracy is exact (\S\ref{subsec:what-the-evidence-supports}).
+The claim defended below is about point-estimation regression specifically, not about the information-theoretic content of the strain.
 
 \begin{table}[tbp]
     \centering
@@ -395,6 +403,8 @@ The values are not merely \emph{close to} the null; they bracket it within a few
         \bottomrule
     \end{tabular}
 \end{table}
+
+The $\iota$ row is carried for diagnostic completeness, not as a positive control: as \S\ref{sec:phicpsi:pathology2} and \S\ref{sec:phicpsi:controls} establish, $\iota$ fails through a mechanism disjoint from the $\varphi_c/\psi$ pathologies, so its presence at the null here is neither confirming nor disconfirming evidence for the degeneracy claim.
 
 What distinguishes models is not accuracy but \emph{failure style}, visible in the prediction distributions (Fig.~\ref{fig:phicpsi:hist}): poc\_a and tcn collapse most predictions onto one narrow mode ($r_{\mathrm{circ}} = 0.85$--0.86); poc\_b collapses almost totally ($r_{\mathrm{circ}} = 0.989$); cnn\_attention spreads its predictions broadly ($r_{\mathrm{circ}} = 0.43$ for $\varphi_c$, 0.17 for $\psi$) --- varied wrong answers instead of one constant wrong answer --- with ang\_MAE identical to everyone else's.
 Output diversity is an architectural artifact; information recovery is uniformly nil.
@@ -470,8 +480,12 @@ Its nominally significant inclination result is dissected below.
     \end{tabular}
 \end{table}
 
-Eleven of twelve tests are non-significant (Table~\ref{tab:phicpsi:bootstrap}); \textbf{all eight $\varphi_c/\psi$ tests fail}, six of them on the \emph{worse-than-shuffled} side.
-The single nominal detection --- cnn\_attention on inclination --- does not survive scrutiny: its effect size is $\Delta = 0.038$\,rad ($2.2^\circ$), and the effect is uniform across SNR terciles (1.526/1.548/1.527) --- the signature of a population-level output-distribution bias, not of per-event information extraction; a genuinely strain-derived effect must grow with SNR.
+Eleven of twelve tests are non-significant (Table~\ref{tab:phicpsi:bootstrap}); \textbf{all eight $\varphi_c/\psi$ tests fail}, six of them on the \emph{worse-than-shuffled} side, and every one of the eight observed values falls inside its own null 95\% confidence interval (\texttt{bootstrap\_output/bootstrap\_ang\_mae\_20260721\_093533.md} reports the null CI directly for each; e.g.\ tcn/$\varphi_c$: observed 1.578 against null CI $[1.561, 1.588]$).
+Across the eight $\varphi_c/\psi$ tests the null-CI half-widths range ${\approx}0.002$--$0.023$\,rad, so this is not merely ``not significant'' --- it is a comparatively tight bound against even a small real effect for most model--head pairs.
+The single nominal detection --- cnn\_attention on inclination --- is a genuine statistical outlier ($z=+3.17$, $p=0.0007$), and it \emph{does} survive Bonferroni correction across the twelve tests (threshold $p < 0.0042$; observed $p = 0.0007$ clears it) --- we do not dismiss it on multiple-comparisons grounds.
+We dismiss it because it fails the same test this chapter applies to every other candidate signal: whether the effect grows with SNR.
+Its effect size is $\Delta = 0.038$\,rad ($2.2^\circ$), and that effect is uniform across SNR terciles (1.526/1.548/1.527) --- flat, not increasing with signal strength.
+This is not an ad hoc criterion invoked only here: it is the identical logic of the SNR stratification (\S\ref{sec:phicpsi:snr}) and of Step~3 of the pre-registered $\lambda$-retune gate (\S\ref{subsec:why-pre-register-an-engineering-sweep}), applied consistently --- a per-event phase-recovery effect must be stronger in louder events, while a population-level output-distribution bias need not be, and the inclination detection has the signature of the latter.
 A row-ordering audit additionally bounded the largest possible ordering artifact at 0.013\,rad and confirmed the permutation null is valid (validation data i.i.d.; window variance ratio 0.991).
 
 \subsection{SNR stratification}
@@ -479,7 +493,10 @@ A row-ordering audit additionally bounded the largest possible ordering artifact
 
 If weak phase information were present but diluted, it would concentrate in loud events.
 It does not.
-Across terciles (SNR $[7.0, 9.6]$ / $[9.7, 12.3]$ / $[12.3, 15.0]$, $n \approx 1{,}666$ each): every $\psi$ result lies within 0.007\,rad of the null in every tercile for every model; three of four models are non-monotonic in $\varphi_c$; the single monotonic case (tcn: $1.633 \to 1.557 \to 1.543$) has a high-SNR improvement of only 0.027\,rad --- beneath the 0.038\,rad artifact scale established in \S\ref{sec:phicpsi:bootstrap}, and produced by the one model whose $\varphi_c$ std\_ratio never converged (\S\ref{sec:phicpsi:prereg}), rendering it doubly uninterpretable as evidence of learning.
+Across terciles (SNR $[7.0, 9.6]$ / $[9.7, 12.3]$ / $[12.3, 15.0]$, $n \approx 1{,}666$ each): every $\psi$ result lies within 0.007\,rad of the null in every tercile for every model; three of four models are non-monotonic in $\varphi_c$; the single monotonic case (tcn: $1.633 \to 1.557 \to 1.543$) drops by 0.090\,rad from low to high SNR --- larger than the 0.038\,rad artifact scale established in \S\ref{sec:phicpsi:bootstrap}, and large enough that, read in isolation, it could look like a genuine SNR-dependent trend.
+Two facts argue against that reading.
+First, the more diagnostic comparison is not tercile-to-tercile but each tercile against the null (1.5708\,rad): the low tercile sits \emph{worse} than random guessing (1.633, $\Delta = -0.062$ vs null), and even the high tercile clears the null by only 0.027\,rad --- itself beneath the artifact scale --- so the 0.090\,rad swing is mostly the low tercile's anomalous departure \emph{from} the null, not the high tercile's departure \emph{toward} a genuine signal; a real degeneracy-breaking effect should make high-SNR predictions better than random, not merely less bad than an anomalously poor low-SNR estimate.
+Second, tcn/$\varphi_c$ is the one model whose std\_ratio never converged to the healthy band (\S\ref{sec:phicpsi:prereg}) at $\lambda = 0.01$, so its ang\_MAE trend across any stratification is doubly uninterpretable as evidence of learning.
 
 \subsection{Run 8: the $\lambda = 0$ ablation}
 \label{sec:phicpsi:ablation}
@@ -707,9 +724,13 @@ The null is multiply corroborated, but its \emph{certified} base is narrower tha
 \item \textbf{The A.3 closure rests on a within-run-validated channel.}
 The trace's pre-stated displacement-geometry classifier failed its positive control at calibration and was retired (\S\ref{sec:phicpsi:asymmetry}); the closure rests on the paired probe-loss statistic, whose own control passed emphatically in the same run (early mchirp $|t| = 3.4$--$8.5$) but which was added on review rather than pre-registered.
 The evidence is positive-controlled; the channel choice is post hoc --- recorded here rather than hidden.
+\item \textbf{Waveform-model provenance is asserted, not recorded.}
+All injections are understood to use the dominant quadrupole ($\ell=2$, $|m|=2$) mode only (IMRPhenomD, no higher-order modes) --- the condition under which the face-on degeneracy argument of \S\ref{sec:phicpsi:intro} is exact.
+This is not preserved as metadata in the HDF5 dataset, nor in any generation script retained in this repository; it is recorded here from the authors' knowledge of how the dataset was produced.
+If this recollection were wrong and higher-order modes were in fact present, the degeneracy would be only approximately exact even face-on, which would \emph{sharpen} rather than weaken the null (a network failing to exploit even a HOM-broken degeneracy is stronger evidence of no recoverable signal) --- but the provenance gap itself should be closed by regenerating the dataset with a script that records its own configuration.
 \item \textbf{Residual anomalies.} tcn/$\psi$'s $+0.0072$ validation-loss drift at $\lambda = 0$ remains unexplained (small, on a loss of ${\sim}1.0$); the inclination head's failure mechanism (Huber path, no normalization) is documented as distinct but is itself unresolved; and a sky-position degradation specific to the \texttt{SumDiffTrainer} runs ($8.2^\circ$--$10.0^\circ$ vs $3.3^\circ$--$4.5^\circ$ for the plain baselines) was flagged in the record but never investigated --- a known open issue, out of scope for this chapter.
 \item \textbf{Design constraints.}
-Single seed (42) per configuration --- replication is across architectures and $\lambda$ values, not across seeds; the five-trunk comparison is not $\lambda$-matched (three trunks trained at $\lambda = 0$), though the four models carrying the verified null are matched; the curriculum used the analytic $\sin^2\iota$ weight, not the Jacobian-fitted variant it was validated against; fixed 80-epoch budget with no early stopping; a single simulated dataset with a single noise realization per event.
+Single seed (42) per configuration --- replication is across architectures and $\lambda$ values, not across seeds; the five-trunk comparison is not $\lambda$-matched (three trunks trained at $\lambda = 0$), though the four models carrying the verified null are matched; the curriculum used the analytic $\sin^2\iota$ weight, not the Jacobian-fitted variant it was validated against; fixed 80-epoch budget with no early stopping; a single simulated dataset with a single noise realization per event; and the inclination prior is uniform in $\iota$ itself rather than in $\cos\iota$, the astrophysically correct isotropic choice, which over-represents edge-on systems relative to reality --- since edge-on is where the degeneracy is weakest, this deviation does not appear to bias the claim in a self-serving direction, but it should have been isotropic and was not.
 \item \textbf{Metric-versioning note.}
 Two evaluation passes over the Run~7 checkpoints differ by up to 0.026\,rad in periodic ang\_MAE (both straddling the same null; no verdict affected).
 Tables~\ref{tab:phicpsi:prepost} and~\ref{tab:phicpsi:bootstrap} use the self-consistent bootstrap/stratification set.
@@ -737,7 +758,9 @@ The payoff was concrete: a near-miss that endpoint-eyeballing would have waved t
 \subsection{Future work}
 \label{sec:phicpsi:future}
 
-Three successors are scoped, in priority order.
+One immediate empirical check and three successors are scoped, in priority order.
+An \textbf{inclination-stratified breakdown of the existing Run~7 checkpoints} (\texttt{inclination\_stratification.py}, prepared alongside this revision, mirroring the SNR-tercile analysis of \S\ref{sec:phicpsi:snr} but binning on $|\cos\iota|$ against the face-on / mixed / edge-on bands of \S\ref{sec:phicpsi:prereq}) directly tests the one population slice never separately reported: if edge-on systems --- where the analytic degeneracy is weakest --- already show measurably lower ang\_MAE than face-on systems in the existing data, that sharpens the null's boundary without requiring new training; if flat, it corroborates the null's uniformity across the one axis not yet checked.
+The script requires only a CPU-light inference pass over the four $\lambda$-matched checkpoints and no retraining; it is prepared but not yet executed, and its output belongs in a revision of \S\ref{sec:phicpsi:results} once run.
 (i)~\textbf{Inclination conditioning}: supply true $(\sin\iota, \cos\iota)$ as an auxiliary input --- the analytic structure of \S\ref{sec:phicpsi:prereq} says the well-constrained combination is knowable \emph{given} $\iota$, so this tests whether the degeneracy is breakable with side information; a full implementation plan exists (train-time truth, with inference-time $\iota$ estimation explicitly out of scope).
 (ii)~An \textbf{architecture-level attack on the std\_ratio instability} for the two uninterpretable pairs (the pre-registered $\lambda$-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered $\lambda$ mini-sweep over $[0.02, 0.08]$, motivated by the peaked $\lambda$-response observed in \S\ref{sec:phicpsi:prereg}.
 (iii)~A \textbf{posterior-estimation reformulation}: the natural follow-on from ``point estimation is hopeless'' is not resignation but a conditional-density head (e.g.\ a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.
@@ -749,5 +772,6 @@ Three successors are scoped, in priority order.
 We set out to determine whether the coalescence phase and polarization angle of compact-binary signals are recoverable from strain by direct neural regression, individually or in their physically motivated sum/difference combinations.
 After eliminating two genuine optimization pathologies that initially masqueraded as (and then obscured) the answer --- $\tanh$ saturation at initialization, and magnitude drift induced by a norm-blind circular loss --- and after subjecting the resulting flat learning curves to a verification battery spanning configuration audits, permutation tests, population stratification, an ablation, and a pre-registered two-arm regularization sweep, the answer is: \textbf{no}.
 Every model, at every capacity and every regularization strength, converged to the optimal constant predictor, at the analytic random-guessing error, while learning four other parameters well from the same shared representation --- and no result at any point cleared even the first gate of a pre-declared path to counter-evidence.
+The fully certified base of that claim is two $\lambda$-matched configurations (\S\ref{sec:phicpsi:pool}); the wider table of seven architectures corroborates without independently repeating the same test.
 The degeneracy is effectively exact for this population as a point-estimation problem.
 The value of the chapter lies as much in the demonstrated discipline --- mechanism before metrics, code-validated controls, pre-registered criteria inside the engineering loop --- as in the null it certifies, and both carry directly into the inclination-conditioned and posterior-based formulations that follow.

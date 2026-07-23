@@ -132,8 +132,10 @@ by design (see Section 4). Original recommendation text, for record:
    stable, just at the wrong magnitude).~~ Done (Run 9a/9b) — gate failed at
    both values.
 3. **Multi-step perturbation trace** — blocked behind Step 0 gate passing
-   (see Section 4); not run. Deciding whether to decouple it into a
-   standalone script is an open question.
+   (see Section 4); not run at the time of this assessment.
+   **Update (2026-07-23):** the decoupling question is decided — a standalone
+   un-gated script now exists (`perturbation_trace_standalone.py`, targeting
+   the Run 7 λ=0.01 checkpoints); pending execution on the lab GPU machine.
 
 With the λ-sweep branch closed, the next decision is whether to scope an
 architecture-level fix for these two combinations or deprioritize that thread

@@ -481,17 +481,17 @@ heads we care about. Inclination's failure is a separate open question
 
 ### Hypothesis status (updated post-fix, revised after review)
 
-| Hypothesis                          | Status        | Evidence                                              |
-|-------------------------------------|---------------|-------------------------------------------------------|
-| Data pipeline bug                   | Ruled out     | Check 1 ×4                                            |
-| Loss wiring bug                     | Fixed         | Check 2 confirmed ×3                                  |
-| Tanh saturation on PERIODIC heads   | **FIXED**     | std_ratio ≠ √2; linear activation verified            |
-| PERIODIC encoding broken            | Ruled out     | Same encoding for all angular heads                   |
-| Disconnected computation graph      | Ruled out     | Gradient reaches all heads post-fix                   |
+| Hypothesis                          | Status        | Evidence                                               |
+|-------------------------------------|---------------|--------------------------------------------------------|
+| Data pipeline bug                   | Ruled out     | Check 1 ×4                                             |
+| Loss wiring bug                     | Fixed         | Check 2 confirmed ×3                                   |
+| Tanh saturation on PERIODIC heads   | **FIXED**     | std_ratio ≠ √2; linear activation verified             |
+| PERIODIC encoding broken            | Ruled out     | Same encoding for all angular heads                    |
+| Disconnected computation graph      | Ruled out     | Gradient reaches all heads post-fix                    |
 | normalize_unit gradient attenuation | **ACTIVE**    | \|v\| diverges → gradient ∝ 1/\|v\|; inclination fails |
-| φc-ψ degeneracy confirmed           | **UNTESTED**  | Cannot test until \|v\| is stabilized                 |
-| Combo heads break degeneracy        | **UNTESTED**  | Combos inherit upstream \|v\| pathology               |
-| ι-conditioning needed               | **PREMATURE** | Fix the mechanism before evaluating the physics       |
+| φc-ψ degeneracy confirmed           | **UNTESTED**  | Cannot test until \|v\| is stabilized                  |
+| Combo heads break degeneracy        | **UNTESTED**  | Combos inherit upstream \|v\| pathology                |
+| ι-conditioning needed               | **PREMATURE** | Fix the mechanism before evaluating the physics        |
 
 ### Open bugs
 
@@ -689,13 +689,13 @@ is retired.
 
 ### Hypothesis status (updated)
 
-| Hypothesis                          | Status         | Evidence                                             |
-|-------------------------------------|----------------|------------------------------------------------------|
-| normalize_unit gradient attenuation | **FIX PENDING**| Magnitude penalty implemented, not yet retrained     |
-| Inclination failure = normalize_unit| **REFUTED**    | Code trace: Huber loss, no normalize_unit in path    |
-| Inclination failure — root cause    | **OPEN**       | Separate investigation needed                       |
-| φc-ψ degeneracy                     | **UNTESTED**   | Cannot test until |v| stabilized + retrained          |
-| Combo heads break degeneracy        | **UNTESTED**   | Same — blocked by |v| bug                            |
+| Hypothesis                           | Status          | Evidence                                          |
+|--------------------------------------|-----------------|---------------------------------------------------|
+| normalize_unit gradient attenuation  | **FIX PENDING** | Magnitude penalty implemented, not yet retrained  |
+| Inclination failure = normalize_unit | **REFUTED**     | Code trace: Huber loss, no normalize_unit in path |
+| Inclination failure — root cause     | **OPEN**        | Separate investigation needed                     |
+| φc-ψ degeneracy                      | **UNTESTED**    | Cannot test until                                 |v| stabilized + retrained          |
+| Combo heads break degeneracy         | **UNTESTED**    | Same — blocked by                                 |v| bug                            |
 
 ### Next steps (updated)
 
@@ -786,12 +786,12 @@ loss paths (verified by code trace in Run 6 pre-flight checks).
 state varies by model. Full trajectories extracted at
 [`std_ratio_trajectories.md`](std_ratio_trajectories.md):
 
-| Model | coa_phase std_ratio (ep 79) | Late-epoch trend | pol_angle std_ratio (ep 79) | Late-epoch trend |
-|-------|:---:|:---:|:---:|:---:|
-| poc_b | 0.85 | +0.0037/ep, stable ✅ | 0.67 | +0.0006/ep, stable ✅ |
-| cnn_attention | 0.64 | −0.0002/ep, stable ✅ | 0.62 | −0.0007/ep, stable ✅ |
-| poc_a | 0.69 | −0.0018/ep, mostly stable | 0.44 | +0.0001/ep, flat but below 0.5 ⚠️ |
-| tcn | 0.34 | **−0.0078/ep, still declining** ❌ | 0.62 | +0.0138/ep, recovered from 0.07 ✅ |
+| Model         | coa_phase std_ratio (ep 79) |         Late-epoch trend          | pol_angle std_ratio (ep 79) |         Late-epoch trend          |
+|---------------|:---------------------------:|:---------------------------------:|:---------------------------:|:---------------------------------:|
+| poc_b         |            0.85             |       +0.0037/ep, stable ✅        |            0.67             |       +0.0006/ep, stable ✅        |
+| cnn_attention |            0.64             |       −0.0002/ep, stable ✅        |            0.62             |       −0.0007/ep, stable ✅        |
+| poc_a         |            0.69             |     −0.0018/ep, mostly stable     |            0.44             | +0.0001/ep, flat but below 0.5 ⚠️ |
+| tcn           |            0.34             | **−0.0078/ep, still declining** ❌ |            0.62             | +0.0138/ep, recovered from 0.07 ✅ |
 
 **Two of four models are fully healthy on both heads** (poc_b, cnn_attention).
 poc_a pol_angle is stable at the wrong value (30/40 late epochs below 0.5) —
@@ -804,11 +804,11 @@ likely a λ-tuning issue for that specific head. tcn coa_phase has not converged
 **The PERIODIC heads still do not learn.** Final validation metrics from
 `analyse_predictions.py` (2026-07-20):
 
-| Head               | Run 7 circ_r range | Run 7 ang_MAE range | Null expectation   |
-|--------------------|--------------------|----------------------|---------------------|
-| coa_phase          | 0.43–0.99          | 1.54–1.61 rad        | π/2 = 1.571 rad    |
-| polarization_angle | 0.17–0.99          | 0.78–0.80 rad        | π/4 = 0.785 rad    |
-| inclination        | 0.37–0.80          | 1.53–1.59 rad        | π/2 = 1.571 rad    |
+| Head               | Run 7 circ_r range | Run 7 ang_MAE range | Null expectation |
+|--------------------|--------------------|---------------------|------------------|
+| coa_phase          | 0.43–0.99          | 1.54–1.61 rad       | π/2 = 1.571 rad  |
+| polarization_angle | 0.17–0.99          | 0.78–0.80 rad       | π/4 = 0.785 rad  |
+| inclination        | 0.37–0.80          | 1.53–1.59 rad       | π/2 = 1.571 rad  |
 
 poc_b shows COLLAPSE (circ_r ≈ 0.99) on both coa_phase and pol_angle — more severe
 mode collapse than the plain baseline poc_a. This is explained by the curriculum
@@ -978,11 +978,11 @@ consistent with a more expressive but noisier trunk readout.
 N=10,000 bootstrap shuffles, N=5,000 validation samples. One-sided test: is
 observed ang_MAE significantly *below* the null distribution?
 
-| Model | coa_phase | pol_angle | inclination |
-|-------|:---:|:---:|:---:|
-| poc_a | z=−0.20, p=0.579 | z=+0.46, p=0.324 | z=+1.04, p=0.152 |
-| poc_b | z=−1.25, p=0.895 | z=−0.05, p=0.518 | z=+0.07, p=0.464 |
-| tcn | z=−0.56, p=0.711 | z=−0.33, p=0.630 | z=+1.21, p=0.114 |
+| Model         |    coa_phase     |    pol_angle     |       inclination       |
+|---------------|:----------------:|:----------------:|:-----------------------:|
+| poc_a         | z=−0.20, p=0.579 | z=+0.46, p=0.324 |    z=+1.04, p=0.152     |
+| poc_b         | z=−1.25, p=0.895 | z=−0.05, p=0.518 |    z=+0.07, p=0.464     |
+| tcn           | z=−0.56, p=0.711 | z=−0.33, p=0.630 |    z=+1.21, p=0.114     |
 | cnn_attention | z=−2.43, p=0.994 | z=+0.07, p=0.472 | **z=+3.17, p=0.0007 ★** |
 
 **Result: 11/12 model×head combinations are indistinguishable from random.**
@@ -1077,21 +1077,21 @@ pathology resolved in these models, a flat circular loss is clean evidence that
 
 ### Hypothesis status (2026-07-21, post-verification)
 
-| Hypothesis | Status | Evidence |
-| --- | --- | --- |
-| Data pipeline bug | Ruled out | Check 1 ×5 |
-| Loss wiring bug | Ruled out | Check 2 confirmed ×4 + code trace |
-| Tanh saturation on PERIODIC heads | **FIXED (R5)** | linear activation since Run 5 |
-| PERIODIC encoding broken | Ruled out | Same encoding for all angular heads |
-| Disconnected computation graph | Ruled out | Checks 4+6: gradients reach φc/ψ weights |
-| normalize_unit gradient attenuation | **FIXED (R7)** | Magnitude penalty λ=0.01; std_ratios stabilized in 2/4 models |
-| poc_b collapse = config bug | Ruled out | Config diff identical except intended PoC design elements; collapse is curriculum+degeneracy prediction |
-| cnn_attention outlier = config difference | Ruled out | Only difference is trunk architecture; q_tokens unused; lower circ_r is feature-variance artifact |
-| ang_MAE distinguishable from random | **REFUTED** | Bootstrap: 11/12 model×head combinations non-significant (D) |
-| SNR-dependent learning | **Not observed** | No model shows SNR-dependent ang_MAE improvement on either φc or ψ head (E) |
-| φc-ψ degeneracy (no ι) | **STRONG EVIDENCE** | Circular loss flat at ~1.0 in models with clean |v| + healthy gradients. Three independent tests (loss trajectory, bootstrap, SNR stratification) converge. |
-| Combo heads break degeneracy | **REFUTED** | poc_b circular loss flat at ~1.0; COLLAPSE worse than baseline |
-| Inclination failure | **OPEN** | Separate mechanism (Huber, no normalize_unit). Bootstrap: cnn_attention significant (z=+3.17, p=0.0007) but SNR-independent — may be population-level bias, not per-sample learning. Does not survive Bonferroni correction. |
+| Hypothesis                                | Status              | Evidence                                                                                                                                                                                                                     |
+|-------------------------------------------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Data pipeline bug                         | Ruled out           | Check 1 ×5                                                                                                                                                                                                                   |
+| Loss wiring bug                           | Ruled out           | Check 2 confirmed ×4 + code trace                                                                                                                                                                                            |
+| Tanh saturation on PERIODIC heads         | **FIXED (R5)**      | linear activation since Run 5                                                                                                                                                                                                |
+| PERIODIC encoding broken                  | Ruled out           | Same encoding for all angular heads                                                                                                                                                                                          |
+| Disconnected computation graph            | Ruled out           | Checks 4+6: gradients reach φc/ψ weights                                                                                                                                                                                     |
+| normalize_unit gradient attenuation       | **FIXED (R7)**      | Magnitude penalty λ=0.01; std_ratios stabilized in 2/4 models                                                                                                                                                                |
+| poc_b collapse = config bug               | Ruled out           | Config diff identical except intended PoC design elements; collapse is curriculum+degeneracy prediction                                                                                                                      |
+| cnn_attention outlier = config difference | Ruled out           | Only difference is trunk architecture; q_tokens unused; lower circ_r is feature-variance artifact                                                                                                                            |
+| ang_MAE distinguishable from random       | **REFUTED**         | Bootstrap: 11/12 model×head combinations non-significant (D)                                                                                                                                                                 |
+| SNR-dependent learning                    | **Not observed**    | No model shows SNR-dependent ang_MAE improvement on either φc or ψ head (E)                                                                                                                                                  |
+| φc-ψ degeneracy (no ι)                    | **STRONG EVIDENCE** | Circular loss flat at ~1.0 in models with clean                                                                                                                                                                              |v| + healthy gradients. Three independent tests (loss trajectory, bootstrap, SNR stratification) converge. |
+| Combo heads break degeneracy              | **REFUTED**         | poc_b circular loss flat at ~1.0; COLLAPSE worse than baseline                                                                                                                                                               |
+| Inclination failure                       | **OPEN**            | Separate mechanism (Huber, no normalize_unit). Bootstrap: cnn_attention significant (z=+3.17, p=0.0007) but SNR-independent — may be population-level bias, not per-sample learning. Does not survive Bonferroni correction. |
 
 ### Remaining open items
 
@@ -1162,12 +1162,12 @@ Runner: `run_lam0_ablation.py`. Report: `lam0_ablation_output/lam0_ablation_repo
 
 **Result:**
 
-| Model | Head | λ=0 Δ (val circ loss) | λ=0.01 Δ | Verdict |
-|---|---|---|---|---|
-| poc_a | coa_phase | +0.0010 | +0.0249 | drift absent at λ=0 |
-| poc_a | polarization_angle | +0.0002 | +0.0163 | drift absent at λ=0 |
-| tcn | coa_phase | +0.0011 | +0.0204 | drift absent at λ=0 |
-| tcn | polarization_angle | +0.0072 | +0.0136 | **persists — penalty NOT the cause** |
+| Model | Head               | λ=0 Δ (val circ loss) | λ=0.01 Δ | Verdict                              |
+|-------|--------------------|-----------------------|----------|--------------------------------------|
+| poc_a | coa_phase          | +0.0010               | +0.0249  | drift absent at λ=0                  |
+| poc_a | polarization_angle | +0.0002               | +0.0163  | drift absent at λ=0                  |
+| tcn   | coa_phase          | +0.0011               | +0.0204  | drift absent at λ=0                  |
+| tcn   | polarization_angle | +0.0072               | +0.0136  | **persists — penalty NOT the cause** |
 
 3 of 4 signals: the λ=0.01 creep vanishes at λ=0, confirming it was a
 λ/log-var interaction artifact, not evidence of active anti-learning. 1 of 4
@@ -1184,9 +1184,9 @@ train/val split (mild memorization of phase noise), not generalizable signal.
 
 ### Hypothesis status update (2026-07-22)
 
-| Hypothesis | Status | Evidence |
-| --- | --- | --- |
-| Val-loss creep at λ=0.01 = penalty artifact | **CONFIRMED (3/4)** | Drift vanishes at λ=0 for poc_a coa_phase, poc_a pol_angle, tcn coa_phase |
+| Hypothesis                                  | Status                              | Evidence                                                                                          |
+|---------------------------------------------|-------------------------------------|---------------------------------------------------------------------------------------------------|
+| Val-loss creep at λ=0.01 = penalty artifact | **CONFIRMED (3/4)**                 | Drift vanishes at λ=0 for poc_a coa_phase, poc_a pol_angle, tcn coa_phase                         |
 | Val-loss creep = genuinely different signal | **NOT SUPPORTED (3/4), open (1/4)** | tcn pol_angle still drifts at λ=0 — small effect, unexplained, doesn't change headline conclusion |
 
 ---
@@ -1261,10 +1261,10 @@ for both, per the pre-registered decision table.** Since neither cleared the
 gate, Steps 1–3 (bootstrap, effect size, SNR check, perturbation trace) did
 not run — this is by design, not a missing analysis.
 
-| Model | Head | frac unhealthy (last 40 ep) | late trend/ep | Gate |
-|---|---|---|---|---|
-| tcn | coa_phase | 0.05 (passes <0.10) | −0.00638 (fails \|·\|<0.005) | **FAIL** |
-| poc_a (baseline) | polarization_angle | 0.35 (fails <0.10) | +0.00718 (fails) | **FAIL** |
+| Model            | Head               | frac unhealthy (last 40 ep) | late trend/ep                | Gate     |
+|------------------|--------------------|-----------------------------|------------------------------|----------|
+| tcn              | coa_phase          | 0.05 (passes <0.10)         | −0.00638 (fails \|·\|<0.005) | **FAIL** |
+| poc_a (baseline) | polarization_angle | 0.35 (fails <0.10)          | +0.00718 (fails)             | **FAIL** |
 
 Full trace (`runs/phic_psi_lam005_retune{,_tcn}/20260722_*/history.csv`) shows
 *why* each failed differently, and it's worth recording precisely because a
@@ -1306,10 +1306,10 @@ insufficient, not counted either way." Steps 1–3 correctly did not run.
 This closes the λ-sweep branch (0, 0.01, 0.05, 0.10) for both primary
 targets.
 
-| Model | Head | frac unhealthy (last 40 ep) | late trend/ep | Gate | vs λ=0.05 |
-|---|---|---|---|---|---|
-| tcn | coa_phase | 0.28 (fails <0.10) | −0.00255 (passes \|·\|<0.005) | **FAIL** | worse (0.05→0.28) |
-| poc_a (baseline) | polarization_angle | 0.73 (fails) | +0.00731 (fails) | **FAIL** | much worse (0.35→0.73) |
+| Model            | Head               | frac unhealthy (last 40 ep) | late trend/ep                 | Gate     | vs λ=0.05              |
+|------------------|--------------------|-----------------------------|-------------------------------|----------|------------------------|
+| tcn              | coa_phase          | 0.28 (fails <0.10)          | −0.00255 (passes \|·\|<0.005) | **FAIL** | worse (0.05→0.28)      |
+| poc_a (baseline) | polarization_angle | 0.73 (fails)                | +0.00731 (fails)              | **FAIL** | much worse (0.35→0.73) |
 
 Unlike Run 9a, this is not a near-miss on either primary target. Raw traces
 (`runs/phic_psi_lam010_retune{,_tcn}/20260722_*/history.csv`) show two
@@ -1393,5 +1393,22 @@ not a plateau-window artifact at all.
       **λ alone insufficient**; branch closed.
 - [x] λ sweep exhausted for both primary targets (0, 0.01, 0.05, 0.10) — next
       lever, if pursued, is architecture-level, not a further λ value.
+- [ ] Standalone perturbation trace (A.3, un-gated) — **script created
+      2026-07-23** (`perturbation_trace_standalone.py`, targets Run 7 λ=0.01
+      checkpoints, 25 steps + net-vs-sum random-walk diagnostic); pending
+      execution on the lab GPU machine
 - [ ] After above items resolved: **proceed to ι-conditioning experiments** —
       not yet started
+
+### Closing punch list resolution (2026-07-23)
+
+The closing punch list (`phic_psi_closing_punch_list.md`) was worked through before treating the investigation as write-up-ready.
+Dispositions:
+
+- **A.3 perturbation trace un-gated.** The multi-step trace was decoupled from the retune scripts' Step 0 gate into `perturbation_trace_standalone.py` (see checklist above); it runs against the existing Run 7 λ=0.01 checkpoints with no training and adds a net-vs-sum displacement ratio against the 1/√N random-walk reference to separate directional drift from oscillation.
+  Pending lab-machine execution; the thesis chapter cites it as prepared-not-run.
+- **λ-sweep wording decided.** The Run 9a/9b pattern (near-miss at λ=0.05, regression everywhere at λ=0.10) is peaked, not monotonic; "exhausted" is now explicitly scoped to the pre-registered sweep and its stopping rule, and a finer freshly pre-registered mini-sweep over λ ∈ [0.02, 0.08] is filed as future work rather than the λ dimension being claimed ruled out.
+  This is a documentation decision only — no new training, and the pre-registered verdict language is unchanged.
+- **Known-but-unresolved items stated as such** (in the record and in the chapter's threats-to-validity list): inclination's separate Huber-path failure mechanism (traced, ruled out as a φc/ψ confound, not itself resolved); the `SumDiffTrainer`-specific sky_position degradation (flagged, never investigated, out of scope); the 40-epoch/±0.005 gate window vs the plateau-schedule settling time (raised at Run 9a, correctly not retroactively changed, open for future gates).
+- **Deferred to future work by name:** the finer λ mini-sweep; the architecture-level std_ratio fix for tcn/coa_phase and poc_a/pol_angle; ι-conditioning as the start of a new investigation rather than a tail of this one.
+- **Thesis chapter** drafted from this record at `thesis/chapter_phic_psi_degeneracy.{md,tex}` (2026-07-22, punch-list amendments 2026-07-23); scope-of-conclusion paragraph verified present (§8.1 conditional-claim list, conclusion scoped to the model class tested).

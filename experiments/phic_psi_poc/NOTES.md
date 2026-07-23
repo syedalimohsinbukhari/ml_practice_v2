@@ -593,3 +593,14 @@ Reports: [`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/l
 Optional sanity check per plan Sec. 4: fixed `ι=0` dataset slice to
 confirm diff-head collapses to near-zero under guaranteed-exact degeneracy.
 Not urgent — useful for debugging if Run B results are ambiguous.
+
+## Closing punch list resolution (2026-07-23)
+
+`phic_psi_closing_punch_list.md` worked through before treating the investigation as write-up-ready; full dispositions in `diagnostic_log.md` (same-date section).
+Summary:
+
+- A.3 trace un-gated into `perturbation_trace_standalone.py` (Run 7 λ=0.01 checkpoints, no training); pending lab-machine execution.
+- λ-sweep "exhausted" explicitly scoped to the pre-registered sweep/stopping rule; peaked λ-response noted; finer pre-registered mini-sweep λ ∈ [0.02, 0.08] filed as future work.
+- Known-but-unresolved stated as such: inclination Huber-path mechanism, SumDiffTrainer sky_position degradation, gate-window calibration question.
+- Deferred by name: finer λ mini-sweep, architecture-level std_ratio fix, ι-conditioning (new investigation).
+- Thesis chapter at `thesis/chapter_phic_psi_degeneracy.{md,tex}` reflects all of the above.

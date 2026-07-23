@@ -210,7 +210,9 @@ insufficient," not resolved by tuning.
 
 ### What's still open?
 The λ=0 ablation (Run 8) and both λ retunes (Run 9a/9b) are done. Only the multi-step
-perturbation trace remains — and it's blocked by design (gated behind the Step 0 gate
-passing, which never happened), not merely unscheduled.
-→ [`diagnostic_log.md`](diagnostic_log.md) (Remaining open items),
+perturbation trace remains — formerly blocked by design (gated behind the Step 0 gate
+passing, which never happened), it has since been decoupled into
+[`perturbation_trace_standalone.py`](perturbation_trace_standalone.py) (2026-07-23) and
+awaits execution on the lab GPU machine.
+→ [`diagnostic_log.md`](diagnostic_log.md) (Remaining open items / Closing punch list),
 [`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) §5

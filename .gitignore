@@ -168,3 +168,4 @@ structure.md
 !**/diagnostic_*.log
 !**/bootstrap_*.log
 !**/snr_*.log
+!**/perturbation_*.log

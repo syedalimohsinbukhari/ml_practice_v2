@@ -2,7 +2,7 @@
 
 > **Draft status.** Chapter number, cross-references to other chapters, and citation keys (`[@…]`) are placeholders to be resolved against the thesis bibliography. All quantitative values are taken verbatim from the experiment record on branch `poc/phic-psi-degeneracy` (primary sources: `diagnostic_log.md`, `NOTES.md`, and the auto-generated reports under `experiments/phic_psi_poc/`); a claim-to-artifact map is given in the chapter appendix.
 
-> **Editorial note — remove before final submission.** This chapter has been through three rounds of adversarial AI review (`thesis/reviews/`: unsuffixed files are round 1, `*_v2.md` files are round 2, `kimi_ai_adversarial_review_v3.md` is round 3 — Kimi is the only reviewer to reach a third round). All three rounds' fixes and new analyses are folded into the text below (§ 2.1, § 6.2, § 6.6, § 6.7, § 7.1, § 8.2 Fig. 8.1, Table 6.7, and framing changes throughout § 1, § 6.3, § 8.3, § 9). Three items remain **critical future work that this text pass cannot resolve**, so a future review pass — human or AI — does not mistake the omission for an oversight: (1) a synthetic-data ablation to disentangle poc_b's curriculum design from the physical degeneracy; (2) a high-SNR (25–30) validation set or a Fisher-matrix bound, to rule out a sensitivity-floor confound distinct from degeneracy; (3) regenerating the dataset (or a small slice of it) from a version-controlled generator script, to close the waveform-provenance gap for good. A fourth item raised in round 2 — either a fresh-holdout pre-registered replication of the A.3 perturbation trace, or a formal downgrade of A.3 from "closed" to "open" — is now reflected directly in the chapter body: § 6.6 states A.3's closure as provisional, pending that replication, rather than asserting closure outright. Each of the three remaining items is a genuine, well-posed research task, not a text fix — and each was judged, at this point in the project, to cost more in new training/data-generation effort than the marginal certainty it would buy, weighed against finishing the thesis. They are recorded as scoped future work in `experiment_index.md` and `NOTES.md` (2026-07-23, "Round 2" and "Round 3" adversarial review pass entries) rather than silently dropped.
+> **Editorial note — remove before final submission.** This chapter has been through four rounds of adversarial AI review (`thesis/reviews/`: unsuffixed files are round 1, `*_v2.md` files are round 2, `kimi_ai_adversarial_review_v3.md` is round 3, `*_v4.md` files are round 4 — all three reviewers returned for round 4, whose feedback was overwhelmingly tonal rather than structural; the full item-by-item cross-check is `thesis/reviews/v4_correction_checklist.md`). All four rounds' fixes and new analyses are folded into the text below (§ 1, § 2.1, § 6.2, § 6.6, § 6.7, § 7.1, § 8.2, Fig. 8.1, Table 6.7, § 8.5, and framing changes throughout § 6.3, § 8.3, § 9). Four items remain **critical future work that this text pass cannot resolve**, so a future review pass — human or AI — does not mistake the omission for an oversight: (1) a synthetic-data ablation to disentangle poc_b's curriculum design from the physical degeneracy; (2) a high-SNR (25–30) validation set or a Fisher-matrix bound, to rule out a sensitivity-floor confound distinct from degeneracy; (3) regenerating the dataset (or a small slice of it) from a version-controlled generator script, to close the waveform-provenance gap for good; (4) a 2D joint-distribution ("ridge test") check of predicted (φ̂_c, ψ̂) pairs against saved checkpoints, raised in round 4, to directly test whether the network learned the degenerate manifold itself rather than nothing — inference-only but requires GPU access not available on this machine. A fifth item raised in round 2 — either a fresh-holdout pre-registered replication of the A.3 perturbation trace, or a formal downgrade of A.3 from "closed" to "open" — is now reflected directly in the chapter body: § 6.6 states A.3's closure as provisional, pending that replication, rather than asserting closure outright. Each of the four remaining items is a genuine, well-posed research task, not a text fix — and each was judged, at this point in the project, to cost more in new training/data-generation effort than the marginal certainty it would buy, weighed against finishing the thesis. They are recorded as scoped future work in `experiment_index.md` and `NOTES.md` (2026-07-23, "Round 2" and "Round 3" entries; 2026-07-24, "Round 4" entry) rather than silently dropped, and — as of the consistency audit of 2026-07-24 — all four are also carried in the chapter body itself as § 8.5 items (iv)–(vii), so this note can be removed without orphaning any of them.
 
 ## 1. Introduction
 
@@ -34,6 +34,9 @@ First, the null itself, defended against an explicit list of confounds: data-pip
 Second, a methodological account of *how* the null was established, because the investigation was repeatedly misled by aggregate metrics before converging on a mechanism-first diagnostic discipline and, ultimately, a pre-registered decision procedure with mechanically evaluated success criteria [@nosek2018preregistration].
 Ruling out artifacts is not preamble to the result here; it *is* the result.
 
+This null result carries a direct architectural implication, stated here so the chapter's place in the wider thesis is visible from the outset rather than only in the Discussion.
+Since strain alone does not recover φ_c/ψ under point estimation, but § 3's analytic study shows the well-constrained combination *is* recoverable given inclination, the natural next step is to condition the network on ι directly — scoped as future work in § 8.5 and taken up in the chapter that follows this one.
+
 The chapter is organized conventionally, with one deliberate exception.
 Section 2 formalizes the problem and the circular-regression framework.
 Section 3 presents an analytic prerequisite study that motivated the sum/difference reparameterization.
@@ -58,6 +61,8 @@ The alternative hypothesis motivating the experimental design is that even if φ
 
 One scope note applies to the whole chapter and is stated here rather than left implicit.
 Conditioning on inclination ι — tested as future work in § 8.5 — is treated throughout as a *training-paradigm design choice*, motivated by the analytic structure of § 3 showing that the well-constrained combination is recoverable given ι, not as a forced move necessitated by a proof that ι itself is unrecoverable.
+No model in this chapter takes ι, or any function of it, as an input at any stage; ι appears here only as a control *output* head trained on raw strain, exactly like φ_c and ψ (§ 2.2).
+The design that would feed true (sin ι, cos ι) as an input channel belongs to the successor experiment scoped in § 8.5(i), not to any run reported here.
 The inclination head's own failure (§ 5.4) is unresolved, not diagnosed as fundamental: it could reflect a genuine unlearnability of ι from strain under this architecture, or a fixable loss-path choice — § 5.4 traces it to a Huber loss on a raw two-vector, unlike the successful von Mises–Fisher parameterization used for sky position.
 Whether ι can be predicted by an independent pipeline is therefore a separate, open question that this chapter does not resolve and does not need to resolve in order to motivate testing ι-conditioning as a training paradigm; § 8.5 excludes inference-time ι estimation from scope for exactly this reason, not because ι is assumed to be fundamentally unrecoverable.
 
@@ -86,6 +91,7 @@ The **std_ratio** of a head is the ratio of the standard deviation of its raw ou
 We adopt [0.5, 2.0] as the healthy band.
 
 Non-periodic heads use a Huber loss (δ = 1) on transformed targets (log–z-scored chirp mass, z-scored SNR, sigmoid-bounded merger time), and the sky-position head uses a closed-form von Mises–Fisher negative log-likelihood on the unit sphere [@fisher1953dispersion].
+One head cuts across this taxonomy: the inclination head keeps the periodic two-vector encoding of its target, but its loss is the Huber loss applied directly to the raw output vector — no `normalize_unit` projection and no circular loss anywhere in its path (§ 5.4 documents the code-level trace and its consequences for ι's role as a control).
 All heads share a single trunk and are combined by learned homoscedastic uncertainty weighting [@kendall2018multi]: each head h carries a trainable log-variance s_h, clamped to |s_h| ≤ 3, contributing exp(−s_h)·L_h + s_h to the total loss.
 
 ## 3. Analytic Prerequisite Study
@@ -129,13 +135,13 @@ No data augmentation or SNR-dependent sample weighting is used.
 
 Five one-dimensional trunk architectures were evaluated, all mapping the (4096, 2) input to a pooled feature vector shared by every head:
 
-| Trunk | Body | Readout | Feature dim |
-|---|---|---|---|
-| `tcn` (primary) | Conv stem (64 ch, k=7, stride 2) + 10 residual TCN blocks, dilations 1–512, 64 filters, receptive field ≈ full window [@bai2018tcn] | GAP ⊕ GMP | 128 |
-| `cnn_baseline` | 4 × [Conv1D(k=16) → BN → ReLU → MaxPool(4)], filters 32–128 | GAP | 128 |
-| `cnn_attention` | 5 strided conv stages → 2 transformer encoder blocks (d=128, 4 heads) [@vaswani2017attention] | learned attention pooling | 128 |
-| `inception_time` | Conv stem (stride 4) + 6 Inception modules, kernels {9, 19, 39} [@fawaz2019inceptiontime] | GAP | 128 |
-| `resnet1d` | ResNet-style, 3 stages, filters 64/128/256, dilated second blocks [@he2016resnet] | GAP ⊕ GMP | 512 |
+| Trunk            | Body                                                                                                                                | Readout                   | Feature dim |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------|---------------------------|-------------|
+| `tcn` (primary)  | Conv stem (64 ch, k=7, stride 2) + 10 residual TCN blocks, dilations 1–512, 64 filters, receptive field ≈ full window [@bai2018tcn] | GAP ⊕ GMP                 | 128         |
+| `cnn_baseline`   | 4 × [Conv1D(k=16) → BN → ReLU → MaxPool(4)], filters 32–128                                                                         | GAP                       | 128         |
+| `cnn_attention`  | 5 strided conv stages → 2 transformer encoder blocks (d=128, 4 heads) [@vaswani2017attention]                                       | learned attention pooling | 128         |
+| `inception_time` | Conv stem (stride 4) + 6 Inception modules, kernels {9, 19, 39} [@fawaz2019inceptiontime]                                           | GAP                       | 128         |
+| `resnet1d`       | ResNet-style, 3 stages, filters 64/128/256, dilated second blocks [@he2016resnet]                                                   | GAP ⊕ GMP                 | 512         |
 
 Each head is a two-layer MLP (64 hidden units, ReLU) on the shared features, with a linear 2-unit output for periodic heads (§ 5.3 explains why *linear*, not bounded, matters).
 The five trunks were not chosen as a random sample of model space but as five distinct *inductive-bias families* — full-receptive-field dilated temporal convolution, plain hierarchical convolution, attention-based sequence modeling, explicit multi-scale kernels, and deep residual feature learning — so that each represents a different hypothesis about how phase information might be encoded in the strain; the sufficiency of this pool for a null claim is argued in § 8.2.
@@ -266,13 +272,13 @@ The claim defended below is about point-estimation regression specifically, not 
 Dashes: no pre-fix run.
 Source: `pre_post_comparison.csv`.)
 
-| Head (null) | TCN | ResNet1D | CNN base | CNN attn | Inception | poc_a | poc_b |
-|---|---|---|---|---|---|---|---|
-| φ_c (1.571) pre | 1.572 | 1.564 | 1.577 | — | 1.556 | — | 1.572 |
-| φ_c post | 1.579 | 1.578 | 1.578 | 1.577 | 1.573 | 1.580 | 1.572 |
-| ψ (0.785) pre | 0.787 | 0.787 | 0.787 | — | 0.792 | 0.779 | 0.779 |
-| ψ post | 0.786 | 0.786 | 0.793 | 0.790 | 0.780 | 0.780 | 0.791 |
-| ι (1.571) post | 1.544 | 1.588 | 1.570 | 1.559 | 1.571 | 1.560 | 1.573 |
+| Head (null)     | TCN   | ResNet1D | CNN base | CNN attn | Inception | poc_a | poc_b |
+|-----------------|-------|----------|----------|----------|-----------|-------|-------|
+| φ_c (1.571) pre | 1.572 | 1.564    | 1.577    | —        | 1.556     | —     | 1.572 |
+| φ_c post        | 1.579 | 1.578    | 1.578    | 1.577    | 1.573     | 1.580 | 1.572 |
+| ψ (0.785) pre   | 0.787 | 0.787    | 0.787    | —        | 0.792     | 0.779 | 0.779 |
+| ψ post          | 0.786 | 0.786    | 0.793    | 0.790    | 0.780     | 0.780 | 0.791 |
+| ι (1.571) post  | 1.544 | 1.588    | 1.570    | 1.559    | 1.571     | 1.560 | 1.573 |
 
 The ι row is carried for diagnostic completeness, not as a positive control: as § 5.4 and § 5.6 establish, ι fails through a mechanism disjoint from the φ_c/ψ pathologies, so its presence at the null here is neither confirming nor disconfirming evidence for the degeneracy claim.
 
@@ -288,16 +294,16 @@ Table 6.2 summarizes.
 
 **Table 6.2 — Verification battery.**
 
-| § | Confound | Check | Outcome |
-|---|---|---|---|
-| A.1 | Penalty silently inactive | config + code-path inspection | λ = 0.01 confirmed active in all four configs |
+| §   | Confound                                | Check                                | Outcome                                                                                                                                                |
+|-----|-----------------------------------------|--------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| A.1 | Penalty silently inactive               | config + code-path inspection        | λ = 0.01 confirmed active in all four configs                                                                                                          |
 | A.2 | Raw-magnitude drift invalidates metrics | full 80-epoch std_ratio trajectories | 2/4 models fully healthy (poc_b, cnn_attention); tcn φ_c still declining (0.34, −0.0078/epoch), poc_a ψ stable-but-low (0.44) → flagged, pursued in §7 |
-| A.3 | Gradient path dead | perturbation + gradient-chain trace | path healthy; an 89× prediction-sensitivity asymmetry initially flagged, closed by the calibrated standalone trace's paired-statistic channel (§ 6.6) |
-| B | poc_b config bug | config diff vs poc_a | four intentional keys only; worse collapse *explained* by curriculum (below) |
-| C | cnn_attention hides real learning | config diff + architecture trace | outlier metrics are attention-pooling variance artifacts; ang_MAE at null |
-| D | Sub-null MAE is real signal | 10,000-permutation bootstrap | 11/12 model×head tests non-significant; φ_c and ψ: 0/8 |
-| E | Learning hides in loud events | SNR-tercile stratification | no model–head pair shows a monotonic-and-material SNR trend |
-| — | Ordering-confounded bootstrap | row-order audit | data i.i.d. (window variance ratio 0.991); artifact bound 0.013 rad |
+| A.3 | Gradient path dead                      | perturbation + gradient-chain trace  | path healthy; an 89× prediction-sensitivity asymmetry initially flagged, provisionally closed by the calibrated standalone trace's paired-statistic channel (§ 6.6)  |
+| B   | poc_b config bug                        | config diff vs poc_a                 | four intentional keys only; worse collapse *explained* by curriculum (below)                                                                           |
+| C   | cnn_attention hides real learning       | config diff + architecture trace     | outlier metrics are attention-pooling variance artifacts; ang_MAE at null                                                                              |
+| D   | Sub-null MAE is real signal             | 10,000-permutation bootstrap         | 11/12 model×head tests non-significant; φ_c and ψ: 0/8                                                                                                 |
+| E   | Learning hides in loud events           | SNR-tercile stratification           | no model–head pair shows a monotonic-and-material SNR trend                                                                                            |
+| —   | Ordering-confounded bootstrap           | row-order audit                      | data i.i.d. (window variance ratio 0.991); artifact bound 0.013 rad                                                                                    |
 
 Two of these deserve narrative attention.
 
@@ -306,6 +312,7 @@ The config diff shows only the four intended poc-mode keys; the mechanism is the
 For near-face-on samples w(ι) ≈ 0 suppresses the poorly-constrained combination, so the model effectively trains one combination — a single constraint on the two-dimensional (φ_c, ψ) — and the optimal response to a single unlearnable constraint under circular loss is a sharp constant, which is what poc_b produces (a single peak carrying ~42% of all predictions).
 The design would have exploited a breakable degeneracy; its collapse into the constant predictor is what that design does when the degeneracy is not breakable.
 (Cost: a mild, predictable transfer-interference tax on chirp mass, MAE 0.977 → 1.024.)
+The combination heads' own losses corroborate this at the loss level, not only the prediction-distribution level: combo A and combo B circular loss sat at 0.999 → 0.999 and 1.006 → 0.991 respectively through epoch 79 (§ 5.5) — the random-guessing null — so on the parameterization purpose-built to expose the analytically well-constrained combination, that combination's own loss never left the null either; the network did not merely fail to decouple φ_c and ψ, it also failed to show measurable in-sample progress on the recoverable combination itself.
 This reading is the best mechanistic account available, but it is not the only one: the curriculum's near-face-on suppression of one combination could itself produce rank-deficient gradients independent of whether the underlying target is truly unlearnable, so poc_b is treated below (§ 8.2) as a distinct, curriculum-confounded consistency check rather than as an independent repeat of the certified null.
 
 **The cnn_attention outlier is an artifact with a testable signature.** Its lower circ_r comes from learned attention pooling producing higher-variance features than fixed GAP/GMP readouts — spreading predictions without informing them (ang_MAE 1.597, *worst* of the four).
@@ -316,11 +323,11 @@ Its nominally significant inclination result is dissected below.
 **Table 6.3 — Label-permutation bootstrap (N = 10,000 shuffles, 5,000 validation samples, one-sided).** z > 0 means observed ang_MAE beats the shuffled-null mean.
 Source: `bootstrap_output/bootstrap_ang_mae_20260721_093533.md`.
 
-| Model | φ_c: z, p | ψ: z, p | ι: z, p |
-|---|---|---|---|
-| poc_a | −0.20, 0.579 | +0.46, 0.324 | +1.04, 0.152 |
-| poc_b | −1.25, 0.895 | −0.05, 0.518 | +0.07, 0.464 |
-| tcn | −0.56, 0.712 | −0.33, 0.630 | +1.21, 0.114 |
+| Model         | φ_c: z, p    | ψ: z, p      | ι: z, p           |
+|---------------|--------------|--------------|-------------------|
+| poc_a         | −0.20, 0.579 | +0.46, 0.324 | +1.04, 0.152      |
+| poc_b         | −1.25, 0.895 | −0.05, 0.518 | +0.07, 0.464      |
+| tcn           | −0.56, 0.712 | −0.33, 0.630 | +1.21, 0.114      |
 | cnn_attention | −2.43, 0.994 | +0.07, 0.472 | **+3.17, 0.0007** |
 
 Eleven of twelve tests are non-significant; **all eight φ_c/ψ tests fail**, six of them on the *worse-than-shuffled* side, and every one of the eight observed values falls inside its own null 95% confidence interval (`bootstrap_output/bootstrap_ang_mae_20260721_093533.md` reports the null CI directly for each; e.g. tcn/φ_c: observed 1.578 against null CI [1.561, 1.588]).
@@ -349,12 +356,12 @@ A rising loss could mean the magnitude penalty was actively corrupting predictio
 
 **Table 6.4 — Endpoint drift of validation circular loss.**
 
-| Model | Head | Δ at λ=0 | Δ at λ=0.01 | Reading |
-|---|---|---|---|---|
-| poc_a | φ_c | +0.0010 | +0.0249 | artifact of λ (resolved) |
-| poc_a | ψ | +0.0002 | +0.0163 | artifact of λ (resolved) |
-| tcn | φ_c | +0.0011 | +0.0204 | artifact of λ (resolved) |
-| tcn | ψ | **+0.0072** | +0.0136 | persists at half size — unexplained, small |
+| Model | Head | Δ at λ=0    | Δ at λ=0.01 | Reading                                    |
+|-------|------|-------------|-------------|--------------------------------------------|
+| poc_a | φ_c  | +0.0010     | +0.0249     | artifact of λ (resolved)                   |
+| poc_a | ψ    | +0.0002     | +0.0163     | artifact of λ (resolved)                   |
+| tcn   | φ_c  | +0.0011     | +0.0204     | artifact of λ (resolved)                   |
+| tcn   | ψ    | **+0.0072** | +0.0136     | persists at half size — unexplained, small |
 
 Three of four drift signals vanish with the penalty off: the creep was a penalty/uncertainty-weighting interaction, not anti-learning.
 The fourth (tcn ψ) persists at +0.0072 on a loss of ~1.0 and is recorded as unexplained-but-small rather than forced into the majority pattern.
@@ -369,20 +376,20 @@ The multi-step trace built to resolve this was gated behind the pre-registered s
 
 **Table 6.5 — Standalone multi-step perturbation trace, at the converged checkpoints ("final") and after a fresh initialization plus ~1-epoch warmup ("early").** net/sum is the ratio of net displacement to summed per-step displacements (random-walk reference 1/√25 = 0.20). Δ is the paired per-sample probe change over the 25 steps with its paired standard error's t statistic — circular loss for φ_c/ψ, transformed-target MSE for mchirp. Source: `perturbation_trace_output/`.
 
-| Stage | Model | φ_c: net/sum, Δ (t) | ψ: net/sum, Δ (t) | mchirp: net/sum, Δ (t) |
-|---|---|---|---|---|
-| final | poc_a | 0.30, −0.018 (−0.9) | 0.63, +0.043 (+0.8) | 0.04, +0.021 (+4.2) |
-| final | poc_b | 0.39, −0.013 (−1.0) | 0.23, +0.004 (+1.7) | 0.04, +0.040 (+9.0) |
-| final | tcn | 0.92, −0.010 (−0.2) | 0.36, +0.050 (+1.6) | 0.03, +0.017 (+4.3) |
-| final | cnn_attention | 0.41, −0.044 (−1.1) | 0.34, +0.023 (+0.7) | 0.19, +0.065 (+4.4) |
-| early | poc_a | 0.16, −0.017 (−1.6) | 0.14, +0.004 (+0.1) | 0.09, **−0.158 (−5.2)** |
-| early | poc_b | 0.08, −0.006 (−0.7) | 0.09, +0.001 (+0.1) | 0.13, **−0.129 (−3.4)** |
-| early | tcn | 0.24, −0.002 (−0.0) | 0.15, +0.035 (+0.6) | 0.10, **−0.113 (−4.1)** |
+| Stage | Model         | φ_c: net/sum, Δ (t) | ψ: net/sum, Δ (t)   | mchirp: net/sum, Δ (t)  |
+|-------|---------------|---------------------|---------------------|-------------------------|
+| final | poc_a         | 0.30, −0.018 (−0.9) | 0.63, +0.043 (+0.8) | 0.04, +0.021 (+4.2)     |
+| final | poc_b         | 0.39, −0.013 (−1.0) | 0.23, +0.004 (+1.7) | 0.04, +0.040 (+9.0)     |
+| final | tcn           | 0.92, −0.010 (−0.2) | 0.36, +0.050 (+1.6) | 0.03, +0.017 (+4.3)     |
+| final | cnn_attention | 0.41, −0.044 (−1.1) | 0.34, +0.023 (+0.7) | 0.19, +0.065 (+4.4)     |
+| early | poc_a         | 0.16, −0.017 (−1.6) | 0.14, +0.004 (+0.1) | 0.09, **−0.158 (−5.2)** |
+| early | poc_b         | 0.08, −0.006 (−0.7) | 0.09, +0.001 (+0.1) | 0.13, **−0.129 (−3.4)** |
+| early | tcn           | 0.24, −0.002 (−0.0) | 0.15, +0.035 (+0.6) | 0.10, **−0.113 (−4.1)** |
 | early | cnn_attention | 0.42, +0.001 (+0.0) | 0.37, −0.031 (−0.6) | 0.29, **−0.646 (−8.5)** |
 
 Two observations stand on arithmetic alone.
-First, the asymmetry is real and now explained: the periodic heads' raw outputs move coherently and far (net/sum up to 0.93 against the 0.20 random-walk reference), while the converged scalar control barely moves net (net/sum 0.03–0.16; its positive cosine similarity is attributable to Adam momentum, which correlates consecutive steps for every head).
-Second, the coherent movement is dominantly *radial*, not angular: the circular loss depends only on the predicted angle, and its change over 25 steps is bounded by |Δ| ≤ 0.051 on a loss of ≈ 1.0 while the raw displacement is a large fraction of the output norm — large coherent raw movement with near-zero angular consequence is precisely the ‖**v**‖-magnitude dynamics of § 5.4, and the two most directional cases (tcn/φ_c, poc_a/ψ) are exactly the two heads with the known std_ratio pathologies.
+First, the asymmetry is real and now explained: the periodic heads' raw outputs move coherently and far (net/sum up to 0.92 against the 0.20 random-walk reference), while the converged scalar control barely moves net (net/sum 0.03–0.16; its positive cosine similarity is attributable to Adam momentum, which correlates consecutive steps for every head).
+Second, the coherent movement is dominantly *radial*, not angular: the circular loss depends only on the predicted angle, and its change over 25 steps is bounded by |Δ| ≤ 0.050 on a loss of ≈ 1.0 while the raw displacement is a large fraction of the output norm — large coherent raw movement with near-zero angular consequence is precisely the ‖**v**‖-magnitude dynamics of § 5.4, and the two most directional cases (tcn/φ_c, poc_a/ψ) are exactly the two heads with the known std_ratio pathologies.
 
 The first run of the trace was reviewed before acceptance, and the review reshaped the instrument itself; the sequence is reported in order because each step gates the next.
 The review raised two objections: the positive control had failed — mchirp, the best-learned head in the investigation (R² ≈ 0.96 throughout), read AMBIGUOUS at every converged checkpoint, so the classifier could not distinguish a demonstrably learned head from a dead one — and the probe-loss deltas lacked the correct *paired* statistic (the first run recorded only means, and a marginal-SE comparison is invalid for a before/after change on the same fixed samples).
@@ -391,9 +398,9 @@ Both were remediated: per-sample paired statistics were added to the instrument,
 **The calibration failed its criterion — and in failing, validated the measurement that matters.**
 Early-stage mchirp never read directional (net/sum 0.09–0.29) *while its probe MSE was collapsing at t = −3.4 to −8.5*, the strongest learning signal in the entire table: the displacement-geometry classifier labels the fastest-learning head "noise-like."
 The mechanism is instructive — learning is not rigid drift; per-step prediction deltas decorrelate as different samples' errors are corrected — and the verdict is mechanical: per the pre-stated tree, the geometry classifier is retired and no directional/ambiguous verdict from either run is used.
-The same run, however, constitutes a *passed* positive control for the instrument's other channel: the paired probe-loss statistic detects early mchirp learning decisively in all four models, and on that validated channel every periodic head is null at both stages (early |t| ≤ 1.6, final |t| ≤ 1.7, signs mixed across models and heads).
+The same run, however, constitutes a *passed* positive control for the instrument's other channel: the paired probe-loss statistic detects early mchirp learning decisively in all four models, and on that validated channel every periodic head is null at both stages (early |t| ≤ 1.6, final |t| ≤ 1.72, signs mixed across models and heads).
 The early stage is the sharper result: a within-run, stage-matched, positive-controlled contrast in which the same instrument, over the same 25 steps, watches mchirp learn steeply while φ_c and ψ sit at the random baseline.
-The paired statistic also extinguishes the one nominal escalation trigger from the first run — tcn/φ_c, directional at net/sum 0.92 with an apparently decreasing probe loss, measures −0.0097 ± 0.0491 (t = −0.20) — and the radial explanation of the original 89× asymmetry stands on arithmetic independent of the retired classifier: raw periodic outputs move by a large fraction of their norm while the angular loss moves by at most |0.051|, and the two largest raw movers are the two known std_ratio-pathology heads.
+The paired statistic also extinguishes the one nominal escalation trigger from the first run — tcn/φ_c, directional at net/sum 0.92 with an apparently decreasing probe loss, measures −0.0097 ± 0.0491 (t = −0.20) — and the radial explanation of the original 89× asymmetry stands on arithmetic independent of the retired classifier: raw periodic outputs move by a large fraction of their norm while the angular loss moves by at most |0.050|, and the two largest raw movers are the two known std_ratio-pathology heads.
 
 Two secondary observations complete the account.
 First, the final-stage mchirp deltas are significantly *positive* — probe MSE worsens by +0.017 to +0.065 (t = +4.2 to +9.0) — which is not a probe artifact but the expected signature of resuming training on a single fixed batch: at convergence the full-data gradient is ≈ 0 while the batch gradient is not, so 25 repeated steps move the head along batch-specific directions at the expense of the held-out optimum.
@@ -413,12 +420,12 @@ The analytic study of § 3 predicts the φ_c/ψ degeneracy is exact face-on and 
 
 **Table 6.6 — Inclination-stratified ang_MAE, edge-on band vs null (rad).** Positive Δ = edge-on ang_MAE *better* than the random-guessing null (ang_MAE < null); negative Δ = *worse* than null. Source: `inclination_output/inclination_stratification_20260723_130630.md`.
 
-| Model | φ_c edge-on Δ vs null | ψ edge-on Δ vs null | Same-model ι-band noise floor (max \|Δ\|) |
-|---|---|---|---|
-| poc_a | +0.0241 | −0.0227 | 0.0569 |
-| poc_b | +0.0096 | +0.0054 | 0.0215 |
-| tcn | −0.0407 | −0.0083 | 0.0225 |
-| cnn_attention | −0.0087 | −0.0189 | 0.0944 |
+| Model         | φ_c edge-on Δ vs null | ψ edge-on Δ vs null | Same-model ι-band noise floor (max \|Δ\|) |
+|---------------|-----------------------|---------------------|-------------------------------------------|
+| poc_a         | +0.0241               | −0.0227             | 0.0569                                    |
+| poc_b         | +0.0096               | +0.0054             | 0.0215                                    |
+| tcn           | −0.0407               | −0.0083             | 0.0225                                    |
+| cnn_attention | −0.0087               | −0.0189             | 0.0944                                    |
 
 No model shows a cross-consistent, edge-on-favoring recovery of either angle.
 Of the eight φ_c/ψ deviations, the largest in the *hoped-for* direction is poc_a/φ_c (+0.0241 rad, and the only one of the eight monotonic across all three bands: 1.6042 → 1.5623 → 1.5467); the largest in the *anti* direction is tcn/φ_c (−0.0407 rad).
@@ -429,21 +436,22 @@ That floor is 0.0569 rad for poc_a, 0.0215 for poc_b, 0.0225 for tcn, and 0.0944
 tcn/φ_c's −0.0407 rad edge-on deviation exceeds tcn's own 0.0225-rad floor, but in the *worse-than-null* direction and on the one head this chapter already flags as never achieving certified metric health (std_ratio never converged, § 6.2, § 7): an unstable head producing an oversized swing, in the direction a real signal could not produce, is consistent with its documented instability, not a new finding.
 
 One honest limit on this argument, raised on review: the ι-noise-floor comparison is a *diagnostic calibration*, not a formal statistical test, and it assumes ι's band-to-band fluctuation is independent sampling noise rather than a symptom shared with φ_c/ψ's own failure — e.g. a common-cause pathology upstream of any individual loss (the shared trunk, the shared batch-normalization front end, or the two-layer MLP head design) that makes *any* angular target unrepresentable regardless of which loss trains it.
+A further, purely mechanical reason to keep this a calibration rather than a test: ι is trained with a Huber loss on a raw two-vector, while φ_c and ψ are trained with circular loss on a normalized vector (§ 2.2, § 5.4), so the two heads' finite-sample fluctuation distributions are not strictly identically distributed even if both are pure sampling noise — the comparison is informative as a same-model, same-binning, order-of-magnitude floor, not as a distribution-matched statistical bound.
 Two facts argue against a shared-cause reading, short of a fully independent statistical proof.
 First, § 5.4's code-level trace already rules out one specific common cause: ι's failure runs through a Huber loss on its raw two-vector with no `normalize_unit` in the path at all, so it cannot share the tanh-saturation or magnitude-drift mechanisms diagnosed for φ_c/ψ — there is no single bug common to all three periodic heads, only three code paths independently inspected.
 Second, the sky-position head — genuinely directional (a von Mises–Fisher likelihood on the unit sphere, § 2.2), and dependent on inter-detector phase information in a way analogous to φ_c/ψ — is recovered well (3.3°–10.0° mean error, § 5.6): the shared trunk demonstrably carries usable directional information into a head architecture in the same family when that information is present, which weighs against an architecture-wide inability to represent angular targets.
+This analogy has a physical limit worth naming rather than leaving implicit: sky position is constrained primarily by inter-detector amplitude modulation and time delays, not by absolute carrier phase, so its recovery demonstrates the trunk can extract geometric envelope features without, by itself, proving carrier-phase sensitivity.
+The positive control that bears directly on phase is chirp mass, whose recovery (R² = 0.93–0.96, § 5.6) depends on the phase-evolution history of the waveform and so confirms the trunk is not fundamentally blind to phase information, even though it does not resolve the head-capacity question below.
 Neither point converts the ι-noise-floor comparison into a formal test; it remains a calibration heuristic, and a stronger version — stratifying a known-good scalar control by the same inclination bands to confirm banding itself does not inject spurious metric variance — is reported next rather than left as future work.
-A further caveat, distinct from the two points above: the independence assumption is plausible but not proven against a head-capacity confound specifically, since ι, φ_c, and ψ all share the same two-layer MLP head architecture, so a shared limitation in mapping the trunk's representation to angular targets — rather than a shared loss-path bug, which is already ruled out — could in principle produce correlated failure across all three periodic heads.
-The code-level and sky-position arguments above bound this concern but do not rule it out, and it is not tested further here.
 
 **Table 6.7 — Chirp-mass MAE/R² across the same face-on/mixed/edge-on bands (scalar-control check).** Source: `inclination_output/inclination_control_stratification_20260723_140016.md`.
 
-| Model | face-on R² | mixed R² | edge-on R² | R² spread | MAE spread (M_⊙) |
-|---|---|---|---|---|---|
-| poc_a | 0.9639 | 0.9566 | 0.9626 | 0.0073 | 0.0460 |
-| poc_b | 0.9612 | 0.9525 | 0.9605 | 0.0087 | 0.0801 |
-| tcn | 0.9646 | 0.9549 | 0.9616 | 0.0097 | 0.0508 |
-| cnn_attention | 0.9265 | 0.9219 | 0.9272 | 0.0053 | 0.0343 |
+| Model         | face-on R² | mixed R² | edge-on R² | R² spread | MAE spread (M_⊙) |
+|---------------|------------|----------|------------|-----------|------------------|
+| poc_a         | 0.9639     | 0.9566   | 0.9626     | 0.0073    | 0.0460           |
+| poc_b         | 0.9612     | 0.9525   | 0.9605     | 0.0087    | 0.0801           |
+| tcn           | 0.9646     | 0.9549   | 0.9616     | 0.0097    | 0.0508           |
+| cnn_attention | 0.9265     | 0.9219   | 0.9272     | 0.0053    | 0.0343           |
 
 `inclination_control_stratification.py`, prepared alongside this revision, reruns the same three bands against chirp mass, a head we already know is well-learned and non-angular (§ 5.6).
 R² stays within [0.92, 0.97] for every model, with band-to-band R² spread of only 0.005–0.010 and MAE spread of 0.034–0.080 M_⊙ against a baseline MAE of 0.95–1.37 M_⊙: the banding scheme itself does not inject variance at a scale that could explain the φ_c/ψ deviations in Table 6.6.
@@ -451,8 +459,12 @@ This directly answers the weaker of the two circularity concerns above — wheth
 It does not answer the stronger concern (a possible common-cause pathology specific to angular representations, which a non-angular control cannot rule out by construction); that remains bounded only by the § 5.4 code-level trace and the sky-position argument above, not eliminated.
 
 This closes the gap the adversarial reviews correctly identified.
-The axis along which the analytic study predicts the degeneracy should weaken was tested directly, and no model recovers a signal there that exceeds its own uninformative control's sampling noise.
-The null of § 6 is not confined to the face-on-dominated aggregate; it holds, band by band, across the one population split most likely to break it.
+The axis along which the analytic study predicts the degeneracy should weaken was tested directly: even in the edge-on band, where § 3 predicts only a ~1.05–1.08× conditioning advantage against face-on's ~1.56× — a small residual, not a strong one — no model recovers a signal there that exceeds its own uninformative control's sampling noise.
+The null of § 6 therefore holds, band by band, including where the analytic study predicts the degeneracy is weakest — though "weakest" here still means a small predicted effect, not a robustness check expected to find a large one; the stratification corroborates § 3's quantitative prediction rather than independently stress-testing the null against a strong candidate signal.
+
+One limit on this argument stands apart from the two addressed above and is not resolved by them.
+The independence assumption behind the ι-noise-floor comparison is plausible but not proven against a head-capacity confound specifically, since ι, φ_c, and ψ all share the same two-layer MLP head architecture (§ 4.2), so a shared limitation in mapping the trunk's representation to angular targets — rather than a shared loss-path bug, which is already ruled out (§ 5.4) — could in principle produce correlated failure across all three periodic heads.
+The code-level and sky-position arguments above bound this concern but do not rule it out, and it is not tested further here; this residual confound is the reason § 8.2's data-vs-hypothesis-class claim is scoped away from the angular heads specifically.
 
 ## 7. The Pre-Registered λ Retune
 
@@ -475,12 +487,12 @@ Only a result passing all four steps would count as counter-evidence to the dege
 
 **Table 7.1 — Pre-registered gate results.** Source: `lam005_retune_output/`, `lam010_retune_output/`.
 
-| λ | Test | frac. unhealthy (last 40 ep) | trend /epoch | Gate |
-|---|---|---|---|---|
-| 0.05 | tcn / φ_c | 0.05 ✓ | −0.0064 ✗ | **FAIL** |
-| 0.05 | poc_a / ψ | 0.35 ✗ | +0.0072 ✗ | **FAIL** |
-| 0.10 | tcn / φ_c | 0.28 ✗ | −0.0026 ✓ | **FAIL** (worse) |
-| 0.10 | poc_a / ψ | 0.73 ✗ | +0.0073 ✗ | **FAIL** (much worse) |
+| λ    | Test      | frac. unhealthy (last 40 ep) | trend /epoch | Gate                  |
+|------|-----------|------------------------------|--------------|-----------------------|
+| 0.05 | tcn / φ_c | 0.05 ✓                       | −0.0064 ✗    | **FAIL**              |
+| 0.05 | poc_a / ψ | 0.35 ✗                       | +0.0072 ✗    | **FAIL**              |
+| 0.10 | tcn / φ_c | 0.28 ✗                       | −0.0026 ✓    | **FAIL** (worse)      |
+| 0.10 | poc_a / ψ | 0.72 ✗                       | +0.0073 ✗    | **FAIL** (much worse) |
 
 At λ = 0.05 both failures were near-misses with a shared shape — each trajectory settles into a healthy plateau (0.58–0.62 and 0.53–0.56 respectively) only in the last 15–20 epochs, and the 40-epoch window still contains the climb into that band (Fig. 7.1).
 At λ = 0.10 the failures were not near-misses and diverged in character: poc_a/ψ crashes through epochs ~30–48 and is still recovering at epoch 80 (crossing 0.5 only in the final 11 epochs), while tcn/φ_c oscillates across [0.2, 0.95] with no convergence at all (Fig. 7.2).
@@ -489,7 +501,7 @@ Throughout all of it, circular loss stayed at 1.004–1.008 — flat at the null
 
 > **Figure 7.1.** Run 9a, λ = 0.05, overlaid on λ = 0 and λ = 0.01 references. The penalty holds std_ratio at order unity, but neither pre-registered target passes the stability gate, and validation circular loss remains at ≈ 1.0.
 
-> **Figure 7.2.** Run 9b, λ = 0.10, same layout. The stronger penalty fails the gate more severely (poc_a/ψ 73% of late epochs unhealthy) while circular loss stays at the random-guessing plateau.
+> **Figure 7.2.** Run 9b, λ = 0.10, same layout. The stronger penalty fails the gate more severely (poc_a/ψ 72% of late epochs unhealthy) while circular loss stays at the random-guessing plateau.
 
 ### 7.3 Verdict
 
@@ -531,17 +543,19 @@ On the first, the five trunk families (§ 4.2) span qualitatively different hypo
 On the second, the decisive observation is that **capacity was demonstrably not the binding constraint**: the higher-capacity trunks drove *training* circular loss down to ≈ 0.49–0.60 while validation loss stayed pinned at 1.0 (Fig. 5.2).
 That is precisely what added capacity does against an uninformative target — it memorizes.
 An eighth architecture buys another memorization curve, not information absent from the strain; once the failure is localized in the data by flat validation loss under certified-healthy gradients, in agreement with the analytic degeneracy of § 3, architecture search has no remaining expected payoff.
-In one sentence: *the null is a statement about the data, not about the hypothesis class, and the memorization gap is the evidence that the hypothesis class was not the limit.*
+In one sentence: *the memorization gap shows the null is a statement about the data, not about the trunk architecture.*
+For the angular targets specifically, this claim is scoped to the trunk and does not extend to the periodic-head design: as § 6.7 details, ι, φ_c, and ψ share the same two-layer MLP head, so a head-capacity limitation specific to that shared design remains a residual, untested confound for the angular parameters that the scalar-control evidence above does not cover.
 
 This memorization-gap argument was illustrated in aggregate (Fig. 5.2, all seven architectures); an adversarial reviewer correctly asked whether it holds for the two models the null is actually *certified* on, individually, rather than for the pool as a whole.
 It does, but asymmetrically, and the asymmetry is worth reporting rather than folding into the aggregate.
 cnn_attention's own training/validation circular loss (Fig. 8.1) reproduces the pool-level pattern exactly: training loss falls to 0.60 (φ_c) and 0.52 (ψ) by epoch 79 while validation stays at 1.01/1.00 — this model demonstrably has, and uses, spare capacity to fit sample-specific structure, and still generalizes none of it.
 poc_b does not: its combo-A/combo-B training loss tracks validation almost exactly throughout training (0.988/0.998 vs 0.999/0.991 at epoch 79), the same flat-everywhere pattern shown by the other two TCN-trunk configurations, poc_a and tcn (train 0.98–0.97 vs val 1.02–1.01 at epoch 79), regardless of head parameterization.
 This is not evidence that the TCN trunk lacks capacity: the identical trunk reaches chirp-mass R² = 0.97 (train) / 0.96 (val) on poc_a — ample nonlinear capacity when a learnable target exists.
-Read together, the two certified models fail in two different, individually informative ways: cnn_attention finds and fits sample-specific structure it cannot generalize (the overfitting-without-learning pattern already qualified in § 5.5); poc_b's optimizer finds no exploitable structure even in-sample, on a trunk independently proven capable of high-capacity fits elsewhere.
-Neither pattern is consistent with a capacity-starved null; the second is, if anything, the cleaner of the two.
-To be explicit about evidential weight: this section's architecture-sufficiency argument rests primarily on cnn_attention's memorization gap, the cleanest single demonstration that spare capacity finds and cannot generalize structure from an uninformative target.
-poc_b (§ 6.2) is a different, curriculum-confounded consistency check, not an independent repeat of the same certification — its flat training loss could in principle reflect the curriculum's near-face-on suppression of one combination rather than the target's unlearnability alone, so it corroborates from the optimizer side without carrying the same evidential weight as cnn_attention's memorization gap.
+The two certified models fail for different reasons, and the two readings do not carry equal evidential weight — they are kept separate below rather than read together.
+This section's architecture-sufficiency argument rests on cnn_attention's memorization gap alone: it finds and fits sample-specific structure it cannot generalize (the overfitting-without-learning pattern already qualified in § 5.5), the cleanest single demonstration that spare capacity finds and cannot generalize structure from an uninformative target.
+poc_b's optimizer finds no structure even in-sample, on the same TCN trunk family that reaches chirp-mass R² = 0.97 elsewhere — but this pattern is not a second, independent instance of the same check.
+The curriculum weight w(ι) = sin²ι suppresses the poorly-constrained combination's gradient for near-face-on samples (w < 0.19 for the 28.7% of the population with |cos ι| > 0.9), so a flat in-sample loss under this curriculum is equally consistent with an unlearnable target and with curriculum-induced gradient starvation over most of the dataset.
+poc_b (§ 6.2) therefore remains a distinct, curriculum-confounded consistency check that corroborates from the optimizer side without carrying the same evidential weight as cnn_attention's memorization gap — not a second capacity-sufficiency certification.
 
 > **Figure 8.1.** Train vs. validation circular loss for the two certified models specifically, generated directly from each run's `history.csv` (`plot_certified_memorization.py`, no model loading or GPU use). cnn_attention (right column) shows the memorization gap (train ↓ to 0.60/0.52, val flat ≈ 1.0); poc_b (left column) shows no gap at all — train tracks validation throughout, the same pattern shown by the other two TCN-trunk configurations (poc_a, tcn).
 
@@ -584,17 +598,21 @@ The payoff was concrete: a near-miss that endpoint-eyeballing would have waved t
 
 ### 8.5 Future work
 
-Three successors are scoped, in priority order.
+Seven successors are scoped, in rough priority order — though (iv) requires no retraining and could be run independently of where the others land in the queue.
 (Two items originally listed here as immediate checks have since run and are no longer future work: the inclination-stratified breakdown, § 6.7, and the scalar-control chirp-mass-by-inclination-band check, Table 6.7.)
 (i) **Inclination conditioning**: supply true (sin ι, cos ι) as an auxiliary input — the analytic structure of § 3 says the well-constrained combination is knowable *given* ι, so this tests whether the degeneracy is breakable with side information; a full implementation plan exists (train-time truth, with inference-time ι estimation explicitly out of scope).
 (ii) An **architecture-level attack on the std_ratio instability** for the two uninterpretable pairs (the pre-registered λ-sweep's named next lever), or an explicit decision to close that thread; alongside it, a finer freshly pre-registered λ mini-sweep over [0.02, 0.08], motivated by the peaked λ-response observed in § 7.3.
 (iii) A **posterior-estimation reformulation**: the natural follow-on from "point estimation is hopeless" is not resignation but a conditional-density head (e.g. a von Mises mixture over the well-constrained combination), which the present chapter's null both motivates and baselines.
+(iv) A **ridge-structure check**: a 2D joint scatter of the certified models' predicted (φ̂_c, ψ̂) pairs, to test directly whether the network learned the degenerate combination manifold itself (which would appear as a diagonal ridge) rather than the collapsed or spread patterns already documented in Fig. 6.1 — raised in the fourth adversarial-review round; inference-only against saved checkpoints, no retraining required, but not run here because no script or output artifact yet backs it (the same artifact-traceability standard § 8.3 sets for the current text applies equally to future additions).
+(v) A **synthetic-data ablation for poc_b**: retrain the combination-head design on a synthetic dataset in which the well-constrained combination is recoverable by construction, disentangling the curriculum-design confound (§ 6.2, § 8.2) from the physical degeneracy — the direct test of whether poc_b's collapse is what its design does to an unlearnable target rather than an artifact of the curriculum itself.
+(vi) A **sensitivity-floor check**: a high-SNR (25–30) validation set, or a Fisher-matrix bound on the achievable φ_c/ψ accuracy at this population's SNR range, to rule out the possibility that the null reflects a detection-scale sensitivity floor rather than the degeneracy as such.
+(vii) **Dataset regeneration from a version-controlled generator script**, recording approximant, mode content, and priors as dataset metadata — closing the waveform-provenance gap of § 8.3 for good and making the null independently reproducible.
 
 ## 9. Conclusion
 
 We set out to determine whether the coalescence phase and polarization angle of compact-binary signals are recoverable from strain by direct neural regression, individually or in their physically motivated sum/difference combinations.
 After eliminating two genuine optimization pathologies that initially masqueraded as (and then obscured) the answer — tanh saturation at initialization, and magnitude drift induced by a norm-blind circular loss — and after subjecting the resulting flat learning curves to a verification battery spanning configuration audits, permutation tests, population stratification, an ablation, and a pre-registered two-arm regularization sweep, the answer is: **no**.
-Every model, at every capacity and every regularization strength, converged to the optimal constant predictor, at the analytic random-guessing error, while learning four other parameters well from the same shared representation — and no result at any point cleared even the first gate of a pre-declared path to counter-evidence.
+Every configuration tested, at every capacity and every regularization strength, converged to the optimal constant predictor, at the analytic random-guessing error, while learning four other parameters well from the same shared representation — and no result at any point cleared even the first gate of a pre-declared path to counter-evidence.
 The fully certified base of that claim is two λ-matched configurations (§ 8.2); the wider table of seven architectures corroborates without independently repeating the same test.
 The primary evidence is the label-permutation bootstrap (§ 6.3), the SNR stratification (§ 6.4), and the inclination stratification (§ 6.7), all pre-specified or run against fixed, pre-existing checkpoints; the perturbation trace (§ 6.6) is corroborating mechanistic detail, not primary evidence, since its closure rests on a channel adopted after its pre-registered instrument failed calibration — the degeneracy verdict does not depend on it.
 Because that channel was adopted post hoc, the trace cannot independently close any confound on its own; it corroborates a verdict established elsewhere, pending the fresh-holdout replication that would let A.3's closure stand on its own pre-registered footing.
@@ -607,28 +625,34 @@ The value of the chapter lies as much in the demonstrated discipline — mechani
 
 All paths relative to `experiments/phic_psi_poc/`.
 
-| Claim / table / figure | Artifact |
-|---|---|
-| Chronological record (Runs 1–9b) | `diagnostic_log.md`, `NOTES.md`, `experiment_summary_2026-07-22.md` |
-| Analytic prerequisite sweep (§3, Fig. 3.1) | `sweep_1_1_ratio_vs_iota.{csv,png}`, `results.md`, `prereq_checks.py` |
-| Label-distribution audit (Fig. 5.1) | `diagnostic_output/true_label_distributions.png`, `true_label_stats.csv` |
-| tanh postmortem (§5.3–5.4) | `tanh_to_linear_postmortem.md`, `diagnostic_output/diagnostic_checks_20260718_*.log` |
-| Inclination loss-path correction (§5.4) | `inclination_loss_trace.md` |
-| Run 7 trajectories (Figs. 5.2, 5.3) | `diagnostic_output/{combo_loss,logvar}_trajectories.png`, `diagnostic_checks_20260721_000331.log` |
-| Positive controls (Fig. 5.4, §5.6) | `analysis_output/` CSVs, scatter PNGs, `analysis_report_20260720_234304.md` |
-| Table 6.1 | `pre_post_comparison.csv` |
-| std_ratio correction (§6.2 A.2) | `std_ratio_trajectories.md` |
-| poc_b / cnn_attention config diffs (§6.2 B, C) | `poc_b_config_diff.md`, `cnn_attention_config_diff.md` |
-| Bootstrap (Table 6.3) | `bootstrap_output/bootstrap_ang_mae_20260721_093533.md` |
-| SNR stratification (§6.4) | `snr_output/snr_stratification_20260721_094039.md` |
-| Run 8 ablation (Table 6.4, Fig. 6.2) | `lam0_ablation_output/`, `assessment_lam0_ablation_2026-07-22.md` |
-| Perturbation trace (Table 6.5, § 6.6) | `perturbation_trace_standalone.py`, `perturbation_trace_output/` |
-| Inclination stratification (Table 6.6, § 6.7) | `inclination_stratification.py`, `inclination_output/inclination_stratification_20260723_130630.{log,md}` |
-| Certified-model memorization gap (Fig. 8.1, § 8.2) | `plot_certified_memorization.py`, `diagnostic_output/certified_models_train_val_loss.png`, source `runs/phic_psi_{poc_b,cnn_attention}/20260720_*/history.csv` |
-| Scalar-control inclination stratification (Table 6.7, § 6.7) | `inclination_control_stratification.py`, `inclination_output/inclination_control_stratification_20260723_140016.{log,md}` |
-| Pre-registration (§7.1) | `preregistration_lam_retune.md` |
-| Runs 9a/9b (Table 7.1, Figs. 7.1–7.2) | `lam005_retune_output/`, `lam010_retune_output/` |
-| Verification plan / superseded rebuttal | `run7_verification_plan.md`, `run7_verification_rebuttal.md` |
+| Claim / table / figure                                       | Artifact                                                                                                                                                       |
+|--------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Chronological record (Runs 1–9b)                             | `diagnostic_log.md`, `NOTES.md`, `experiment_summary_2026-07-22.md`                                                                                            |
+| Analytic prerequisite sweep (§3, Fig. 3.1)                   | `sweep_1_1_ratio_vs_iota.{csv,png}`, `results.md`, `prereq_checks.py`                                                                                          |
+| Label-distribution audit (Fig. 5.1)                          | `diagnostic_output/true_label_distributions.png`, `true_label_stats.csv`                                                                                       |
+| tanh postmortem (§5.3–5.4)                                   | `tanh_to_linear_postmortem.md`, `diagnostic_output/diagnostic_checks_20260718_*.log`                                                                           |
+| Inclination loss-path correction (§5.4)                      | `inclination_loss_trace.md`                                                                                                                                    |
+| Run 7 trajectories (Figs. 5.2, 5.3)                          | `diagnostic_output/{combo_loss,logvar}_trajectories.png`, `diagnostic_checks_20260721_000331.log`                                                              |
+| Positive controls (Fig. 5.4, §5.6)                           | `analysis_output/` CSVs, scatter PNGs, `analysis_report_20260720_234304.md`                                                                                    |
+| Table 6.1                                                    | `pre_post_comparison.csv`                                                                                                                                      |
+| std_ratio correction (§6.2 A.2)                              | `std_ratio_trajectories.md`                                                                                                                                    |
+| poc_b / cnn_attention config diffs (§6.2 B, C)               | `poc_b_config_diff.md`, `cnn_attention_config_diff.md`                                                                                                         |
+| Bootstrap (Table 6.3)                                        | `bootstrap_output/bootstrap_ang_mae_20260721_093533.md`                                                                                                        |
+| SNR stratification (§6.4)                                    | `snr_output/snr_stratification_20260721_094039.md`                                                                                                             |
+| Run 8 ablation (Table 6.4, Fig. 6.2)                         | `lam0_ablation_output/`, `assessment_lam0_ablation_2026-07-22.md`                                                                                              |
+| Perturbation trace (Table 6.5, § 6.6)                        | `perturbation_trace_standalone.py`, `perturbation_trace_output/`                                                                                               |
+| Inclination stratification (Table 6.6, § 6.7)                | `inclination_stratification.py`, `inclination_output/inclination_stratification_20260723_130630.{log,md}`                                                      |
+| Certified-model memorization gap (Fig. 8.1, § 8.2)           | `plot_certified_memorization.py`, `diagnostic_output/certified_models_train_val_loss.png`, source `runs/phic_psi_{poc_b,cnn_attention}/20260720_*/history.csv` |
+| Scalar-control inclination stratification (Table 6.7, § 6.7) | `inclination_control_stratification.py`, `inclination_output/inclination_control_stratification_20260723_140016.{log,md}`                                      |
+| Pre-registration (§7.1)                                      | `preregistration_lam_retune.md`                                                                                                                                |
+| Runs 9a/9b (Table 7.1, Figs. 7.1–7.2)                        | `lam005_retune_output/`, `lam010_retune_output/`                                                                                                               |
+| Verification plan / superseded rebuttal                      | `run7_verification_plan.md`, `run7_verification_rebuttal.md`                                                                                                   |
+
+Three chapter numbers are *derived* from their artifacts rather than printed in them, and are flagged here under the same traceability rule.
+The Bonferroni threshold 0.0042 in § 6.3 is 0.05/12 — arithmetic on the twelve bootstrap tests, not a value stated in the bootstrap report.
+The ι-head noise-floor values in Table 6.6 are band-MAE-minus-null differences computed from the band MAEs printed in `inclination_output/inclination_stratification_20260723_130630.md`.
+The per-band chirp-mass R² values in Table 6.7 appear only in `inclination_control_stratification_20260723_140016.log`, not in its summary `.md`.
+Relatedly, Table 7.1's poc_a/ψ unhealthy fraction is displayed as 0.72 following its source report (`lam010_retune_output/lam010_retune_report.md`); the underlying diagnostic log prints the raw value 0.725.
 
 ## Suggested citation keys (to resolve against thesis bibliography)
 

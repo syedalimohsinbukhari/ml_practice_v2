@@ -1,7 +1,7 @@
 # φc/ψ Degeneracy PoC — Experiment Index
 
 **Branch**: `poc/phic-psi-degeneracy`
-**Last updated**: 2026-07-23
+**Last updated**: 2026-07-24
 
 ---
 
@@ -71,6 +71,7 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 | Reviewer memo | [`reviewer_response_a3_2026-07-23.md`](reviewer_response_a3_2026-07-23.md) | Point-by-point response to the A.3 review (per-case statistics, calibration outcome, classifier retirement, mchirp-degradation explanation, MDE note) |
 | Thesis chapter | [`thesis/chapter_phic_psi_degeneracy.md`](thesis/chapter_phic_psi_degeneracy.md), [`thesis/chapter_phic_psi_degeneracy.tex`](thesis/chapter_phic_psi_degeneracy.tex) | The chapter, one document in two formats (edit both in the same session); claim-to-artifact map in its appendix |
 | Prose tooling | [`thesis/sentence_per_line.py`](thesis/sentence_per_line.py) | One-sentence-per-line reflow tool for prose files (see root `CLAUDE.md` conventions) |
+| v4 review checklist | [`thesis/reviews/v4_correction_checklist.md`](thesis/reviews/v4_correction_checklist.md) | Item-by-item cross-check of all three v4 adversarial reviews against the chapter's then-current text; drove the Round 4 text edits (see below) |
 
 ---
 
@@ -244,7 +245,10 @@ tcn/coa_phase escalation branch extinguished (paired t = −0.20). Per the Round
 (below), the chapter now states this closure as *provisional, pending replication on a fresh
 holdout set*, since the surviving channel was adopted post hoc rather than pre-registered —
 the replication itself is not yet scheduled. Remaining threads are scoped future work
-(architecture-level std_ratio fix, finer λ mini-sweep, ι-conditioning).
+(architecture-level std_ratio fix, finer λ mini-sweep, ι-conditioning, and — as of the
+2026-07-24 consistency audit, now also carried as chapter §8.5 items rather than only in
+`NOTES.md`/this index — the synthetic poc_b ablation, the high-SNR/Fisher-bound spot-check,
+the ridge-structure check, and dataset regeneration from a version-controlled script).
 → [`perturbation_trace_output/`](perturbation_trace_output/),
 [`diagnostic_log.md`](diagnostic_log.md) (calibration adjudication, 2026-07-23)
 
@@ -258,9 +262,11 @@ noise floor except tcn/φ_c, which exceeds it but in the wrong (worse-than-null)
 the one head already flagged elsewhere as never achieving certified metric health. Written up
 as Table 6.6 / new §6.7 in the chapter; §8.1's evidence list and §8.5's future-work list updated
 accordingly. **Nothing from the adversarial-review pass remains open.**
-Same pass also caught and fixed a real numeric error in §6.4 (an SNR-tercile improvement
-was reported as 0.027 rad when the source artifact gives 0.090 rad for that comparison),
-added a waveform-approximant provenance caveat (IMRPhenomD, dominant-mode-only, confirmed
+Same pass also caught and fixed a real error in §6.4 — the two numbers themselves (0.027 rad
+high-tercile-vs-null, 0.090 rad low-to-high swing) were both correct, but the text conflated
+them as if reporting the same comparison; rewritten to state both correctly and explain, via
+the low tercile's own anomalous departure from null, why the 0.090 rad swing still doesn't
+read as a real effect — added a waveform-approximant provenance caveat (IMRPhenomD, dominant-mode-only, confirmed
 by the author but not recorded anywhere in the repo/dataset), and flagged the inclination
 prior as uniform-in-ι rather than the astrophysically correct uniform-in-cos ι.
 → [`thesis/reviews/`](thesis/reviews/) (the three review files), `thesis/chapter_phic_psi_degeneracy.{md,tex}` (revised)
@@ -335,3 +341,40 @@ rather than requests for new numerical results — addressed entirely by text ed
 high-SNR/Fisher-bound, and dataset-regeneration items remain undone.
 → [`thesis/reviews/kimi_ai_adversarial_review_v3.md`](thesis/reviews/kimi_ai_adversarial_review_v3.md),
 `thesis/chapter_phic_psi_degeneracy.{md,tex}` (revised), `NOTES.md` ("v3 adversarial review pass" entry)
+
+**Round 4 (2026-07-24):** three v4 reviews (`thesis/reviews/*_v4.md`) — all three reviewers
+returned, and unlike Round 2/3 the feedback was overwhelmingly tonal: DeepSeek ("thesis-ready,"
+3 wording asks + an optional roadmap addition), Kimi (5 wording/framing demands, no new logical
+gap), Qwen ("a masterwork," 4 defensive additions, one implying new analysis rather than text).
+A background agent built a full item-by-item checklist cross-referencing all three reviews
+against the chapter's then-current text before any edits, catching several items that were only
+*partially* addressed despite looking fixed at a glance (`thesis/reviews/v4_correction_checklist.md`).
+**Addressed by text only, no new numbers:** §1 roadmap sentence foreshadowing the
+inclination-conditioning successor; §2.1 gained two sentences stating explicitly that no model
+in this chapter takes ι as an input at any stage (ι is a control *output* head only) and pointing
+the input-channel design at §8.5(i) by name — a first-pass wording that stated true (sin ι, cos ι)
+would be fed at both training and inference time was caught by the user as reading like a
+description of *this chapter's* models and corrected same-session;
+§6.2 now states poc_b's combination-head losses explicitly (already-known §5.5 numbers,
+relocated); §6.7 gained a carrier-phase-vs-envelope caveat on the sky-position analogy, a
+Huber-vs-circular-loss caveat on the ι-noise-floor comparison, a downgraded "most likely to
+break it" → actual ~1.05–1.08× predicted-advantage framing, and its head-capacity caveat moved
+to the section's literal end; §8.2's cnn_attention/poc_b paragraph rewritten so their evidential
+weight is not stated jointly, and its "statement about the data" claim now excludes the angular
+heads' shared-MLP confound explicitly; §9's "every model" softened to "every configuration
+tested."
+**Deferred, flagged to user rather than applied silently:** Qwen's "ridge test" — a 2D joint
+scatter of predicted (φ̂_c, ψ̂) pairs to rule out the network having learned the degenerate
+manifold itself — needs GPU inference against saved checkpoints; no such script or per-sample
+prediction artifact exists in the repo. User decision: defer to future work rather than run now
+or add Qwen's suggested "(data not shown)" phrasing (which would have violated this project's
+artifact-traceability rule). Added as new item (iv) in §8.5, explicitly inference-only/no-retraining.
+→ [`thesis/reviews/v4_correction_checklist.md`](thesis/reviews/v4_correction_checklist.md),
+`thesis/chapter_phic_psi_degeneracy.{md,tex}` (revised), `NOTES.md` ("v4 adversarial review pass" entry)
+
+**Correction (2026-07-24, consistency audit):** this Round-4 entry and the corresponding
+NOTES.md entry each recorded only the ridge test above as a deferred item, while the other
+three deferred items (synthetic poc_b ablation, high-SNR/Fisher check, dataset regeneration —
+named in the Round 2/3 entries above) lived only in the chapter's editorial note, not in §8.5
+proper. All four are now §8.5 items (iv)–(vii) in both chapter formats, so the editorial note
+can be removed at final submission without losing any of them.

@@ -996,6 +996,11 @@ significant result at α=0.05 has ~46% probability under the global null
 correction for multiple comparisons and warrants independent replication before
 being interpreted as evidence of learning.
 
+> **⚠ Correction (2026-07-24, consistency audit):** the Bonferroni sentence above is arithmetically wrong by its own numbers — p = 0.0007 < 0.0042, so the effect *survives* correction.
+> The chapter was corrected in the first adversarial-review round (2026-07-23); this log entry was missed in that sweep.
+> The dismissal of the detection rests on its SNR-uniformity (flat across terciles, 1.526/1.548/1.527), not on multiple comparisons.
+> See the dated addendum at the end of this file.
+
 **Validation ordering check (2026-07-21):** A potential confound for any
 bootstrap shuffle-null test is residual ordering in the validation set. If
 injections were generated in parameter-grid blocks and the data not shuffled,
@@ -1091,7 +1096,7 @@ pathology resolved in these models, a flat circular loss is clean evidence that
 | SNR-dependent learning                    | **Not observed**    | No model shows SNR-dependent ang_MAE improvement on either φc or ψ head (E)                                                                                                                                                  |
 | φc-ψ degeneracy (no ι)                    | **STRONG EVIDENCE** | Circular loss flat at ~1.0 in models with clean                                                                                                                                                                              |v| + healthy gradients. Three independent tests (loss trajectory, bootstrap, SNR stratification) converge. |
 | Combo heads break degeneracy              | **REFUTED**         | poc_b circular loss flat at ~1.0; COLLAPSE worse than baseline                                                                                                                                                               |
-| Inclination failure                       | **OPEN**            | Separate mechanism (Huber, no normalize_unit). Bootstrap: cnn_attention significant (z=+3.17, p=0.0007) but SNR-independent — may be population-level bias, not per-sample learning. Does not survive Bonferroni correction. |
+| Inclination failure                       | **OPEN**            | Separate mechanism (Huber, no normalize_unit). Bootstrap: cnn_attention significant (z=+3.17, p=0.0007) but SNR-independent — may be population-level bias, not per-sample learning. Survives Bonferroni (p<0.0042) but dismissed on SNR-uniformity, not multiple comparisons (corrected 2026-07-24). |
 
 ### Remaining open items
 
@@ -1309,7 +1314,7 @@ targets.
 | Model            | Head               | frac unhealthy (last 40 ep) | late trend/ep                 | Gate     | vs λ=0.05              |
 |------------------|--------------------|-----------------------------|-------------------------------|----------|------------------------|
 | tcn              | coa_phase          | 0.28 (fails <0.10)          | −0.00255 (passes \|·\|<0.005) | **FAIL** | worse (0.05→0.28)      |
-| poc_a (baseline) | polarization_angle | 0.73 (fails)                | +0.00731 (fails)              | **FAIL** | much worse (0.35→0.73) |
+| poc_a (baseline) | polarization_angle | 0.72 (fails)                | +0.00731 (fails)              | **FAIL** | much worse (0.35→0.72) |
 
 Unlike Run 9a, this is not a near-miss on either primary target. Raw traces
 (`runs/phic_psi_lam010_retune{,_tcn}/20260722_*/history.csv`) show two
@@ -1388,7 +1393,7 @@ not a plateau-window artifact at all.
       pre-plateau ramp; last ~20 epochs stable at 0.53–0.56). Verdict:
       UNINTERPRETABLE.
 - [x] Re-tune λ=0.10 for poc_a pol_angle — **Run 9b**, 2026-07-22: gate FAILED
-      again, much worse than λ=0.05 (frac 0.35→0.73) — crashes early,
+      again, much worse than λ=0.05 (frac 0.35→0.72) — crashes early,
       recovers late, crosses 0.5 only in the last ~11 of 80 epochs. Verdict:
       **λ alone insufficient**; branch closed.
 - [x] λ sweep exhausted for both primary targets (0, 0.01, 0.05, 0.10) — next
@@ -1505,6 +1510,9 @@ The post-hoc channel choice is recorded as a residual caveat in the chapter's th
 Nothing from the Run 7 verification battery remains open.
 Chapter updated (§6.6 two-stage table + adjudication, threats bullet, future work back to three items) in both formats.
 
+> **⚠ Status superseded (2026-07-24, consistency audit):** the v3 adversarial-review round (2026-07-23) downgraded this verdict to **provisionally closed, pending replication on a fresh holdout set** — the chapter (§6.6, §9) and `experiment_index.md` were updated in that round, but this log's standing verdict was missed in the sweep.
+> The current status is PROVISIONALLY CLOSED; see the dated addendum at the end of this file.
+
 ##### Follow-up review note (2026-07-23): final-stage mchirp degradation explained; MDE stated
 
 Two additions per follow-up review, folded into chapter §6.6:
@@ -1523,3 +1531,12 @@ Confirmed against every `config_*.yaml` in this directory — only `config_poc.y
 
 **Already documented:** this is the same fact established in "B — poc_b config diff" above, where `loss.mode` is listed as the first of four intentional config differences between poc_a and poc_b.
 Noted here explicitly because the plot's legend surfaced it as a fresh question outside that section's original collapse-severity context.
+
+## Dated addendum (2026-07-24): consistency-audit corrections
+
+A background consistency audit ahead of chapter closure cross-checked this log against the chapter (`thesis/chapter_phic_psi_degeneracy.{md,tex}`), `NOTES.md`, and `experiment_index.md`, and found two places where this log's standing text was never swept after a later revision changed the verdict elsewhere. Per the "living docs updated in place, status changes propagated" rule, both are corrected inline above (with pointers to this addendum) rather than silently left stale:
+
+- **A.3 status.** This log's calibration-run adjudication (line ~1484, "A.3 CLOSED") and the immediately preceding "Status: A.3 remains PROVISIONALLY closed" entry were the terminal statements on record here, but the v3 adversarial-review round (2026-07-23, same day) downgraded the closure to **provisionally closed, pending replication on a fresh holdout set** — reflected in the chapter (§6.6, §9) and `experiment_index.md` at the time, but not swept back into this log. Current status: **A.3 is provisionally closed**, not closed outright.
+- **Bonferroni arithmetic (Run 7 verification, §D).** The original entry stated the cnn_attention/inclination detection (p=0.0007) "does not survive correction for multiple comparisons" against a stated threshold of p<0.0042 — but 0.0007 < 0.0042, so it *does* survive. This was caught and corrected in the chapter during the first adversarial-review round (2026-07-23) but this log's original sentence was left unchanged until now. The detection is still not treated as counter-evidence to the degeneracy claim, on SNR-uniformity grounds (§E-style reasoning), not on multiple-comparisons grounds.
+
+Also aligned: the Run 9b poc_a/polarization_angle unhealthy-fraction figure, which this log stated as 0.73 in two places while its own source artifact (`lam010_retune_output/lam010_retune_report.md`) prints 0.72 — corrected to 0.72 here to match the artifact and the chapter's Table 7.1.

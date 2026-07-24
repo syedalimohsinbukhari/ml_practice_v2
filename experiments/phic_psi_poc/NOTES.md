@@ -123,6 +123,22 @@ healthy but was actually the null.
 snr R² > 0.78). CNN baseline struggles on mchirp (R²=0.63) and merger_time
 (R²=0.24). Inception can't do merger_time (R²=−0.001).
 
+> **⚠ Note (2026-07-24, consistency audit):** the Round-1 `analyse_predictions`
+> output that these three numbers were read from was overwritten by the
+> 2026-07-20 four-model rerun (`analysis_output/` now holds only the
+> `20260720_234304` timestamp, covering poc_a/poc_b/tcn/cnn_attention, not
+> cnn_baseline or inception_time) — no surviving artifact backs 0.63/0.24/
+> −0.001 exactly. The nearest artifacts (post-fix `history.csv`/`diagnostics.csv`
+> for `phic_psi_cnn_baseline` and `phic_psi_inception_time`) give cnn_baseline
+> mchirp R²≈0.83, merger_time R²≈0.82, and inception merger_time R²≈+0.0001 —
+> markedly better than the numbers above, likely because those later runs are
+> post-tanh-fix (linear activation) while this entry predates that fix
+> (2026-07-17/18, before the tanh-saturation root cause was found on 2026-07-18).
+> Read as a same-architecture, pre-fix vs. post-fix comparison rather than a
+> contradiction; not cited anywhere in the thesis chapter, so no chapter impact.
+> Left as originally recorded above per the frozen-entry convention for dated
+> run-log text; this note is the correction of record.
+
 **Sky position anomaly (RESOLVED in Run 7):** Earlier assessment of 4× worse
 angular MAE for poc_a/poc_b vs plain TCN was incorrect — the kappa-derived
 proxy in `metrics_validation.csv` was misleading. True angular errors in Run 7
@@ -325,7 +341,7 @@ Output files:
       or counter-evidence.
 - [x] Re-tune λ for poc_a pol_angle (0.05, then 0.10) — **gate FAILED at
       both, and worse at 0.10** (Run 9a: 0.05, frac 0.35, trend +0.0072;
-      Run 9b: 0.10, frac 0.73, trend +0.0073 — crashed early then climbed
+      Run 9b: 0.10, frac 0.72, trend +0.0073 — crashed early then climbed
       steadily, crossing 0.5 only in the last ~11 of 80 epochs). Mechanical
       verdict per pre-registration: **λ alone insufficient**; closed.
 - [ ] Run multi-step perturbation trace (discriminate learning vs noise) —
@@ -554,7 +570,7 @@ perturbation trace) correctly never ran.
 | Model | Head | frac unhealthy (last 40 ep) | trend/ep | Gate | vs λ=0.05 |
 |---|---|---|---|---|---|
 | tcn | coa_phase | 0.28 | −0.00255 | FAIL | worse (0.05→0.28) |
-| poc_a | polarization_angle | 0.73 | +0.00731 | FAIL | much worse (0.35→0.73) |
+| poc_a | polarization_angle | 0.72 | +0.00731 | FAIL | much worse (0.35→0.72) |
 
 Raising λ from 0.05 to 0.10 did not help either primary target, and made
 poc_a pol_angle substantially worse by the mechanical metric. The two
@@ -619,13 +635,14 @@ Per-case check: poc_a/pol_angle fails the two-part escalation rule individually 
 `perturbation_trace_standalone.py` now has an `early` calibration stage (fresh init + ~1-epoch warmup; per-epoch checkpoints were never saved) and per-sample paired statistics; pending lab-machine execution.
 Full decision tree in `diagnostic_log.md`'s review addendum.
 
-### Calibration run — A.3 closed for good (2026-07-23)
+### Calibration run — A.3 provisionally closed (2026-07-23; status updated 2026-07-24)
 
 The `early` calibration stage ran (`perturbation_trace_early_20260723_095357`).
 Calibration criterion FAILED — mchirp never read DIRECTIONAL early (ambiguous ×3, oscillatory ×1) *while its paired probe MSE collapsed at t = −3.4 to −8.5* — so the displacement-geometry classifier is retired per the pre-stated tree: it labeled the fastest-learning head "noise-like."
-The paired probe-loss channel passed its positive control in the same run and reads every periodic head as null at both stages (early |t| ≤ 1.6, final |t| ≤ 1.7, mixed signs) — a within-run, stage-matched, positive-controlled contrast.
-**A.3 CLOSED** on the validated channel (post-hoc channel choice recorded as a caveat in the chapter's threats list); tcn/coa_phase escalation branch extinguished (paired t = −0.20).
+The paired probe-loss channel passed its positive control in the same run and reads every periodic head as null at both stages (early |t| ≤ 1.6, final |t| ≤ 1.72, mixed signs) — a within-run, stage-matched, positive-controlled contrast.
+**A.3 was closed** on the validated channel at the time of this run (post-hoc channel choice recorded as a caveat in the chapter's threats list); tcn/coa_phase escalation branch extinguished (paired t = −0.20).
 Nothing from the Run 7 verification battery remains open.
+**Status update (2026-07-24, consistency audit):** the same-day v3 adversarial-review round (below) downgraded this to **provisionally closed, pending replication on a fresh holdout set** — the chapter and `experiment_index.md` reflect this; this header and the "CLOSED" line above are left as the historical record of the calibration run's own verdict, superseded by the downgrade.
 
 ## Adversarial review pass (2026-07-23)
 
@@ -692,6 +709,27 @@ Planned before executing (grid-shape inventory verified against actual subplot-c
 **Regenerated for real** (same underlying data, style/layout only): `certified_models_train_val_loss.png`, `lam0_ablation_trajectories.png`, `lam005_retune_trajectories.png`, `lam010_retune_trajectories.png`, `diagnostic_output/{logvar,combo_loss}_trajectories.png` — all confirmed CPU-only (read existing `history.csv`, no model loading).
 
 **Not regenerated (needs the lab machine or a long local run)**: `sweep_1_1_ratio_vs_iota.png` (prereq_checks.py's full run is ~30–70 min even CPU-only at default resolution — code fix verified via a reduced-parameter smoke test, then the smoke-test-corrupted output was restored from git; not worth a full run for a cosmetic-only change, rerun `python3 experiments/phic_psi_poc/prereq_checks.py` whenever convenient); `analyse_predictions.py`'s `histogram_*`/`scatter_*`/`health_check_*` PNGs and `analyse_run()`'s per-model outputs (need GPU/model loading — logic verified via fabricated synthetic data instead, matching the real function schema).
+
+## v4 adversarial review pass (2026-07-24)
+
+Three v4 reviews of the chapter (`thesis/reviews/{deepseek,kimi,qwen}_ai_adversarial_review_v4.md`) — all three reviewers returned for a fourth round, and unlike v2/v3 the feedback was overwhelmingly tonal: DeepSeek ("thesis-ready," 3 minor wording asks plus an optional roadmap addition), Kimi (5 numbered demands, all wording/framing, no new logical gap), Qwen ("a masterwork," 4 "pedantic committee trap" defensive additions, one of which — a 2D prediction-scatter "ridge test" — implies new analysis rather than text). A background agent built a full item-by-item checklist cross-referencing all three reviews against the chapter's current text before any edits (`thesis/reviews/v4_correction_checklist.md`), to avoid the "already partially addressed" trap that made earlier rounds easy to misjudge — several items (Kimi's K1/K2/K5, Qwen's Q1/Q4) turned out to be *partially* fixed already, with the substance present nearby but the exact objected-to sentence unchanged.
+
+**Fixed (11 items, all text-only, no new numbers):**
+- §1 gained a one-sentence roadmap after the twofold-contribution paragraph, foreshadowing the inclination-conditioning successor chapter (DeepSeek's optional recommendation, judged worth taking).
+- §2.1's ι-conditioning scope note (DeepSeek's ask). First pass added a sentence stating true (sin ι, cos ι) is fed at both training and inference time — user caught mid-review that this read as describing *this chapter's* models, when in fact no run reported here ever takes ι as an input (ι is a control *output* head only, § 2.2). Corrected to state that directly and point the input-channel design at § 8.5(i) by name, instead of importing the future experiment's operational detail into the current problem formulation.
+- §6.2's poc_b discussion now states the combination heads' own losses (combo A/B ≈ 1.0 through epoch 79, already reported in §5.5) explicitly, defusing the "the network learned the ridge but decoding hides it" objection (Qwen), phrased with the same curriculum-confound hedge already present in the surrounding paragraph rather than Qwen's more absolute wording (resolves a tension Qwen's and Kimi's suggested wordings would otherwise have created).
+- §6.7 gained two new caveats: a physical carrier-phase-vs-envelope distinction on the sky-position analogy, backed by chirp mass as the actual phase-sensitivity control (Qwen); and an explicit note that ι's Huber-on-raw-vector loss and φ_c/ψ's circular loss are not identically distributed, tightening the existing "diagnostic calibration, not formal test" hedge (Qwen).
+- §6.7's closing paragraph rewritten: "the one population split most likely to break it" replaced with language stating the actual ~1.05–1.08× predicted conditioning advantage at edge-on, so the stratification reads as consistency-with-§3 rather than an independent robustness check (Kimi); the head-capacity-confound caveat, previously mid-paragraph before Table 6.7, moved to the literal end of the section as its own closing "limit of this argument" paragraph (DeepSeek).
+- §8.2's "Read together, the two certified models..." paragraph rewritten so cnn_attention and poc_b's evidential weight is stated separately rather than in a shared/joint-sounding sentence, and poc_b's "no exploitable structure even in-sample" is now qualified inline (curriculum suppression vs. unlearnable target) rather than only conceded two sentences later (Kimi, two distinct demands treated together since they touched the same passage).
+- §8.2's "the null is a statement about the data, not about the hypothesis class" sentence now scoped explicitly to the trunk, with an added sentence carving out the angular-target head-capacity confound already conceded in §6.7 (Kimi).
+- §9's "Every model, at every capacity..." changed to "Every configuration tested..." so the phrasing doesn't imply seven independent replications (Kimi; §1 already had the equivalent fix from an earlier round).
+
+**Deferred, flagged to user for a decision (not applied silently):** Qwen's "ridge test" — a 2D joint scatter of predicted (φ̂_c, ψ̂) pairs, to rule out the network having learned the degenerate manifold rather than nothing. No per-sample prediction artifact or script exists in the repo; producing it needs GPU inference on saved checkpoints. Asked the user directly rather than adding Qwen's suggested "(data not shown)" phrasing, which would have violated this project's artifact-traceability rule. **User decision: defer to future work.** Added as item (iv) in §8.5, explicitly marked inference-only/no-retraining and explicitly *not* claimed as done.
+
+**Editorial note and living docs updated to match:** the chapter's editorial note now covers all four rounds and lists four (not three) deferred future-work items, the fourth being the ridge test above; this NOTES.md entry and `experiment_index.md`'s "Round 4" entry record the same list.
+
+> **⚠ Correction (2026-07-24, consistency audit):** the claim above overstated what was actually recorded — this NOTES.md entry and `experiment_index.md`'s "Round 4" entry each named only the ridge test; the other three deferred items (synthetic poc_b ablation, high-SNR/Fisher check, dataset regeneration) lived only in Round 2/Round 3 entries and the chapter's editorial note, not in either Round-4 entry, and — until this audit — appeared in the chapter body's §8.5 not at all (only the editorial note, marked "remove before final submission," carried them).
+> Fixed: all four deferred items are now §8.5 items (iv)–(vii) in both chapter formats, so removing the editorial note no longer orphans items (v)–(vii); `experiment_index.md`'s open-items list updated to match (see its own dated note).
 
 ## Reading note: `combo_loss_trajectories.png` legend (2026-07-24)
 

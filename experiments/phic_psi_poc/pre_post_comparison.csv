@@ -1,0 +1,43 @@
+head,architecture,pre_fix_mae,post_fix_mae,null_expectation,mode_collapsed
+coa_phase,TCN,1.572,1.579,1.571,YES
+coa_phase,ResNet1D,1.564,1.578,1.571,YES
+coa_phase,CNN Baseline,1.577,1.578,1.571,YES
+coa_phase,CNN Attention,,1.577,1.571,YES
+coa_phase,InceptionTime,1.556,1.573,1.571,YES
+coa_phase,poc_a,,1.580,1.571,YES
+coa_phase,poc_b,1.572,1.572,1.571,YES
+polarization_angle,TCN,0.787,0.786,0.785,YES
+polarization_angle,ResNet1D,0.787,0.786,0.785,YES
+polarization_angle,CNN Baseline,0.787,0.793,0.785,YES
+polarization_angle,CNN Attention,,0.790,0.785,YES
+polarization_angle,InceptionTime,0.792,0.780,0.785,YES
+polarization_angle,poc_a,,0.780,0.785,YES
+polarization_angle,poc_b,0.779,0.791,0.785,YES
+inclination,TCN,1.556,1.544,1.571,YES
+inclination,ResNet1D,,1.588,1.571,YES
+inclination,CNN Baseline,,1.570,1.571,YES
+inclination,CNN Attention,,1.559,1.571,YES
+inclination,InceptionTime,,1.571,1.571,YES
+inclination,poc_a,,1.560,1.571,YES
+inclination,poc_b,1.528,1.573,1.571,YES
+mchirp,TCN,1.010,1.021,~0,NO
+mchirp,ResNet1D,1.816,1.731,~0,NO
+mchirp,CNN Baseline,3.226,2.543,~0,NO
+mchirp,CNN Attention,,1.464,~0,NO
+mchirp,InceptionTime,1.354,1.569,~0,NO
+mchirp,poc_a,,0.951,~0,NO
+mchirp,poc_b,0.954,0.962,~0,NO
+merger_time,TCN,0.0129,0.0125,~0,NO
+merger_time,ResNet1D,,0.0157,~0,NO
+merger_time,CNN Baseline,,0.0192,~0,NO
+merger_time,CNN Attention,,0.0148,~0,NO
+merger_time,InceptionTime,,0.0493,~0,NO
+merger_time,poc_a,,0.0124,~0,NO
+merger_time,poc_b,0.0124,0.0130,~0,NO
+snr,TCN,0.827,0.811,~0,NO
+snr,ResNet1D,,0.942,~0,NO
+snr,CNN Baseline,,1.111,~0,NO
+snr,CNN Attention,,0.909,~0,NO
+snr,InceptionTime,,0.876,~0,NO
+snr,poc_a,,0.831,~0,NO
+snr,poc_b,0.822,0.822,~0,NO

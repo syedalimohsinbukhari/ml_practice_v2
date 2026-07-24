@@ -8,7 +8,9 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT / "src"))
+sys.path.insert(0, str(_ROOT))
 
 
 def main():
@@ -20,6 +22,9 @@ def main():
                         help=("weights file "
                               "(default: <latest_run_dir>/best.weights.h5)"))
     args = parser.parse_args()
+
+    from experiments.plot_style import update_style
+    update_style()
 
     from gwml.data.loader import load_arrays
     from gwml.data.transforms import PARAM_COLUMNS, TargetTransforms

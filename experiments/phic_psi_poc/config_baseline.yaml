@@ -1,0 +1,56 @@
+# Run A — Baseline: independent φc and ψ heads, same circular loss as Run B.
+#
+# Uses the SAME 1−dot(pred,true) isotropic circular loss as Run B, but applied
+# to individual φc and ψ vectors (no combo transform, no curriculum weight).
+# This is the controlled comparison — the only variable changed between A and B
+# is the gradient grouping (per-parameter vs per-combo).
+#
+# Documented in NOTES.md per plan Sec. 4 requirement.
+
+name: phic_psi_poc_a_baseline
+run_dir: runs/phic_psi_poc_a
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: baseline
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  variance_penalty: 0.0
+  # Radial regularisation for PERIODIC heads using circular loss.
+  # The isotropic 1−cosΔθ loss is blind to |v_raw| — without this penalty
+  # |v| drifts, and normalize_unit's backward pass (÷|v|) crushes or
+  # explodes the angular gradient.  0.0 = disabled (backward-compatible).
+  # Start with 0.01–0.1; tune based on whether std_ratio stabilises near 1.
+  magnitude_penalty_lambda: 0.01
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

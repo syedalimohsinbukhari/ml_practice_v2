@@ -1,0 +1,51 @@
+# TCN architecture — compatible with phic_psi PoC pipeline (mode: baseline)
+#
+# Adds polarization_angle and inclination to the standard TCN head list so
+# that the same loss function (circular 1−dot) is applied to all seven heads,
+# making this a direct architectural comparison against phic_psi_poc_a.
+#
+# Train with:
+#   python experiments/phic_psi_poc/train_poc.py experiments/phic_psi_poc/config_tcn.yaml
+
+name: phic_psi_tcn
+run_dir: runs/phic_psi_tcn
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: baseline
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  variance_penalty: 0.0
+  magnitude_penalty_lambda: 0.01
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

@@ -30,6 +30,9 @@ try:
 except ImportError:  # pragma: no cover - script remains useful outside package envs
     HEAD_SPECS = {}
 
+sys.path.insert(0, str(ROOT))
+from experiments.plot_style import update_style
+
 
 def _load_config(config: str) -> tuple[Path, dict]:
     path = Path(config)
@@ -124,12 +127,17 @@ def plot_history(history_csv: Path, output_path: Path) -> None:
     if not rows:
         raise ValueError(f"no plottable numeric history columns found in {history_csv}")
 
-    fig, axes = plt.subplots(2, 3, figsize=(16, 8), squeeze=False)
+    fig, axes = plt.subplots(3, 2, figsize=(10, 12), squeeze=False)
     flat_axes = axes.ravel()
-    for ax, (metric, title, columns) in zip(axes.ravel(), rows):
+    for ax, (metric, title, columns) in zip(flat_axes, rows):
         _plot_columns(ax, df, columns, metric)
         ax.set_title(title)
         ax.set_ylabel(title)
+        # Per-panel legend, not shared: each panel plots a different set of
+        # per-head lines (MAE/R2/std_ratio/weight each have their own
+        # available heads), so the color-to-head mapping genuinely differs
+        # panel to panel -- unlike plot_diagnostics() below, where every
+        # panel repeats the exact same "subset" categories.
         ax.legend(fontsize="small", ncols=2)
     for ax in flat_axes[len(rows):]:
         ax.set_visible(False)
@@ -137,7 +145,7 @@ def plot_history(history_csv: Path, output_path: Path) -> None:
     fig.suptitle(f"Training history: {history_csv.parent.name}")
     fig.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=140)
+    fig.savefig(output_path)
     plt.close(fig)
 
 
@@ -205,7 +213,7 @@ def plot_diagnostics(diagnostics_csv: Path, output_path: Path) -> None:
     fig.suptitle(f"Diagnostics by subset: {diagnostics_csv.parent.name}")
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, dpi=140)
+    fig.savefig(output_path)
     plt.close(fig)
 
 
@@ -229,6 +237,8 @@ def main() -> None:
         help="directory for PNG outputs; default: the selected run directory",
     )
     args = parser.parse_args()
+
+    update_style()
 
     _, cfg = _load_config(args.config)
     run_dir = _resolve_run_dir(cfg, args.run_folder)

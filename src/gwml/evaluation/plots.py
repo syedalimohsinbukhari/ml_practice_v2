@@ -150,7 +150,7 @@ def scatter_grid(
         fig.suptitle(title)
     fig.tight_layout()
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=120)
+    fig.savefig(path)
     plt.close(fig)
 
 
@@ -194,7 +194,7 @@ def residuals_vs_param(
         ax.set_ylabel("mean |residual|")
     fig.tight_layout()
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=120)
+    fig.savefig(path)
     plt.close(fig)
 
 
@@ -260,8 +260,8 @@ def sigmoid_logit_hist(
             ax.set_title(f"{HEAD_SPECS[head].label} — {name}")
             ax.set_xlabel("logit = ln(p/(1-p))")
             if col == 0:
-                ax.legend(fontsize=7)
+                ax.legend()
     fig.tight_layout()
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=120)
+    fig.savefig(path)
     plt.close(fig)

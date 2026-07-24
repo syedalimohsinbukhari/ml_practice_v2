@@ -1,0 +1,5 @@
+model,mchirp,merger_time,snr,sky_position,coa_phase,polarization_angle,inclination
+poc_a (baseline),ok,ok,ok,ok,XX,~,XX
+poc_b (PoC),ok,ok,ok,ok,COLLAPSE,COLLAPSE,XX
+tcn,ok,ok,ok,ok,XX,XX,XX
+cnn_attention,ok,ok,ok,ok,XX,~,XX

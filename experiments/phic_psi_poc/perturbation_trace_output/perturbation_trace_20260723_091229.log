@@ -1,0 +1,57 @@
+==========================================================================================
+STANDALONE MULTI-STEP PERTURBATION TRACE (A.3) — 25 steps, random-walk ref net/sum = 0.200
+==========================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_a (baseline)
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_poc_a/20260720_210936
+               coa_phase: rel/step (first 5) = [2.83e-01, 2.33e-01, 9.73e-02, 5.14e-02, 4.16e-02] ...
+                          mean_cos_sim = +0.933   net/sum = 0.288   → AMBIGUOUS
+      polarization_angle: rel/step (first 5) = [4.06e-01, 4.65e-01, 2.96e-01, 1.31e-01, 1.10e-01] ...
+                          mean_cos_sim = +0.960   net/sum = 0.586   → DIRECTIONAL (coherent drift)
+                  mchirp: rel/step (first 5) = [7.86e-01, 5.30e-01, 5.82e-01, 8.26e-02, 1.92e-01] ...
+                          mean_cos_sim = +0.602   net/sum = 0.038   → AMBIGUOUS
+    probe circular loss coa_phase: 1.0361 → 1.0187 (Δ = -0.0174)
+    probe circular loss polarization_angle: 0.9835 → 1.0313 (Δ = +0.0478)
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_b (poc)
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_poc_b/20260720_213202
+               coa_phase: rel/step (first 5) = [1.23e-01, 1.13e-01, 8.60e-02, 6.88e-02, 5.87e-02] ...
+                          mean_cos_sim = +0.956   net/sum = 0.394   → AMBIGUOUS
+      polarization_angle: rel/step (first 5) = [8.98e-02, 3.09e-02, 3.45e-02, 2.85e-02, 2.09e-02] ...
+                          mean_cos_sim = +0.801   net/sum = 0.233   → AMBIGUOUS
+                  mchirp: rel/step (first 5) = [9.65e-01, 5.70e-01, 6.37e-01, 7.22e-02, 2.35e-01] ...
+                          mean_cos_sim = +0.544   net/sum = 0.035   → AMBIGUOUS
+    probe circular loss coa_phase: 1.0029 → 0.9897 (Δ = -0.0132)
+    probe circular loss polarization_angle: 0.9673 → 0.9713 (Δ = +0.0039)
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: tcn
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_tcn/20260720_215403
+               coa_phase: rel/step (first 5) = [1.40e-01, 1.57e-01, 2.73e-01, 2.61e-01, 2.87e-01] ...
+                          mean_cos_sim = +0.943   net/sum = 0.925   → DIRECTIONAL (coherent drift)
+      polarization_angle: rel/step (first 5) = [3.14e-01, 8.71e-02, 1.08e-01, 1.81e-01, 2.19e-01] ...
+                          mean_cos_sim = +0.869   net/sum = 0.394   → AMBIGUOUS
+                  mchirp: rel/step (first 5) = [8.91e-01, 4.84e-01, 6.17e-01, 1.87e-01, 1.30e-01] ...
+                          mean_cos_sim = +0.591   net/sum = 0.029   → AMBIGUOUS
+    probe circular loss coa_phase: 0.9976 → 0.9878 (Δ = -0.0098)
+    probe circular loss polarization_angle: 1.0153 → 1.0664 (Δ = +0.0511)
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: cnn_attention
+──────────────────────────────────────────────────────────────────────────────────────────
+  run_dir: runs/phic_psi_cnn_attention/20260720_221625
+               coa_phase: rel/step (first 5) = [2.03e-01, 3.01e-01, 8.66e-02, 6.10e-02, 5.56e-02] ...
+                          mean_cos_sim = +0.658   net/sum = 0.399   → AMBIGUOUS
+      polarization_angle: rel/step (first 5) = [2.88e-01, 3.34e-01, 1.28e-01, 8.63e-02, 9.81e-02] ...
+                          mean_cos_sim = +0.641   net/sum = 0.324   → AMBIGUOUS
+                  mchirp: rel/step (first 5) = [2.69e-01, 1.20e-01, 9.84e-02, 4.46e-02, 3.85e-02] ...
+                          mean_cos_sim = +0.511   net/sum = 0.164   → AMBIGUOUS
+    probe circular loss coa_phase: 1.0524 → 1.0064 (Δ = -0.0459)
+    probe circular loss polarization_angle: 1.0073 → 1.0366 (Δ = +0.0293)
+
+Report: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc/perturbation_trace_output/perturbation_trace_20260723_091229.md

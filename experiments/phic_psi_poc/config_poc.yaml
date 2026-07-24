@@ -1,0 +1,62 @@
+# Run B — PoC: sum/diff combo heads + inclination curriculum weighting
+#
+# φc and ψ are trained ONLY through their derived combo_A / combo_B losses.
+# No individual φc or ψ loss is applied.
+#
+# well_constrained_combo is TBD — fill after Step 1.1 prereq check.
+
+name: phic_psi_poc_b
+run_dir: runs/phic_psi_poc_b
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: poc
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  # Combo clamps at moderate default (same as other PERIODIC heads).
+  # Don't pre-tighten — w(ι) already handles face-on suppression.
+  combo_log_var_clamp:
+    default: 3.0
+    combo_A: 3.0
+    combo_B: 3.0
+  variance_penalty: 0.0
+  # Radial regularisation for PERIODIC heads using circular loss —
+  # same rationale as config_baseline.yaml.
+  magnitude_penalty_lambda: 0.01
+  # From Step 1.1 (rev2): combo_B (φc−2ψ) is well-constrained for cos ι > 0.
+  # The well-constrained label FLIPS sign with cos ι — sign_dependent_combo
+  # enables dynamic per-sample assignment in the trainer.
+  well_constrained_combo: combo_B
+  sign_dependent_combo: true
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

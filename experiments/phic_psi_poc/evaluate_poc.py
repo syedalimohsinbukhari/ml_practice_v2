@@ -18,8 +18,10 @@ import argparse
 import sys
 from pathlib import Path
 
+_ROOT = Path(__file__).resolve().parents[2]
 # Ensure src/ is on the path for gwml imports (same pattern as train_poc.py:27)
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+sys.path.insert(0, str(_ROOT / "src"))
+sys.path.insert(0, str(_ROOT))
 
 
 def main():
@@ -33,6 +35,9 @@ def main():
     args = parser.parse_args()
 
     # Lazy imports (after CLI parse, so --help is fast)
+    from experiments.plot_style import update_style
+    update_style()
+
     from gwml.data.loader import load_arrays
     from gwml.data.transforms import PARAM_COLUMNS, TargetTransforms
     from gwml.evaluation.metrics import evaluate_model

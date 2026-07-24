@@ -30,24 +30,31 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import pandas as pd
 
-import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc"))
+sys.path.insert(0, str(ROOT))
+
+from experiments.plot_style import (LEGEND_FONT_SIZE, GRID_ALPHA, GRID_LINESTYLE, TITLE_FONT_SIZE, LINE_WIDTH,
+                                    LABEL_FONT_SIZE, SAVE_DPI, ANNOTATION_FONT_SIZE)
 
 # ---------------------------------------------------------------------------
 # Logging: tee stdout to both console and a timestamped log file
 # ---------------------------------------------------------------------------
 from datetime import datetime as _dt
 
+
 class _Tee:
     """Write to both a file and the original stdout."""
+
     def __init__(self, file_path):
         self.stdout = sys.stdout
         try:
@@ -55,20 +62,25 @@ class _Tee:
         except OSError as e:
             print(f"WARNING: could not open log file {file_path}: {e}", file=self.stdout)
             self.file = None
+
     def write(self, data):
         self.stdout.write(data)
         if self.file:
             self.file.write(data)
+
     def flush(self):
         self.stdout.flush()
         if self.file:
             self.file.flush()
+
     def close(self):
         if self.file:
             self.file.close()
 
+
 _LOG_FILE = None
 _TEE = None
+
 
 def _setup_logging(script_name: str):
     global _LOG_FILE, _TEE
@@ -79,12 +91,14 @@ def _setup_logging(script_name: str):
     _TEE = _Tee(str(_LOG_FILE))
     sys.stdout = _TEE
 
+
 def _teardown_logging():
     global _TEE
     if _TEE:
         sys.stdout = _TEE.stdout
         _TEE.close()
         _TEE = None
+
 
 # ---------------------------------------------------------------------------
 
@@ -94,6 +108,7 @@ from gwml.training.train import latest_run_dir, load_config
 
 OUT_DIR = Path(__file__).resolve().parent / "diagnostic_output"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # ======================================================================
 # CHECK 1: True label distribution
@@ -141,7 +156,7 @@ def check_true_labels():
             ("coa_phase (φc)", phic_raw, phic_from_transform),
             ("polarization_angle (ψ)", psi_raw, psi_from_transform),
             ("inclination (ι)", iota_raw, np.arctan2(incl_transformed[:, 0],
-                                                      incl_transformed[:, 1]) % (2 * np.pi)),
+                                                     incl_transformed[:, 1]) % (2 * np.pi)),
         ]:
             # Basic stats
             n = len(raw_vals)
@@ -154,7 +169,7 @@ def check_true_labels():
             theta = transformed_vals * (2 * np.pi / period)
             s = np.sin(theta).mean()
             c = np.cos(theta).mean()
-            circ_r = np.sqrt(s**2 + c**2)
+            circ_r = np.sqrt(s ** 2 + c ** 2)
 
             # Decile boundaries
             deciles_raw = np.percentile(raw_vals, [0, 10, 50, 90, 100])
@@ -165,8 +180,10 @@ def check_true_labels():
             print(f"\n  {name}:")
             print(f"    n={n}, unique (raw)={unique_raw}, unique (tf)={unique_transformed}")
             print(f"    circular R = {circ_r:.6f}  {'⚠ COLLAPSED' if collapsed else '✓ well-spread'}")
-            print(f"    raw deciles:    {deciles_raw[0]:.3f}  {deciles_raw[1]:.3f}  {deciles_raw[2]:.3f}  {deciles_raw[3]:.3f}  {deciles_raw[4]:.3f}")
-            print(f"    tf deciles:     {deciles_tf[0]:.3f}  {deciles_tf[1]:.3f}  {deciles_tf[2]:.3f}  {deciles_tf[3]:.3f}  {deciles_tf[4]:.3f}")
+            print(
+                f"    raw deciles:    {deciles_raw[0]:.3f}  {deciles_raw[1]:.3f}  {deciles_raw[2]:.3f}  {deciles_raw[3]:.3f}  {deciles_raw[4]:.3f}")
+            print(
+                f"    tf deciles:     {deciles_tf[0]:.3f}  {deciles_tf[1]:.3f}  {deciles_tf[2]:.3f}  {deciles_tf[3]:.3f}  {deciles_tf[4]:.3f}")
 
             # Bin histogram
             n_bins = 20
@@ -174,7 +191,7 @@ def check_true_labels():
                                          range=(0, period))
             max_bin_frac = counts.max() / n
             print(f"    max bin fraction = {max_bin_frac:.4f}  "
-                  f"(uniform would be {1/n_bins:.4f}, collapsed would be 1.0)")
+                  f"(uniform would be {1 / n_bins:.4f}, collapsed would be 1.0)")
 
             all_stats.append({
                 "split": split, "parameter": name, "n": n,
@@ -218,41 +235,45 @@ def _plot_true_labels(data_path, out_dir, all_stats=None):
     from gwml.data.loader import load_arrays
     from gwml.data.transforms import TargetTransforms, PARAM_COLUMNS
 
-    heads = ["mchirp", "merger_time", "snr", "sky_position",
-             "coa_phase", "polarization_angle", "inclination"]
+    heads = ["mchirp", "merger_time", "snr", "sky_position", "coa_phase", "polarization_angle", "inclination"]
 
     fig, axes = plt.subplots(2, 5, figsize=(20, 8))
     params_map = [
-        (0, "coa_phase", r"$\phi_c$ true [rad]", 2*np.pi, PARAM_COLUMNS["coa_phase"]),
-        (1, "polarization_angle", r"$\psi$ true [rad]", np.pi, PARAM_COLUMNS["polarization_angle"]),
-        (2, "inclination", r"$\iota$ true [rad]", np.pi, PARAM_COLUMNS["inclination"]),
-        (3, "declination", "Dec true [rad]", np.pi, PARAM_COLUMNS["declination"]),
-        (4, "ra", "RA true [rad]", 2*np.pi, PARAM_COLUMNS["ra"]),
+        (0, "ra", "RA", 2 * np.pi, PARAM_COLUMNS["ra"]),
+        (1, "declination", r"$\delta$", np.pi, PARAM_COLUMNS["declination"]),
+        (2, "inclination", r"$\iota$", np.pi, PARAM_COLUMNS["inclination"]),
+        (3, "coa_phase", r"$\phi_c$", 2 * np.pi, PARAM_COLUMNS["coa_phase"]),
+        (4, "polarization_angle", r"$\psi$", np.pi, PARAM_COLUMNS["polarization_angle"]),
     ]
 
     for row, split in enumerate(["training", "validation"]):
         strain, params = load_arrays(data_path, split)
         transforms = TargetTransforms(heads=heads).fit(params)
-        targets = transforms.transform(params)
+        # targets = transforms.transform(params)
 
-        for col_idx, label, xlabel, period, param_col in params_map:
+        for col_idx, label, x_label, period, param_col in params_map:
             ax = axes[row][col_idx]
             raw_vals = params[:, param_col]
-            ax.hist(raw_vals, bins=40, range=(0, period), alpha=0.7,
-                    color="steelblue", edgecolor="white", linewidth=0.3)
+            ax.hist(raw_vals, bins=32, range=(0, period), alpha=0.7, color="steelblue", edgecolor="white",
+                    linewidth=0.3)
             # Circular stats
             theta = raw_vals * (2 * np.pi / period)
-            circ_r = np.sqrt(np.sin(theta).mean()**2 + np.cos(theta).mean()**2)
-            ax.set_title(f"{label} — {split}\nn={len(raw_vals)}  circ_r={circ_r:.4f}",
-                        fontsize=10)
-            ax.set_xlabel(xlabel, fontsize=9)
-            ax.set_ylabel("count", fontsize=9)
+            circ_r = np.sqrt(np.sin(theta).mean() ** 2 + np.cos(theta).mean() ** 2)
+            if row == 0:
+                ax.set_title(f"N={len(raw_vals)}  " + r'$\bar{R}$' + f"={circ_r:.4f}", fontsize=TITLE_FONT_SIZE)
+            if row == 1:
+                ax.set_title(f"N={len(raw_vals)}  " + r'$\bar{R}$' + f"={circ_r:.4f}", fontsize=TITLE_FONT_SIZE)
+            if row == 1:
+                ax.set_xlabel(x_label, fontsize=LABEL_FONT_SIZE)
+            if col_idx == 0:
+                ax.set_ylabel("Count", fontsize=LABEL_FONT_SIZE)
 
-    fig.suptitle("True Label Distributions (post-HDF5 load, pre-transform)",
-                 fontsize=13, fontweight="bold")
+    fig.suptitle("True label distributions for angular parameters", fontsize=TITLE_FONT_SIZE, fontweight="bold")
     fig.tight_layout()
     png_path = out_dir / "true_label_distributions.png"
-    fig.savefig(png_path, dpi=150, bbox_inches="tight")
+    pdf_path = out_dir / "true_label_distributions.pdf"
+    fig.savefig(png_path, dpi=SAVE_DPI)
+    fig.savefig(pdf_path, dpi=SAVE_DPI)
     plt.close(fig)
     print(f"Plot: {png_path}")
 
@@ -409,6 +430,29 @@ def check_logvar_trajectory():
     return True
 
 
+model_label_dict = {
+    "poc_a": r"TCN [POC$_\text{A}$]",
+    "poc_b": r"TCN [POC$_\text{B}$]",
+    "tcn": "TCN",
+    "cnn_baseline": "CNN [baseline]",
+    "cnn_attention": "CNN [with attention]",
+    "inception_time": "Time-Inception model",
+    "resnet1d": "ResNet 1D"
+}
+
+log_var_targets = {
+    "coa_phase": r"$\phi_\text{c}$",
+    "combo_A": r"$\phi_c+2\psi$",
+    "combo_B": r"$\phi_c-2\psi$",
+    "inclination": "Inclination",
+    "mchirp": r"M$_\text{chirp}$",
+    "merger_time": r"t$_\text{merge}$",
+    "polarization_angle": r"$\psi$",
+    "sky_position": r"SKY$_\text{RA, Dec}$",
+    "snr": "SNR"
+}
+
+
 def _plot_logvar_trajectories(out_dir):
     """Plot weight and loss trajectories for all phic_psi runs."""
     runs = {
@@ -447,65 +491,121 @@ def _plot_logvar_trajectories(out_dir):
 
     n_models = len(history_data)
 
-    # --- Plot: Weight trajectories (4x2 grid) ---
+    # --- Plot: Weight trajectories (Nx2 grid) ---
     if weight_cols:
         n_weight = len(weight_cols)
-        n_cols = 4
+        n_cols = 3
         n_rows = (n_models + n_cols - 1) // n_cols
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows),
-                                 sharex=True, squeeze=False)
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_rows, 10), sharex=True, squeeze=False)
         colors = plt.cm.tab10(np.linspace(0, 1, max(n_weight, 10)))
         for idx, (label, df) in enumerate(history_data.items()):
             ax = axes[idx // n_cols][idx % n_cols]
             for col, color in zip(weight_cols, colors):
                 if col in df.columns:
-                    ax.plot(df.index, df[col], color=color, linewidth=0.8,
-                            alpha=0.8, label=col)
-            ax.set_title(label, fontsize=10)
-            ax.legend(fontsize=7, loc="upper right", ncol=2)
-            ax.grid(True, alpha=0.3)
+                    ax.plot(df.index, df[col], color=color, linewidth=LINE_WIDTH, alpha=0.8)
+            ax.set_title(model_label_dict[label], fontsize=TITLE_FONT_SIZE)
+            ax.grid(True, alpha=GRID_ALPHA, ls=GRID_LINESTYLE)
             for col in weight_cols:
                 if col in df.columns and len(df) > 10:
                     first = df[col].iloc[5]
                     last = df[col].iloc[-1]
                     if first > 0.01 and last < first * 0.1:
-                        ax.annotate(f"{col} collapsed", xy=(len(df)*0.7, last),
-                                    fontsize=7, color="red",
-                                    bbox=dict(facecolor="white", alpha=0.8))
-        # Hide unused subplots
-        for j in range(n_models, n_rows * n_cols):
-            axes[j // n_cols][j % n_cols].set_visible(False)
-        fig.suptitle("Uncertainty Weight Trajectories (exp(-log_var))",
-                     fontsize=13, fontweight="bold")
+                        ax.annotate(f"{col} collapsed", xy=(len(df) * 0.7, last), fontsize=ANNOTATION_FONT_SIZE,
+                                    color="red", bbox=dict(facecolor="white", alpha=0.8))
+        # Hide unused subplots, but reserve the first empty grid cell (the 8th box, 1-indexed)
+        # as a blank canvas for the legend -- anchoring ax.legend(loc="center") to that axes
+        # places the legend inside its already-computed grid position, rather than fig.legend's
+        # loc="lower right" which anchors to the whole figure canvas and lands in the true corner.
+        empty_slots = list(range(n_models, n_rows * n_cols))
+        legend_slot = empty_slots[0] if empty_slots else None
+        for j in empty_slots:
+            ax_empty = axes[j // n_cols][j % n_cols]
+            if j != legend_slot:
+                ax_empty.set_visible(False)
+
+        # One shared legend covering every column that appears anywhere in the figure, built from the global
+        # column/color pairing (not from any one subplot's drawn lines) -- no single model draws every column
+        # (baseline-mode models use coa_phase/polarization_angle weights, poc-mode uses combo_A/combo_B instead),
+        # but colors are assigned once, globally, so this legend is complete and correct for every subplot.
+        #
+        # [TR]/[VAL] do NOT denote two independently-fit weights: exp(-log_var) is a single trainable
+        # scalar per head, not conditioned on data split.  [TR] is the running mean of exp(-log_var)
+        # over training steps *while log_var is still being updated* within that epoch; [VAL] is the
+        # same exp(-log_var) evaluated once more, at its fixed end-of-epoch value, against the
+        # validation batches.  Both curves track the same parameter at different points in the epoch.
+        def _weight_head_key(col: str) -> str:
+            prefix = "val_weight_" if col.startswith("val_weight_") else "weight_"
+            return col[len(prefix):]
+
+        legend_handles = [Line2D([0], [0],
+                                 color=color,
+                                 linewidth=1.5,
+                                 label=f"[VAL] {log_var_targets[_weight_head_key(col)]}"
+                                 if col.startswith("val_weight_")
+                                 else f"[TR] {log_var_targets[_weight_head_key(col)]}")
+                          for col, color in zip(weight_cols, colors)]
+        if legend_slot is not None:
+            legend_ax = axes[legend_slot // n_cols][legend_slot % n_cols]
+            legend_ax.axis("off")
+            legend_ax.legend(handles=legend_handles, loc="center", ncols=2, fontsize=LEGEND_FONT_SIZE)
+        else:
+            fig.legend(handles=legend_handles, loc="lower right", ncols=2, fontsize=LEGEND_FONT_SIZE)
+        fig.suptitle("Uncertainty Weight Trajectories\n" + r"$w = \exp(-s),\ s = \log\sigma^2$",
+                     fontsize=TITLE_FONT_SIZE, fontweight="bold")
         fig.tight_layout()
         png_path = out_dir / "logvar_trajectories.png"
-        fig.savefig(png_path, dpi=150, bbox_inches="tight")
+        pdf_path = out_dir / "logvar_trajectories.pdf"
+        fig.savefig(png_path)
+        fig.savefig(pdf_path)
         plt.close(fig)
         print(f"Plot: {png_path}")
 
-    # --- Plot: Combo loss trajectories (2x4 grid) ---
+    # --- Plot: Combo loss trajectories (Nx2 grid) ---
     if loss_cols:
-        n_cols = 4
+        n_cols = 3
         n_rows = (n_models + n_cols - 1) // n_cols
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows),
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_rows, 10),
                                  sharex=True, squeeze=False)
         colors = plt.cm.tab10(np.linspace(0, 1, max(len(loss_cols), 10)))
         for idx, (label, df) in enumerate(history_data.items()):
             ax = axes[idx // n_cols][idx % n_cols]
             for col, color in zip(loss_cols, colors):
                 if col in df.columns:
-                    ax.plot(df.index, df[col], color=color, linewidth=0.8,
-                            alpha=0.8, label=col)
-            ax.set_title(label, fontsize=10)
-            ax.legend(fontsize=7, loc="upper right", ncol=2)
-            ax.grid(True, alpha=0.3)
-        for j in range(n_models, n_rows * n_cols):
-            axes[j // n_cols][j % n_cols].set_visible(False)
-        fig.suptitle("Combo / Circular Loss Trajectories",
-                     fontsize=13, fontweight="bold")
+                    ax.plot(df.index, df[col], color=color, linewidth=LINE_WIDTH, label=col)
+            ax.set_title(model_label_dict[label], fontsize=TITLE_FONT_SIZE)
+            ax.grid(True, alpha=GRID_ALPHA, ls=GRID_LINESTYLE)
+        empty_slots = list(range(n_models, n_rows * n_cols))
+        legend_slot = empty_slots[0] if empty_slots else None
+        for j in empty_slots:
+            ax_empty = axes[j // n_cols][j % n_cols]
+            if j != legend_slot:
+                ax_empty.set_visible(False)
+
+        # Shared legend, same rationale as the weight-trajectories plot above.
+
+        def _weight_head_key(col: str) -> str:
+            prefix = "val_circular_loss_" if col.startswith("val_circular") else "circular_loss_"
+            return col[len(prefix):]
+
+        legend_handles = [Line2D([0], [0], color=color, linewidth=1.5,
+                                 label=f"[VAL] {log_var_targets[_weight_head_key(col)]}"
+                                 if col.startswith("val_circular_loss_")
+                                 else f"[TR] {log_var_targets[_weight_head_key(col)]}")
+                          for col, color in zip(loss_cols, colors)]
+        if legend_slot is not None:
+            legend_ax = axes[legend_slot // n_cols][legend_slot % n_cols]
+            legend_ax.axis("off")
+            legend_ax.legend(handles=legend_handles, loc="center", ncols=2, fontsize=LEGEND_FONT_SIZE)
+        else:
+            fig.legend(handles=legend_handles, loc="lower right", ncols=2, fontsize=LEGEND_FONT_SIZE)
+
+        axes[2][1].set_xlabel('Epochs', fontsize=LABEL_FONT_SIZE)
+        fig.suptitle("Combo / Circular Loss Trajectories", fontsize=TITLE_FONT_SIZE, fontweight="bold")
         fig.tight_layout()
         png_path = out_dir / "combo_loss_trajectories.png"
-        fig.savefig(png_path, dpi=150, bbox_inches="tight")
+        pdf_path = out_dir / "combo_loss_trajectories.pdf"
+        fig.savefig(png_path)
+        fig.savefig(pdf_path)
         plt.close(fig)
         print(f"Plot: {png_path}")
 
@@ -537,8 +637,8 @@ def check_gradient_routing():
     strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=128)
     iota_col = PARAM_COLUMNS["inclination"]
     transforms = TargetTransforms(heads=["mchirp", "merger_time", "snr",
-                                          "sky_position", "coa_phase",
-                                          "polarization_angle", "inclination"])
+                                         "sky_position", "coa_phase",
+                                         "polarization_angle", "inclination"])
     transforms.fit(params)
     ds = make_dataset(strain, params, transforms, 128, shuffle=False)
     batch = next(iter(ds))
@@ -563,8 +663,8 @@ def check_gradient_routing():
     phi_psi_heads = ["coa_phase", "polarization_angle"]
 
     # Snapshot φc/ψ head weights and collect their variable tensors
-    phi_psi_snapshots = {}    # w.name -> numpy snapshot (for delta check)
-    phi_psi_vars = []          # tf.Variable list (for gradient computation)
+    phi_psi_snapshots = {}  # w.name -> numpy snapshot (for delta check)
+    phi_psi_vars = []  # tf.Variable list (for gradient computation)
 
     for head_name in phi_psi_heads:
         try:
@@ -729,8 +829,8 @@ def check_tanh_saturation():
         trainer_init = build_sumdiff_trainer(cfg)
         strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=128)
         batch = next(iter(make_dataset(strain, params,
-                       TargetTransforms(heads=trainer_init.head_names).fit(params),
-                       128, shuffle=False)))
+                                       TargetTransforms(heads=trainer_init.head_names).fit(params),
+                                       128, shuffle=False)))
         strain_batch, targets = batch
 
         # Get intermediate layer outputs for tanh-activated heads
@@ -840,8 +940,8 @@ def check_gradient_chain():
     # ---- Load a single small batch (8 samples) ----
     strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=128)
     transforms = TargetTransforms(heads=["mchirp", "merger_time", "snr",
-                                          "sky_position", "coa_phase",
-                                          "polarization_angle", "inclination"])
+                                         "sky_position", "coa_phase",
+                                         "polarization_angle", "inclination"])
     transforms.fit(params)
     ds = make_dataset(strain, params, transforms, 8, shuffle=False)
     batch = next(iter(ds))
@@ -1102,8 +1202,8 @@ def check_early_training_saturation():
         # 4a. Forward pass BEFORE the gradient step (training=False)
         y_pred = trainer(strain_batch, training=False)
 
-        z_phic_raw = y_pred["coa_phase"]             # (N, 2), post-tanh
-        z_psi_raw = y_pred["polarization_angle"]     # (N, 2), post-tanh
+        z_phic_raw = y_pred["coa_phase"]  # (N, 2), post-tanh
+        z_psi_raw = y_pred["polarization_angle"]  # (N, 2), post-tanh
 
         # 4b. Print first 3 samples in detail
         for i in range(min(3, n)):
@@ -1146,7 +1246,7 @@ def check_early_training_saturation():
             y_pred_train = trainer(strain_batch, training=True)
             loss = trainer._total_loss(targets, y_pred_train, None)
 
-        kernel_var = coa_phase_layer.trainable_weights[0]   # weight matrix
+        kernel_var = coa_phase_layer.trainable_weights[0]  # weight matrix
         grad_kernel = tape.gradient(loss, kernel_var)
         grad_norm = float(
             tf.linalg.global_norm([grad_kernel])
@@ -1228,6 +1328,9 @@ def check_early_training_saturation():
 # ======================================================================
 
 def main():
+    from experiments.plot_style import update_style
+    update_style()
+
     _setup_logging("diagnostic_checks")
 
     print("PHIC_PSI DEEP DIAGNOSTICS")

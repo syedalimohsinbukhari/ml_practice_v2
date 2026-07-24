@@ -37,6 +37,17 @@ TICK_DIRECTION = "in"  # astronomy convention
 GRID_ALPHA = 0.25
 GRID_LINESTYLE = "--"
 
+# Semantic series colors -- shared across scripts so the same series means the
+# same color everywhere. Keep in sync with experiments/plot_style.py's copy.
+SERIES_COLORS = {
+    "lam0_reference": "#7f7f7f",   # gray -- the lambda=0 comparison line
+    "run7_reference": "#1f77b4",   # blue -- the lambda=0.01 baseline line
+    "retune": "#d62728",           # red  -- the arm actually being retuned
+    "train": "#d95f02",            # orange -- a training curve
+    "val": "#1b9e77",              # teal -- a validation curve
+    "null": "#666666",             # gray -- a null/random-guessing baseline line
+}
+
 
 def update_style():
     """Update rcParams for publication-ready figures.

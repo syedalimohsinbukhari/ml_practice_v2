@@ -35,13 +35,25 @@ TICK_DIRECTION = "in"  # astronomy convention
 GRID_ALPHA = 0.25
 GRID_LINESTYLE = "--"
 
+# Semantic series colors -- shared across scripts so the same series means the
+# same color everywhere (e.g. the three lambda-sweep sibling scripts had drifted:
+# COLOR_LAM0 was red in run_lam0_ablation.py but gray in run_lam005/010_retune.py,
+# and the retune scripts' COLOR_RETUNE reused that same red for a different series).
+SERIES_COLORS = {
+    "lam0_reference": "#7f7f7f",   # gray -- the lambda=0 comparison line
+    "run7_reference": "#1f77b4",   # blue -- the lambda=0.01 baseline line
+    "retune": "#d62728",           # red  -- the arm actually being retuned
+    "train": "#d95f02",            # orange -- a training curve
+    "val": "#1b9e77",              # teal -- a validation curve
+    "null": "#666666",             # gray -- a null/random-guessing baseline line
+}
+
 
 def update_style():
     """Update rcParams for publication-ready figures.
 
-    All values are driven by the constants defined above in this module — a single
-    source of truth. Changing a constant here automatically updates every figure
-    that calls this function.
+    All values are driven by the constants defined above in this module — a single source of truth.
+    Changing a constant here automatically updates every figure that calls this function.
     """
     plt.rcParams.update(
         {

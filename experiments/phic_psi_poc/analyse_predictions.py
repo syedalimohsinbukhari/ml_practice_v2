@@ -26,6 +26,8 @@ from matplotlib.ticker import MaxNLocator
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc"))
+sys.path.insert(0, str(ROOT))
+from experiments.plot_style import update_style
 
 # ---------------------------------------------------------------------------
 # Logging: tee stdout to both console and a timestamped log file
@@ -236,6 +238,8 @@ def analyse_run(label: str, config_path: Path) -> dict:
 
 
 def main():
+    update_style()
+
     print("=" * 100)
     print("COMPREHENSIVE PREDICTION ANALYSIS — all heads, all models")
     print("=" * 100)
@@ -552,17 +556,21 @@ def _generate_plots(results, out_dir, ts):
                         transform=ax.transAxes, ha="right", va="top",
                         fontsize=7, fontfamily="monospace",
                         bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
+            # Every subplot gets its own "predicted"/"true" legend, not just
+            # axes[0][0] -- the "predicted" swatch color differs per model
+            # (MODEL_COLORS[idx]), so a single shared legend can't correctly
+            # represent every subplot's colors.
+            ax.legend(fontsize=8, loc="upper left")
             idx += 1
 
         # Hide unused subplots
         for j in range(idx, n_rows * n_cols):
             axes[j // n_cols][j % n_cols].set_visible(False)
-        axes[0][0].legend(fontsize=8, loc="upper left")
         fig.supxlabel(f"{title} [rad]", fontsize=10)
         fig.suptitle(f"Prediction Distributions — {title}", fontsize=13, fontweight="bold")
         fig.tight_layout()
         png_path = out_dir / f"histogram_{h}_{ts}.png"
-        fig.savefig(png_path, dpi=150, bbox_inches="tight")
+        fig.savefig(png_path, bbox_inches="tight")
         plt.close(fig)
         print(f"Plot: {png_path}")
 
@@ -570,7 +578,7 @@ def _generate_plots(results, out_dir, ts):
     for h, xlabel in [("mchirp", r"$\mathcal{M}_c$ true"),
                        ("merger_time", "$t_{merger}$ true [s]"),
                        ("snr", "SNR true")]:
-        cols = min(n_models, 4)
+        cols = min(n_models, 2)
         rows = (n_models + cols - 1) // cols
         fig, axes = plt.subplots(rows, cols, figsize=(4*cols, 3.5*rows),
                                  squeeze=False)
@@ -597,7 +605,7 @@ def _generate_plots(results, out_dir, ts):
         fig.suptitle(f"True vs Predicted — {h}", fontsize=13, fontweight="bold")
         fig.tight_layout()
         png_path = out_dir / f"scatter_{h}_{ts}.png"
-        fig.savefig(png_path, dpi=150, bbox_inches="tight")
+        fig.savefig(png_path, bbox_inches="tight")
         plt.close(fig)
         print(f"Plot: {png_path}")
 
@@ -678,7 +686,7 @@ def _plot_health_heatmap(results, out_dir, ts):
                  fontsize=11, fontweight="bold")
     fig.tight_layout()
     png_path = out_dir / f"health_check_{ts}.png"
-    fig.savefig(png_path, dpi=150, bbox_inches="tight")
+    fig.savefig(png_path, bbox_inches="tight")
     plt.close(fig)
     print(f"Plot: {png_path}")
 

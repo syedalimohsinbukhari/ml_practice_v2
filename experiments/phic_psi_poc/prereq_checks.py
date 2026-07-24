@@ -40,6 +40,8 @@ _REPO_ROOT = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, _REPO_ROOT)
 sys.path.insert(0, str(Path(_REPO_ROOT) / "src"))
 
+from experiments.plot_style import update_style
+
 
 # ---------------------------------------------------------------------------
 # Step 1.1 — Sign / combination check
@@ -375,7 +377,7 @@ def _plot_ratio_vs_iota(sweep_results, results_by_sign):
     fig.suptitle("Step 1.1 — Combo correlation ratio vs inclination",
                  fontweight="bold")
     fig.tight_layout()
-    fig.savefig("experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.png", dpi=120)
+    fig.savefig("experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.png")
     plt.close(fig)
     print("  Plot saved to: experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.png")
 
@@ -430,6 +432,8 @@ def main():
         help="Bootstrap samples for CI (default: 5000)",
     )
     args = parser.parse_args()
+
+    update_style()
 
     print("=" * 70)
     print("φc/ψ Degeneracy PoC — Prerequisite Checks")

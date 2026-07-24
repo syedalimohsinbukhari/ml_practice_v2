@@ -24,7 +24,9 @@ import sys
 from pathlib import Path
 
 # Ensure src/ is on the path (same pattern as scripts/train.py:11)
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_ROOT / "src"))
+sys.path.insert(0, str(_ROOT))
 
 import keras
 import numpy as np
@@ -181,6 +183,10 @@ def main():
         "config", help="Path to YAML experiment config"
     )
     args = parser.parse_args()
+
+    from experiments.plot_style import update_style
+    update_style()
+
     run_poc_experiment(args.config)
 
 

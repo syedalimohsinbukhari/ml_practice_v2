@@ -36,6 +36,7 @@ ROOT = EXPERIMENTS_DIR.parents[1]
 
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(EXPERIMENTS_DIR))
+sys.path.insert(0, str(ROOT))
 
 LAMBDA_LABEL = "0.10"
 
@@ -143,12 +144,15 @@ def compare_trajectories() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    from experiments.plot_style import SERIES_COLORS, update_style
+    update_style()
+
     out_dir = EXPERIMENTS_DIR / "lam010_retune_output"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    COLOR_LAM0 = "#7f7f7f"
-    COLOR_RUN7 = "#1f77b4"
-    COLOR_RETUNE = "#d62728"
+    COLOR_LAM0 = SERIES_COLORS["lam0_reference"]
+    COLOR_RUN7 = SERIES_COLORS["run7_reference"]
+    COLOR_RETUNE = SERIES_COLORS["retune"]
 
     head_labels = {"coa_phase": "φc (coa_phase)", "polarization_angle": "ψ (pol_angle)"}
     col_axes = [
@@ -157,7 +161,8 @@ def compare_trajectories() -> None:
         ("val std_ratio", "std_ratio", None),
     ]
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    # Nx2 grid: metrics as rows, heads as columns (was 2x3 heads-as-rows).
+    fig, axes = plt.subplots(len(col_axes), len(head_labels), figsize=(10, 15))
 
     print("\n" + "=" * 90)
     print(f"λ={LAMBDA_LABEL} RETUNE — trajectory comparison vs λ=0 and λ=0.01 (Run 7)")
@@ -165,13 +170,13 @@ def compare_trajectories() -> None:
 
     report_rows = []
 
-    for row_idx, (head_name, head_label) in enumerate(head_labels.items()):
+    for col_idx, (head_name, head_label) in enumerate(head_labels.items()):
         val_col, train_col, std_col = METRICS[head_name]
         loss_cols = [val_col, train_col, std_col]
 
-        for col_idx, (col_title, ylabel, hline) in enumerate(col_axes):
+        for row_idx, (col_title, ylabel, hline) in enumerate(col_axes):
             ax = axes[row_idx][col_idx]
-            col = loss_cols[col_idx]
+            col = loss_cols[row_idx]
 
             for config_file in RETUNE_CONFIGS:
                 pair = SWEEP_PAIRS[config_file]
@@ -253,7 +258,7 @@ def compare_trajectories() -> None:
             elif col_title == "val std_ratio":
                 ax.axhline(y=0.5, color="gray", linewidth=0.5, linestyle=":", alpha=0.6)
                 ax.axhline(y=2.0, color="gray", linewidth=0.5, linestyle=":", alpha=0.6)
-            ax.legend(fontsize=7, loc="best")
+            ax.legend(loc="best")
             ax.grid(True, alpha=0.3)
 
     fig.suptitle(
@@ -262,7 +267,7 @@ def compare_trajectories() -> None:
     )
     fig.tight_layout()
     png_path = out_dir / "lam010_retune_trajectories.png"
-    fig.savefig(png_path, dpi=150, bbox_inches="tight")
+    fig.savefig(png_path, bbox_inches="tight")
     plt.close(fig)
     print(f"\nPlot: {png_path}")
 

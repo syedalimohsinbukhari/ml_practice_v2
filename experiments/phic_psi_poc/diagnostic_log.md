@@ -1511,3 +1511,15 @@ Two additions per follow-up review, folded into chapter §6.6:
 (1) the significantly positive final-stage mchirp probe deltas (+0.017 to +0.065, t = +4.2 to +9.0) are single-batch resumption overfitting — confirmed by the stage-dependent sign flip on the identical probe pipeline, probe/batch disjointness by construction, and the effect's confinement to the one head with a converged real mapping; claimed as an unplanned second positive control for the final stage.
 (2) per-combo minimum detectable effect (≈ 2× paired SE) spans ≈ 0.005–0.10 loss units — the final-stage per-combo null is bounded at the few-percent level, not excluded to arbitrary precision; adequate for A.3's mechanistic role, with the degeneracy verdict carried by the bootstrap and SNR stratification.
 `perturbation_trace_standalone.py` now also logs batch total loss per step (the direct batch-overfitting signature) for any future rerun.
+
+## Reading note: combo/circular-loss column names differ by model (2026-07-24)
+
+Revisited while explaining `diagnostic_checks.py`'s `combo_loss_trajectories.png` to a reviewer.
+poc_b is the only model whose `history.csv` has `circular_loss_combo_A`/`circular_loss_combo_B` columns.
+Every other model (poc_a, tcn, cnn_baseline, cnn_attention, inception_time, resnet1d) logs `circular_loss_coa_phase`/`circular_loss_polarization_angle` instead — same isotropic 1−cosΔθ metric, different target.
+Root cause is `loss.mode` in the config, not a metric-naming bug.
+`SumDiffTrainer` builds combo_A/combo_B metrics only in poc mode (`trainer.py:534-544`) and falls back to per-head coa_phase/polarization_angle metrics in baseline mode (`trainer.py:555-563`).
+Confirmed against every `config_*.yaml` in this directory — only `config_poc.yaml` sets `mode: poc`.
+
+**Already documented:** this is the same fact established in "B — poc_b config diff" above, where `loss.mode` is listed as the first of four intentional config differences between poc_a and poc_b.
+Noted here explicitly because the plot's legend surfaced it as a fresh question outside that section's original collapse-severity context.

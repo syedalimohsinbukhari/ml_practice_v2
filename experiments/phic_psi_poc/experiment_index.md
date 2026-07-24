@@ -184,6 +184,12 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 | [`scripts/plot_run.py`](scripts/plot_run.py) | Plotting subprocess (called by run_full.py) |
 | [`scripts/train.py`](scripts/train.py) | Training subprocess (called by run_full.py) |
 
+### Shared plotting utilities
+
+| File | Description |
+|------|-------------|
+| [`plot_style.py`](plot_style.py) | Shared matplotlib style (`update_style()`) + `SERIES_COLORS` semantic color dict for all `experiments/` plotting scripts. Deliberate duplicate of `src/gwml/evaluation/plot_style.py` (kept in sync by hand, not imported cross-package). Retrofitted into every plotting entry point 2026-07-23 — see `NOTES.md`'s "Plotting-style retrofit" entry for the full list of legend/color/grid fixes and which figures were actually regenerated vs. still pending a lab-machine rerun. |
+
 ---
 
 ## Supporting modules (in experiment directory)
@@ -227,14 +233,17 @@ insufficient," not resolved by tuning.
 → [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)
 
 ### What's still open?
-**Nothing from the Run 7 verification battery.** The last item (A.3, the 89× asymmetry)
-closed 2026-07-23 after a three-round sequence: trace executed → review caught a failed
-mchirp positive control → paired statistics + an `early` calibration stage added →
-calibration FAILED its pre-stated criterion (the displacement-geometry classifier labeled
-the fastest-learning head "noise-like" and was retired), while the paired probe-loss
-channel passed its control in the same run and reads every periodic head as null at both
-stages. Verdict: radial movement without angular learning; tcn/coa_phase escalation
-branch extinguished (paired t = −0.20). Remaining threads are scoped future work
+**Nothing from the Run 7 verification battery, beyond A.3's own pending replication.** The
+last item (A.3, the 89× asymmetry) was provisionally closed 2026-07-23 after a three-round
+sequence: trace executed → review caught a failed mchirp positive control → paired statistics
++ an `early` calibration stage added → calibration FAILED its pre-stated criterion (the
+displacement-geometry classifier labeled the fastest-learning head "noise-like" and was
+retired), while the paired probe-loss channel passed its control in the same run and reads
+every periodic head as null at both stages. Verdict: radial movement without angular learning;
+tcn/coa_phase escalation branch extinguished (paired t = −0.20). Per the Round 3 v3 review pass
+(below), the chapter now states this closure as *provisional, pending replication on a fresh
+holdout set*, since the surviving channel was adopted post hoc rather than pre-registered —
+the replication itself is not yet scheduled. Remaining threads are scoped future work
 (architecture-level std_ratio fix, finer λ mini-sweep, ι-conditioning).
 → [`perturbation_trace_output/`](perturbation_trace_output/),
 [`diagnostic_log.md`](diagnostic_log.md) (calibration adjudication, 2026-07-23)
@@ -294,3 +303,35 @@ null is "certified on two points in configuration space" and demanding new evide
   perturbation trace is corroborating, not primary, evidence) rather than either extreme.
 None of these four are done; they are the actual next-tier asks if the chapter needs to withstand
 a harder examiner than this round.
+
+**Round 3 (2026-07-23, same day):** a third Kimi-only review (`thesis/reviews/kimi_ai_adversarial_review_v3.md`;
+DeepSeek and Qwen did not return for a v3 pass) raised 7 numbered issues, all framing/wording gaps
+rather than requests for new numerical results — addressed entirely by text edits to
+`thesis/chapter_phic_psi_degeneracy.{md,tex}`, no new runs.
+**Addressed by text/framing:**
+- §2.1 gained a scope paragraph stating ι-conditioning is a training-paradigm design choice
+  motivated by §3's analytic structure, not a forced move necessitated by proof that ι is
+  unlearnable (closes the "Step 0" logical-gap objection — the ι head failure, §5.4, is
+  unresolved, not diagnosed as fundamental).
+- §6.7 gained a caveat sentence on the head-capacity confound (ι, φ_c, ψ share one MLP head
+  architecture) — acknowledged as plausible-but-unproven, not elevated to a new deferred
+  experiment (user decision: caveat only).
+- §6.2's poc_b framing softened to "consistent with the null but confounded by curriculum
+  design"; §8.2 now states explicitly that the architecture-sufficiency argument rests
+  primarily on cnn_attention, with poc_b as a distinct confounded consistency check.
+- §6.6's "A.3 is closed" changed to "provisionally closed, pending replication on a fresh
+  holdout set"; §9 extended to note the post-hoc channel selection means the trace cannot
+  independently close any confound on its own.
+- §6.3's p=0.0007 cnn_attention/inclination outlier now reported as a genuine anomaly that
+  does not generalize to φ_c/ψ, rather than dismissed outright.
+- §7.1 gained an explicit rationale for the coarse 4-point λ grid with a guaranteed-termination
+  stopping rule.
+- Editorial note reworded: the high-SNR spot-check and dataset-provenance items reframed from
+  "deliberately not pursued" to "critical future work"; the A.3 item marked as now reflected in
+  the chapter body.
+- 10 stray `../path/....png` references in `.md` figure captions removed (`.tex` never had this
+  issue).
+**Consciously still deferred (re-confirmed, unchanged from Round 2):** the synthetic-ablation,
+high-SNR/Fisher-bound, and dataset-regeneration items remain undone.
+→ [`thesis/reviews/kimi_ai_adversarial_review_v3.md`](thesis/reviews/kimi_ai_adversarial_review_v3.md),
+`thesis/chapter_phic_psi_degeneracy.{md,tex}` (revised), `NOTES.md` ("v3 adversarial review pass" entry)

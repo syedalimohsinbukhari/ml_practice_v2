@@ -12,27 +12,34 @@
 % chapter appendix).
 %
 % EDITORIAL NOTE -- remove before final submission.
-% This chapter has been through two rounds of adversarial AI review
-% (thesis/reviews/: unsuffixed files are round 1, *_v2.md files are round 2).
-% Both rounds' fixes and new analyses are folded into the text below
-% (Sec 6.7, Sec 8.2 Fig 8.1, Table 6.7, and framing changes throughout
-% Sec 1, Sec 6.3, Sec 7.3, Sec 8.3, Sec 9). Four of round 2's demands
-% (from the Kimi review) were DELIBERATELY NOT PURSUED, so a future
-% review pass -- human or AI -- does not mistake the omission for an
-% oversight: (1) a synthetic-data ablation to disentangle poc_b's
-% curriculum design from the physical degeneracy; (2) a high-SNR
-% (25-30) validation set or a Fisher-matrix bound, to rule out a
-% sensitivity-floor confound distinct from degeneracy; (3) regenerating
-% the dataset (or a small slice of it) from a version-controlled
-% generator script, to close the waveform-provenance gap for good;
-% (4) either a fresh-holdout pre-registered replication of the A.3
-% perturbation trace, or a formal downgrade of A.3 from "closed" to
-% "open." Each is a genuine, well-posed research task, not a text fix --
-% and each was judged, at this point in the project, to cost more in
-% new training/data-generation effort than the marginal certainty it
-% would buy, weighed against finishing the thesis. Recorded as scoped
-% future work in experiment_index.md and NOTES.md (2026-07-23, "Round 2"
-% / "v2 adversarial review pass" entries) rather than silently dropped.
+% This chapter has been through three rounds of adversarial AI review
+% (thesis/reviews/: unsuffixed files are round 1, *_v2.md files are
+% round 2, kimi_ai_adversarial_review_v3.md is round 3 -- Kimi is the
+% only reviewer to reach a third round). All three rounds' fixes and
+% new analyses are folded into the text below (Sec 2.1, Sec 6.2,
+% Sec 6.6, Sec 6.7, Sec 7.1, Sec 8.2 Fig 8.1, Table 6.7, and framing
+% changes throughout Sec 1, Sec 6.3, Sec 8.3, Sec 9). Three items
+% remain CRITICAL FUTURE WORK that this text pass cannot resolve, so a
+% future review pass -- human or AI -- does not mistake the omission
+% for an oversight: (1) a synthetic-data ablation to disentangle
+% poc_b's curriculum design from the physical degeneracy; (2) a
+% high-SNR (25-30) validation set or a Fisher-matrix bound, to rule out
+% a sensitivity-floor confound distinct from degeneracy; (3)
+% regenerating the dataset (or a small slice of it) from a
+% version-controlled generator script, to close the waveform-provenance
+% gap for good. A fourth item raised in round 2 -- either a
+% fresh-holdout pre-registered replication of the A.3 perturbation
+% trace, or a formal downgrade of A.3 from "closed" to "open" -- is now
+% reflected directly in the chapter body: Sec 6.6 states A.3's closure
+% as provisional, pending that replication, rather than asserting
+% closure outright. Each of the three remaining items is a genuine,
+% well-posed research task, not a text fix -- and each was judged, at
+% this point in the project, to cost more in new training/data-
+% generation effort than the marginal certainty it would buy, weighed
+% against finishing the thesis. Recorded as scoped future work in
+% experiment_index.md and NOTES.md (2026-07-23, "Round 2" and
+% "Round 3" adversarial review pass entries) rather than silently
+% dropped.
 
 \usepackage{geometry}
 \usepackage{graphicx}
@@ -108,6 +115,11 @@ Inclination, chirp mass, merger time, SNR, and sky position are retained as \emp
 The \textbf{degeneracy hypothesis} under test is: \emph{$\varphi_c$ and $\psi$ carry no strain-only recoverable signal for this population, in this architecture and loss family} --- i.e., a point-estimating network can do no better than the optimal constant (or constant-per-mode) prediction, because for most of the population the likelihood constrains only a combination of the two angles, and the remaining direction is unconstrained.
 
 The alternative hypothesis motivating the experimental design is that even if $\varphi_c$ and $\psi$ are individually unrecoverable, their \textbf{sum and difference combinations} may be well-conditioned: face-on systems constrain $\varphi_c \mp 2\psi$ (sign by $\cos\iota$), so a network parameterized in combination space, with a curriculum that weights each combination according to how well the current inclination constrains it, might learn the recoverable structure that a naive per-angle parameterization misses.
+
+One scope note applies to the whole chapter and is stated here rather than left implicit.
+Conditioning on inclination $\iota$ --- tested as future work in \S\ref{sec:phicpsi:future} --- is treated throughout as a \emph{training-paradigm design choice}, motivated by the analytic structure of \S\ref{sec:phicpsi:prereq} showing that the well-constrained combination is recoverable given $\iota$, not as a forced move necessitated by a proof that $\iota$ itself is unrecoverable.
+The inclination head's own failure (\S\ref{sec:phicpsi:pathology2}) is unresolved, not diagnosed as fundamental: it could reflect a genuine unlearnability of $\iota$ from strain under this architecture, or a fixable loss-path choice --- \S\ref{sec:phicpsi:pathology2} traces it to a Huber loss on a raw two-vector, unlike the successful von Mises--Fisher parameterization used for sky position.
+Whether $\iota$ can be predicted by an independent pipeline is therefore a separate, open question that this chapter does not resolve and does not need to resolve in order to motivate testing $\iota$-conditioning as a training paradigm; \S\ref{sec:phicpsi:future} excludes inference-time $\iota$ estimation from scope for exactly this reason, not because $\iota$ is assumed to be fundamentally unrecoverable.
 
 \subsection{Circular regression framework}
 \label{sec:phicpsi:circular}
@@ -474,12 +486,13 @@ Table~\ref{tab:phicpsi:battery} summarizes.
 
 Two of these deserve narrative attention.
 
-\paragraph{The poc\_b anomaly is supporting evidence, not a bug.}
+\paragraph{The poc\_b anomaly is consistent with the null but confounded by curriculum design.}
 The combination-space model collapsed \emph{more} severely than its baseline twin ($r_{\mathrm{circ}}$ 0.989 vs 0.848).
 The config diff shows only the four intended poc-mode keys; the mechanism is the curriculum itself.
 For near-face-on samples $w(\iota) \approx 0$ suppresses the poorly-constrained combination, so the model effectively trains one combination --- a single constraint on the two-dimensional $(\varphi_c, \psi)$ --- and the optimal response to a single unlearnable constraint under circular loss is a sharp constant, which is what poc\_b produces (a single peak carrying ${\sim}42\%$ of all predictions).
 The design would have exploited a breakable degeneracy; its collapse into the constant predictor is what that design does when the degeneracy is not breakable.
 (Cost: a mild, predictable transfer-interference tax on chirp mass, MAE $0.977 \to 1.024$.)
+This reading is the best mechanistic account available, but it is not the only one: the curriculum's near-face-on suppression of one combination could itself produce rank-deficient gradients independent of whether the underlying target is truly unlearnable, so poc\_b is treated below (\S\ref{sec:phicpsi:pool}) as a distinct, curriculum-confounded consistency check rather than as an independent repeat of the certified null.
 
 \paragraph{The cnn\_attention outlier is an artifact with a testable signature.}
 Its lower $r_{\mathrm{circ}}$ comes from learned attention pooling producing higher-variance features than fixed GAP/GMP readouts --- spreading predictions without informing them (ang\_MAE 1.597, \emph{worst} of the four).
@@ -510,10 +523,11 @@ Its nominally significant inclination result is dissected below.
 Eleven of twelve tests are non-significant (Table~\ref{tab:phicpsi:bootstrap}); \textbf{all eight $\varphi_c/\psi$ tests fail}, six of them on the \emph{worse-than-shuffled} side, and every one of the eight observed values falls inside its own null 95\% confidence interval (\texttt{bootstrap\_output/bootstrap\_ang\_mae\_20260721\_093533.md} reports the null CI directly for each; e.g.\ tcn/$\varphi_c$: observed 1.578 against null CI $[1.561, 1.588]$).
 Across the eight $\varphi_c/\psi$ tests the null-CI half-widths range ${\approx}0.002$--$0.023$\,rad, so this is not merely ``not significant'' --- it is a comparatively tight bound against even a small real effect for most model--head pairs.
 The single nominal detection --- cnn\_attention on inclination --- is a genuine statistical outlier ($z=+3.17$, $p=0.0007$), and it \emph{does} survive Bonferroni correction across the twelve tests (threshold $p < 0.0042$; observed $p = 0.0007$ clears it) --- we do not dismiss it on multiple-comparisons grounds.
-We dismiss it because it fails the same test this chapter applies to every other candidate signal: whether the effect grows with SNR.
+We do not treat it as counter-evidence to the degeneracy claim, because it fails the same test this chapter applies to every other candidate signal: whether the effect grows with SNR.
 Its effect size is $\Delta = 0.038$\,rad ($2.2^\circ$), and that effect is uniform across SNR terciles (1.526/1.548/1.527) --- flat, not increasing with signal strength.
 This is not an ad hoc criterion invoked only here: it is the identical logic of the SNR stratification (\S\ref{sec:phicpsi:snr}) and of Step~3 of the pre-registered $\lambda$-retune gate (\S\ref{subsec:why-pre-register-an-engineering-sweep}), applied consistently --- a per-event phase-recovery effect must be stronger in louder events, while a population-level output-distribution bias need not be, and the inclination detection has the signature of the latter.
 One honest scope limit: the SNR-monotonicity criterion was pre-registered as Step~3 of the \S\ref{subsec:why-pre-register-an-engineering-sweep} $\lambda$-retune gate specifically, not as a general-purpose rule for the bootstrap battery; applying the same logic here is principled --- it is the same physical argument, not a different one invented for this case --- but it was not itself locked in writing before this particular test, and the reader should weigh the dismissal accordingly rather than as a pre-registered result.
+Read on its own terms rather than folded into the degeneracy verdict, this is a genuine anomaly --- possibly a population bias in this model's attention-pooling readout, possibly a real but weak effect specific to inclination --- and the honest report is that it does not generalize to either $\varphi_c$ or $\psi$, where all eight tests land at or worse than the shuffled null.
 A row-ordering audit additionally bounded the largest possible ordering artifact at 0.013\,rad and confirmed the permutation null is valid (validation data i.i.d.; window variance ratio 0.991).
 
 \subsection{SNR stratification}
@@ -614,7 +628,7 @@ Read as an unplanned second control, it strengthens the final-stage null: the pa
 Second, on sensitivity: the per-combo minimum detectable effect (${\approx}2\times$ the paired SE) spans ${\approx}0.005$--$0.10$ loss units across the twelve cases, so the individual $\varphi_c/\psi$ point estimates (up to $|0.050|$) are non-significant partly because the single-batch probe design yields wide standard errors --- the final-stage per-combo null is ``not rejected and bounded at the few-percent level,'' not ``excluded to arbitrary precision.''
 This is adequate for A.3's mechanistic role: the degeneracy verdict itself is carried independently by the $N = 10{,}000$ label-permutation bootstrap and the SNR stratification, not by this trace.
 
-\textbf{A.3 is closed}: the $89\times$ asymmetry was radial movement without angular learning.
+\textbf{A.3 is provisionally closed, pending replication on a fresh holdout set}: the $89\times$ asymmetry was radial movement without angular learning.
 The disposition honors the pre-stated decision tree in order --- the calibration criterion failed, so the classifier it governed is retired --- and the closure is then re-founded, transparently post hoc, on the surviving channel, which carries its own passed control from the same run; that residual caveat is recorded in the threats-to-validity list rather than hidden.
 
 \subsection{Inclination stratification: does the degeneracy weaken edge-on?}
@@ -654,6 +668,8 @@ Two facts argue against a shared-cause reading, short of a fully independent sta
 First, \S\ref{sec:phicpsi:pathology2}'s code-level trace already rules out one specific common cause: $\iota$'s failure runs through a Huber loss on its raw two-vector with no \texttt{normalize\_unit} in the path at all, so it cannot share the tanh-saturation or magnitude-drift mechanisms diagnosed for $\varphi_c/\psi$ --- there is no single bug common to all three periodic heads, only three code paths independently inspected.
 Second, the sky-position head --- genuinely directional (a von Mises--Fisher likelihood on the unit sphere, \S\ref{sec:phicpsi:circular}), and dependent on inter-detector phase information in a way analogous to $\varphi_c/\psi$ --- is recovered well ($3.3^\circ$--$10.0^\circ$ mean error, \S\ref{sec:phicpsi:controls}): the shared trunk demonstrably carries usable directional information into a head architecture in the same family when that information is present, which weighs against an architecture-wide inability to represent angular targets.
 Neither point converts the $\iota$-noise-floor comparison into a formal test; it remains a calibration heuristic, and a stronger version --- stratifying a known-good scalar control by the same inclination bands to confirm banding itself does not inject spurious metric variance --- is reported next rather than left as future work.
+A further caveat, distinct from the two points above: the independence assumption is plausible but not proven against a head-capacity confound specifically, since $\iota$, $\varphi_c$, and $\psi$ all share the same two-layer MLP head architecture, so a shared limitation in mapping the trunk's representation to angular targets --- rather than a shared loss-path bug, which is already ruled out --- could in principle produce correlated failure across all three periodic heads.
+The code-level and sky-position arguments above bound this concern but do not rule it out, and it is not tested further here.
 
 \begin{table}[tbp]
     \centering
@@ -690,6 +706,7 @@ The null of \S\ref{sec:phicpsi:results} is not confined to the face-on-dominated
 
 After \S\ref{sec:phicpsi:results}, two model--head pairs remained \emph{formally uninterpretable} rather than cleanly null: tcn/$\varphi_c$ (std\_ratio still declining at $\lambda = 0.01$) and poc\_a/$\psi$ (stable but below the healthy band).
 The obvious next step --- raise $\lambda$ and see whether the numbers ``look better'' --- is precisely the kind of after-the-fact eyeballing that had already misled this investigation three times (the $R^2 = 0.75$ collapse artifact; an endpoint-only std\_ratio summary that concealed a mid-training crash-and-recovery; the Run~8 drift artifact).
+The grid itself --- four points, $\{0, 0.01, 0.05, 0.10\}$, with a stopping rule guaranteeing termination after the fourth --- was chosen deliberately coarse, and the reason is worth stating rather than leaving implicit: the working hypothesis going in was that $\lambda$ was not the binding constraint on these two heads (the degeneracy evidence of \S\ref{sec:phicpsi:results} already pointed at the target itself, not at the magnitude penalty), so the sweep was designed to test that hypothesis cheaply rather than to search exhaustively for an optimum, and an open-ended tuning loop was exactly the kind of after-the-fact flexibility this chapter's pre-registration discipline exists to foreclose.
 The decision criteria were therefore \textbf{locked in writing before any retune ran}~\cite{nosek2018preregistration}, with the verdict computed mechanically by the diagnostic scripts, not by inspection:
 
 \begin{description}
@@ -807,6 +824,8 @@ poc\_b does not: its combo-A/combo-B training loss tracks validation almost exac
 This is not evidence that the TCN trunk lacks capacity: the identical trunk reaches chirp-mass $R^2 = 0.97$ (train) / $0.96$ (val) on poc\_a --- ample nonlinear capacity when a learnable target exists.
 Read together, the two certified models fail in two different, individually informative ways: cnn\_attention finds and fits sample-specific structure it cannot generalize (the overfitting-without-learning pattern already qualified in \S\ref{sec:phicpsi:run7}); poc\_b's optimizer finds no exploitable structure even in-sample, on a trunk independently proven capable of high-capacity fits elsewhere.
 Neither pattern is consistent with a capacity-starved null; the second is, if anything, the cleaner of the two.
+To be explicit about evidential weight: this section's architecture-sufficiency argument rests primarily on cnn\_attention's memorization gap, the cleanest single demonstration that spare capacity finds and cannot generalize structure from an uninformative target.
+poc\_b (\S\ref{sec:phicpsi:confounds}) is a different, curriculum-confounded consistency check, not an independent repeat of the same certification --- its flat training loss could in principle reflect the curriculum's near-face-on suppression of one combination rather than the target's unlearnability alone, so it corroborates from the optimizer side without carrying the same evidential weight as cnn\_attention's memorization gap.
 
 \begin{figure}[tbp]
     \centering
@@ -881,5 +900,6 @@ After eliminating two genuine optimization pathologies that initially masquerade
 Every model, at every capacity and every regularization strength, converged to the optimal constant predictor, at the analytic random-guessing error, while learning four other parameters well from the same shared representation --- and no result at any point cleared even the first gate of a pre-declared path to counter-evidence.
 The fully certified base of that claim is two $\lambda$-matched configurations (\S\ref{sec:phicpsi:pool}); the wider table of seven architectures corroborates without independently repeating the same test.
 The primary evidence is the label-permutation bootstrap (\S\ref{sec:phicpsi:bootstrap}), the SNR stratification (\S\ref{sec:phicpsi:snr}), and the inclination stratification (\S\ref{sec:phicpsi:inclination}), all pre-specified or run against fixed, pre-existing checkpoints; the perturbation trace (\S\ref{sec:phicpsi:asymmetry}) is corroborating mechanistic detail, not primary evidence, since its closure rests on a channel adopted after its pre-registered instrument failed calibration --- the degeneracy verdict does not depend on it.
+Because that channel was adopted post hoc, the trace cannot independently close any confound on its own; it corroborates a verdict established elsewhere, pending the fresh-holdout replication that would let A.3's closure stand on its own pre-registered footing.
 The degeneracy is effectively exact for this population as a point-estimation problem.
 The value of the chapter lies as much in the demonstrated discipline --- mechanism before metrics, code-validated controls, pre-registered criteria inside the engineering loop --- as in the null it certifies, and both carry directly into the inclination-conditioned and posterior-based formulations that follow.

@@ -20,6 +20,7 @@ Each rule below was paid for by a specific failure in the φc/ψ investigation (
 - When a new log type is created, add `!**/<type>_*.log` to `.gitignore` **in the same change** — the global `*.log` ignore silently excludes it otherwise (existing negations: `diagnostic_`, `bootstrap_`, `snr_`, `perturbation_`).
 - Key numbers used in any decision must appear in the summary `.md`, not only in the log — verdict-relevant statistics buried in logs stalled a review once.
 - Auto-generated reports are never hand-edited; regenerate them from their script.
+- Every figure is saved as both `.png` (quick preview, diffs) and `.pdf` (vector, for `\includegraphics` in the thesis chapter) — `fig.savefig(png_path)` and `fig.savefig(pdf_path)` in the same call, same stem.
 
 ## Experiment index
 

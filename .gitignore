@@ -183,3 +183,4 @@ structure.md
 *.synctex.gz
 experiments/phic_psi_poc/paper/literature_review/*.pdf
 experiments/phic_psi_poc/paper/paper_phic_psi_degeneracy.pdf
+.mcp.json

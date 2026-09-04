@@ -1,0 +1,81 @@
+\subsection{Why pre-register an engineering sweep}
+\label{subsec:why-pre-register-an-engineering-sweep}
+
+After \S\ref{sec:phicpsi:results}, two model--head pairs remained \emph{formally uninterpretable} rather than cleanly null: tcn/$\varphi_c$ (std\_ratio still declining at $\lambda = 0.01$) and poc\_a/$\psi$ (stable but below the healthy band).
+The obvious next step --- raise $\lambda$ and see whether the numbers ``look better'' --- is precisely the kind of after-the-fact eyeballing that had already misled this investigation three times (the $R^2 = 0.75$ collapse artifact; an endpoint-only std\_ratio summary that concealed a mid-training crash-and-recovery; the Run~8 drift artifact).
+The grid itself --- four points, $\{0, 0.01, 0.05, 0.10\}$, with a stopping rule guaranteeing termination after the fourth --- was chosen deliberately coarse, and the reason is worth stating rather than leaving implicit: the working hypothesis going in was that $\lambda$ was not the binding constraint on these two heads (the degeneracy evidence of \S\ref{sec:phicpsi:results} already pointed at the target itself, not at the magnitude penalty), so the sweep was designed to test that hypothesis cheaply rather than to search exhaustively for an optimum, and an open-ended tuning loop was exactly the kind of after-the-fact flexibility this paper's pre-registration discipline exists to foreclose.
+The decision criteria were therefore \textbf{locked in writing before any retune ran}~\citep{nosek2018preregistration}, with the verdict computed mechanically by the diagnostic scripts, not by inspection:
+
+\begin{description}
+\item[Scope.]
+Exactly two primary tests: tcn/$\varphi_c$ and poc\_a/$\psi$.
+All else exploratory, with promotion to ``primary'' after the fact explicitly forbidden.
+\item[Step 0 --- interpretability gate.] std\_ratio healthy iff ${<}10\%$ of the final 40 epochs fall outside $[0.5, 2.0]$ \emph{and} the linear trend over those epochs is within $\pm 0.005$/epoch.
+Failure at $\lambda = 0.05$ $\to$ try $\lambda = 0.10$; failure at both $\to$ report ``$\lambda$ alone insufficient,'' counted \textbf{neither as null nor as counter-evidence}.
+\item[Step 1 --- significance.]
+The \S\ref{sec:phicpsi:bootstrap} bootstrap, Bonferroni-corrected for two tests ($p < 0.025$).
+\item[Step 2 --- effect-size floor.]
+$\Delta$ang\_MAE $\ge {}$\SI{0.10}{\radian} ($\approx {}$\ang{5.7}) --- set $\approx 3\times$ above the largest known metric artifact (\SI{0.038}{\radian}) and $\approx 8\times$ above the ordering bound (\SI{0.013}{\radian}).
+\item[Step 3 --- SNR consistency.]
+Improvement monotonic non-decreasing across terciles, with the high-SNR tercile independently clearing the floor.
+\end{description}
+
+Only a result passing all four steps would count as counter-evidence to the degeneracy hypothesis.
+
+\subsection{Outcome}\label{subsec:outcome}
+
+\begin{table}[tbp]
+    \centering
+    \caption{Pre-registered gate results.
+    Source: \texttt{lam005\_retune\_output/}, \texttt{lam010\_retune\_output/}.}
+    \label{tab:phicpsi:gates}
+    \small
+    \begin{tabular}{@{}clccl@{}}
+        \toprule
+        $\lambda$ & Test              & frac.\ unhealthy (last 40 ep) & trend /epoch         & Gate                       \\
+        \midrule
+        0.05      & tcn / $\varphi_c$ & 0.05 \checkmark               & $-0.0064$ $\times$   & \textbf{FAIL}              \\
+        0.05      & poc\_a / $\psi$   & 0.35 $\times$                 & $+0.0072$ $\times$   & \textbf{FAIL}              \\
+        0.10      & tcn / $\varphi_c$ & 0.28 $\times$                 & $-0.0026$ \checkmark & \textbf{FAIL} (worse)      \\
+        0.10      & poc\_a / $\psi$   & 0.72 $\times$                 & $+0.0073$ $\times$   & \textbf{FAIL} (much worse) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+At $\lambda = 0.05$ both failures were near-misses with a shared shape --- each trajectory settles into a healthy plateau (0.58--0.62 and 0.53--0.56 respectively) only in the last 15--20 epochs, and the 40-epoch window still contains the climb into that band (Fig.~\ref{fig:phicpsi:lam005}).
+At $\lambda = 0.10$ the failures were not near-misses and diverged in character: poc\_a/$\psi$ crashes through epochs ${\sim}30$--48 and is still recovering at epoch 80 (crossing 0.5 only in the final 11 epochs), while tcn/$\varphi_c$ oscillates across $[0.2, 0.95]$ with no convergence at all (Fig.~\ref{fig:phicpsi:lam010}).
+The exploratory pairs mostly regressed too: $\lambda = 0.10$ helped none of the four TCN-trunk head/model combinations and worsened three.
+Throughout all of it, circular loss stayed at 1.004--1.008 --- flat at the null, as in every preceding run.
+
+\begin{figure}[tbp]
+    \centering
+    \includegraphics[width=\textwidth]{lam005_retune_trajectories.png}
+    \caption[Run 9a, $\lambda = 0.05$ retune]{Run~9a, $\lambda = 0.05$,
+        overlaid on $\lambda = 0$ and $\lambda = 0.01$ references. The penalty
+        holds std\_ratio at order unity, but neither pre-registered target
+        passes the stability gate, and validation circular loss remains at
+        $\approx 1.0$.}
+    \label{fig:phicpsi:lam005}
+\end{figure}
+
+\begin{figure}[tbp]
+    \centering
+    \includegraphics[width=\textwidth]{lam010_retune_trajectories.png}
+    \caption[Run 9b, $\lambda = 0.10$ retune]{Run~9b, $\lambda = 0.10$,
+        same layout. The stronger penalty fails the gate more severely
+        (poc\_a/$\psi$: 72\% of late epochs unhealthy) while circular loss
+        stays at the random-guessing plateau.}
+    \label{fig:phicpsi:lam010}
+\end{figure}
+
+\subsection{Verdict}\label{subsec:verdict}
+
+Per the pre-registered decision table --- applied as written, not re-derived after seeing the data --- the result is: \textbf{$\lambda$ alone is insufficient to stabilize std\_ratio for either primary target at the four pre-registered values $\{0, 0.01, 0.05, 0.10\}$}; per the pre-registered stopping rule, this sweep is terminated, and any further pursuit is architecture-level or a fresh, separately pre-registered sweep (below).
+This is a claim about the four-point pre-registered sweep and its stopping rule, not about the $\lambda$ dimension as a whole: the response to $\lambda$ is \emph{peaked}, not monotonic --- $\lambda = 0.05$ produced near-misses on both targets while $\lambda = 0.10$ regressed on every head/model combination --- so a finer, freshly pre-registered mini-sweep over $\lambda \in [0.02, 0.08]$ plausibly contains a stability optimum that this four-point sweep was never positioned to find.
+It was not pursued here for reasons of time and is recorded as future work (\S\ref{sec:phicpsi:future}) rather than claimed to be ruled out.
+The two pairs are filed as \emph{uninterpretable}, not as additional nulls and not as counter-evidence.
+Steps 1--3 never executed for any configuration, at any $\lambda$ --- which is itself a summary statistic of the whole investigation: \textbf{no result ever cleared even the first gate of a pre-declared path to counter-evidence.}
+
+Two disciplined refusals are worth recording.
+The gate's 40-epoch window is arguably miscalibrated for the plateau learning-rate schedule's late settling --- a real concern, flagged during Run~9a --- but revising a criterion between pre-registered arms, with results in hand, would reintroduce exactly the flexibility pre-registration exists to remove; the question is documented for future gates instead.
+And the near-miss $\lambda = 0.05$ trajectories \emph{look} healthy at endpoint --- the temptation to wave them through was declined for the same reason.

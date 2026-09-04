@@ -1,7 +1,6 @@
 # Literature review PDFs
 
-Source PDFs backing `../references.bib`, one file per citation key.
-Every PDF here was downloaded from arXiv or an open-access publisher (Springer Living Reviews, OSF) and spot-checked against the expected title/authors before being kept.
+Source PDFs backing `references.bib`, one file per citation key.
 
 ## Present
 
@@ -31,8 +30,4 @@ Every PDF here was downloaded from arXiv or an open-access publisher (Springer L
 - `green2020complete.pdf` — arXiv:2008.03312
 - `ismailfawaz2019deep.pdf` — arXiv:1809.04356
 - `ioannidis2005false.pdf` — PLoS Medicine, open access (DOI 10.1371/journal.pmed.0020124)
-
-## Missing (a book and one pre-arXiv paper, no free PDF)
-
-- `mardia2000circular.pdf` — Mardia & Jupp, *Directional Statistics* (Wiley, 2000). No free PDF; `references.bib` already has verified bibliographic data for it regardless.
-- `huber1964robust.pdf` — Huber 1964, *Annals of Mathematical Statistics* 35(1), 73–101 (DOI 10.1214/aoms/1177703732). Predates arXiv; Project Euclid did not yield a free PDF on request. `references.bib` has verified bibliographic data regardless.
+- `huber1964robust.pdf` — Huber 1964, *Annals of Mathematical Statistics* 35(1), (sourced by the author; no arXiv preprint exists)

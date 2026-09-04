@@ -1,0 +1,45 @@
+This appendix follows the traceability convention of the accompanying code repository: every quantitative claim above is backed by a versioned artifact, listed here with its repository-relative path.
+All paths relative to \texttt{experiments/phic\_psi\_poc/}.
+
+\begin{table}[tbp]
+    \centering
+    \small
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{@{}ll@{}}
+        \toprule
+        Claim / table / figure & Artifact \\
+        \midrule
+        Chronological record (Runs 1--9b)                  & \texttt{diagnostic\_log.md}, \texttt{NOTES.md}, \texttt{experiment\_summary\_2026-07-22.md} \\
+        Analytic prerequisite sweep (\S3, Fig.~3.1)        & \texttt{sweep\_1\_1\_ratio\_vs\_iota.\{csv,png\}}, \texttt{results.md}, \texttt{prereq\_checks.py} \\
+        Label-distribution audit (Fig.~5.1)                & \texttt{diagnostic\_output/true\_label\_distributions.png}, \texttt{true\_label\_stats.csv} \\
+        tanh postmortem (\S5.3--5.4)                       & \texttt{tanh\_to\_linear\_postmortem.md}, \texttt{diagnostic\_output/diagnostic\_checks\_20260718\_*.log} \\
+        Inclination loss-path correction (\S5.4)           & \texttt{inclination\_loss\_trace.md} \\
+        Run 7 trajectories (Figs.~5.2, 5.3)                & \texttt{diagnostic\_output/\{combo\_loss,logvar\}\_trajectories.png}, \texttt{diagnostic\_checks\_20260721\_000331.log} \\
+        Positive controls (Fig.~5.4, \S5.6)                & \texttt{analysis\_output/} CSVs, scatter PNGs, \texttt{analysis\_report\_20260720\_234304.md} \\
+        Table 6.1                                          & \texttt{pre\_post\_comparison.csv} \\
+        std\_ratio correction (\S6.2 A.2)                  & \texttt{std\_ratio\_trajectories.md} \\
+        poc\_b / cnn\_attention config diffs (\S6.2 B, C)  & \texttt{poc\_b\_config\_diff.md}, \texttt{cnn\_attention\_config\_diff.md} \\
+        Bootstrap (Table 6.3)                              & \texttt{bootstrap\_output/bootstrap\_ang\_mae\_20260721\_093533.md} \\
+        SNR stratification (\S6.4)                         & \texttt{snr\_output/snr\_stratification\_20260721\_094039.md} \\
+        Run 8 ablation (Table 6.4, Fig.~6.2)               & \texttt{lam0\_ablation\_output/}, \texttt{assessment\_lam0\_ablation\_2026-07-22.md} \\
+        Perturbation trace (Table 6.5, \S6.6)              & \texttt{perturbation\_trace\_standalone.py}, \texttt{perturbation\_trace\_output/} \\
+        Inclination stratification (Table 6.6, \S6.7)      & \texttt{inclination\_stratification.py}, \texttt{inclination\_output/inclination\_stratification\_20260723\_130630.\{log,md\}} \\
+        Certified-model memorization gap (Fig.~8.1, \S8.2) & \texttt{plot\_certified\_memorization.py}, \texttt{diagnostic\_output/certified\_models\_train\_val\_loss.png}, \\
+                                                           & \quad source \texttt{runs/phic\_psi\_\{poc\_b,cnn\_attention\}/20260720\_*/history.csv} \\
+        Scalar-control inclination strat.\ (Table 6.7, \S6.7) & \texttt{inclination\_control\_stratification.py}, \texttt{inclination\_output/inclination\_control\_stratification\_20260723\_140016.\{log,md\}} \\
+        Pre-registration (\S7.1)                           & \texttt{preregistration\_lam\_retune.md} \\
+        Runs 9a/9b (Table 7.1, Figs.~7.1--7.2)             & \texttt{lam005\_retune\_output/}, \texttt{lam010\_retune\_output/} \\
+        Verification plan / superseded rebuttal            & \texttt{run7\_verification\_plan.md}, \texttt{run7\_verification\_rebuttal.md} \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+Three numbers in this paper are \emph{derived} from their artifacts rather than printed in them, and are flagged here under the same traceability rule.
+The Bonferroni threshold 0.0042 in \S\ref{sec:phicpsi:bootstrap} is $0.05/12$ --- arithmetic on the twelve bootstrap tests, not a value stated in the bootstrap report.
+The $\iota$-head noise-floor values in Table~\ref{tab:phicpsi:inclination} are band-MAE-minus-null differences computed from the band MAEs printed in \texttt{inclination\_output/inclination\_stratification\_20260723\_130630.md}.
+The per-band chirp-mass $R^2$ values in Table~\ref{tab:phicpsi:controlstrat} appear only in \texttt{inclination\_control\_stratification\_20260723\_140016.log}, not in its summary \texttt{.md}.
+Relatedly, Table~\ref{tab:phicpsi:gates}'s poc\_a/$\psi$ unhealthy fraction is displayed as 0.72 following its source report (\texttt{lam010\_retune\_output/lam010\_retune\_report.md}); the underlying diagnostic log prints the raw value 0.725.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}

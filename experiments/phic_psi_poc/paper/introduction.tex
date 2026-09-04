@@ -1,0 +1,42 @@
+Since the first direct detection of gravitational waves from a binary black hole merger~\citep{abbott2016gw150914}, deep-learning approaches to gravitational-wave parameter estimation have matured rapidly, from early proof-of-concept classifiers~\citep{george2018deep} to amortized neural posterior estimators that approach the accuracy of stochastic-sampling pipelines~\citep{gabbard2022vitamin,dax2021dingo} at a fraction of their latency.
+Most of this progress has concentrated on parameters that imprint strongly and non-degenerately on the observed strain: the chirp mass through the phase evolution~\citep{cutler1994gw}, the merger time through the temporal localization of the signal, the signal-to-noise ratio through overall amplitude, and the sky position through inter-detector time delays and antenna-pattern amplitudes.
+
+Two extrinsic parameters have received far less attention as direct regression targets: the orbital phase at coalescence, $\varphi_c$, and the polarization angle, $\psi$.
+There is a physical reason for this neglect.
+For the dominant quadrupole ($\ell=2$, $|m|=2$) mode of a quasi-circular compact binary, the two polarization states are
+\begin{equation}
+    h_+ \propto (1+\cos^2\iota)\,\cos\!\bigl(2\varphi(t)+2\varphi_c\bigr),
+    \qquad
+    h_\times \propto 2\cos\iota\,\sin\!\bigl(2\varphi(t)+2\varphi_c\bigr),
+\end{equation}
+and the detector response mixes them through antenna patterns that depend on $2\psi$~\citep{cutler1994gw,sathyaprakash2009physics}.
+In the face-on limit ($\cos\iota \to \pm 1$) the signal becomes circularly polarized and depends on $\varphi_c$ and $\psi$ only through a single combination --- effectively $\varphi_c \pm 2\psi$, with the sign set by the sign of $\cos\iota$ --- so the individual angles are exactly unidentifiable there, and only partially disentangled as the inclination moves toward edge-on.
+Bayesian samplers absorb this structure into broad, multimodal joint posteriors~\citep{veitch2015lalinference,ashton2019bilby}; a point-estimate regression network has no such refuge.
+
+This paper asks directly:
+\begin{quote}
+\itshape Can $\varphi_c$ and $\psi$ be recovered from strain alone by a deep neural network --- individually, or through their better-conditioned sum/difference combinations --- or is the degeneracy effectively exact for a realistic detection-scale population?
+\end{quote}
+
+The answer we converge on is a \textbf{null result}: across five trunk architectures, two head parameterizations, four values of a magnitude-regularization coefficient, and roughly nine full training campaigns, no model ever performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
+All seven configurations land at the null; the distinction between ``certified'' and ``corroborating'' is about what else can be ruled out, not about whose ang\_MAE counts.
+For two $\lambda$-matched configurations, poc\_b and cnn\_attention, the pre-declared magnitude-health interpretability gate (\S\ref{sec:phicpsi:pool}) confirms no unresolved metric-health caveat could be inflating or masking that number --- these are the fully certified base.
+The remaining five show the identical outcome but carry an open metric-interpretability question of their own (\S\ref{sec:phicpsi:pool}, \S\ref{sec:phicpsi:threats}), so they corroborate the same result under progressively relaxed certification rather than serving as independent repeats of the certified test.
+
+A null result of this kind is only as strong as the effort spent trying to break it.
+The scientific contribution of this paper is therefore twofold.
+First, the null itself, defended against an explicit list of confounds: data-pipeline faults, loss-wiring faults, two genuine and initially invisible optimization pathologies (a saturating output activation and a gradient-attenuating normalization layer), architecture-specific artifacts, statistical flukes, and population heterogeneity.
+Second, a methodological account of \emph{how} the null was established, because the investigation was repeatedly misled by aggregate metrics before converging on a mechanism-first diagnostic discipline and, ultimately, a pre-registered decision procedure with mechanically evaluated success criteria~\citep{nosek2018preregistration} --- a response, at engineering-loop scale, to the same replication crisis that motivates pre-registration in quantitative science more broadly~\citep{ioannidis2005false}.
+Ruling out artifacts is not preamble to the result here; it \emph{is} the result.
+
+This null result carries a direct architectural implication, stated here rather than only in the Discussion.
+Since strain alone does not recover $\varphi_c/\psi$ under point estimation, but \S\ref{sec:phicpsi:prereq}'s analytic study shows the well-constrained combination \emph{is} recoverable given inclination, the natural next step is to condition the network on $\iota$ directly --- scoped as future work in \S\ref{sec:phicpsi:future}.
+
+The paper is organized conventionally, with one deliberate exception.
+Section~\ref{sec:phicpsi:problem} formalizes the problem and the circular-regression framework.
+Section~\ref{sec:phicpsi:prereq} presents an analytic prerequisite study that motivated the sum/difference reparameterization.
+Section~\ref{sec:phicpsi:methods} details the datasets, architectures, losses, and training protocol.
+Section~\ref{sec:phicpsi:arc} --- the exception --- narrates the diagnostic arc: the two optimization pathologies that had to be found and fixed before any measurement of the degeneracy could be trusted.
+Section~\ref{sec:phicpsi:results} presents the defended null result and its verification battery.
+Section~\ref{sec:phicpsi:prereg} describes the pre-registered magnitude-penalty retune and its outcome.
+Section~\ref{sec:phicpsi:discussion} discusses interpretation, limitations, and future work; Section~\ref{sec:phicpsi:conclusion} concludes.

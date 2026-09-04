@@ -1,0 +1,91 @@
+# Registry of every figure referenced (via \includegraphics) from
+# paper_phic_psi_degeneracy.tex and its \input sections.
+#
+# `source` is relative to the experiment root (experiments/phic_psi_poc/),
+# matching the search directories in \graphicspath in paper_phic_psi_degeneracy.tex.
+# `dest_name` is the flat filename \includegraphics actually calls in the .tex
+# sources -- collect_figures.py copies `source` to paper/<dest_name>.
+#
+# Regenerate by hand when a figure is added, renamed, or removed; keep this
+# file and the \includegraphics calls in sync in the same change.
+
+figures:
+    -   id: sweep_ratio_vs_iota
+        label: fig:phicpsi:sweep
+        referenced_in:
+            - paper_phic_psi_degeneracy.tex
+        dest_name: sweep_1_1_ratio_vs_iota.png
+        source: sweep_1_1_ratio_vs_iota.png
+        formats: [ png ]
+
+    -   id: true_label_distributions
+        label: fig:phicpsi:labels
+        referenced_in:
+            - the-diagnostic-arc-making-the-measurement-trustworthy.tex
+        dest_name: true_label_distributions.png
+        source: diagnostic_output/true_label_distributions.png
+        formats: [ png, pdf ]
+
+    -   id: combo_loss_trajectories
+        label: fig:phicpsi:comboloss
+        referenced_in:
+            - the-diagnostic-arc-making-the-measurement-trustworthy.tex
+        dest_name: combo_loss_trajectories.png
+        source: diagnostic_output/combo_loss_trajectories.png
+        formats: [ png, pdf ]
+
+    -   id: logvar_trajectories
+        label: fig:phicpsi:logvar
+        referenced_in:
+            - the-diagnostic-arc-making-the-measurement-trustworthy.tex
+        dest_name: logvar_trajectories.png
+        source: diagnostic_output/logvar_trajectories.png
+        formats: [ png, pdf ]
+
+    -   id: scatter_mchirp
+        label: fig:phicpsi:mchirp
+        referenced_in:
+            - the-diagnostic-arc-making-the-measurement-trustworthy.tex
+        dest_name: scatter_mchirp_20260720_234304.png
+        source: analysis_output/scatter_mchirp_20260720_234304.png
+        formats: [ png ]
+
+    -   id: histogram_coa_phase
+        label: fig:phicpsi:hist
+        referenced_in:
+            - results-a-defended-null.tex
+        dest_name: histogram_coa_phase_20260720_234304.png
+        source: analysis_output/histogram_coa_phase_20260720_234304.png
+        formats: [ png ]
+
+    -   id: lam0_ablation_trajectories
+        label: fig:phicpsi:lam0
+        referenced_in:
+            - results-a-defended-null.tex
+        dest_name: lam0_ablation_trajectories.png
+        source: lam0_ablation_output/lam0_ablation_trajectories.png
+        formats: [ png ]
+
+    -   id: certified_models_train_val_loss
+        label: fig:phicpsi:certifiedmemorization
+        referenced_in:
+            - discussion.tex
+        dest_name: certified_models_train_val_loss.png
+        source: diagnostic_output/certified_models_train_val_loss.png
+        formats: [ png, pdf ]
+
+    -   id: lam005_retune_trajectories
+        label: fig:phicpsi:lam005
+        referenced_in:
+            - the-pre-registered-$lambda$-retune.tex
+        dest_name: lam005_retune_trajectories.png
+        source: lam005_retune_output/lam005_retune_trajectories.png
+        formats: [ png ]
+
+    -   id: lam010_retune_trajectories
+        label: fig:phicpsi:lam010
+        referenced_in:
+            - the-pre-registered-$lambda$-retune.tex
+        dest_name: lam010_retune_trajectories.png
+        source: lam010_retune_output/lam010_retune_trajectories.png
+        formats: [ png ]

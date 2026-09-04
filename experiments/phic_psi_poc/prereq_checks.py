@@ -394,8 +394,8 @@ def save_fig(fig: Figure, path, second: str = 'png'):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--data-path", default="combined_repackaged.hdf",
-        help="Path to HDF5 file (default: combined_repackaged.hdf)",
+        "--data-path", default=str(_REPO_ROOT / "combined_repackaged.hdf"),
+        help="Path to HDF5 file (default: ROOT/combined_repackaged.hdf)",
     )
     parser.add_argument(
         "--skip-histogram", action="store_true",

@@ -1,14 +1,11 @@
-#!/usr/bin/env python
 """Prerequisite checks for the φc/ψ degeneracy PoC (Step 1 of the plan).
 
-Implements Steps 1.1, 1.2, and 1.6 from
-``phic_psi_implementation_plan_v4.md``.  Run this BEFORE writing any loss
-code — the results determine:
+Implements Steps 1.1, 1.2, and 1.6 from ``phic_psi_implementation_plan_v4.md``.
+Run this BEFORE writing any loss code — the results determine:
 
   - Which combo (φc+2ψ or φc−2ψ) is well-constrained → ``well_constrained_combo``
   - The curriculum weight function w(ι)
-  - Whether the training population has enough edge-on samples for a
-    statistically meaningful test
+  - Whether the training population has enough edge-on samples for a statistically meaningful test
 
 Usage::
 
@@ -33,7 +30,9 @@ import argparse
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.figure import Figure
 
 # Ensure repo root and src/ are on the path
 _REPO_ROOT = str(Path(__file__).resolve().parents[2])
@@ -60,10 +59,8 @@ def _check_sign_combination(
     1. Generate random (a, b) sky-position coefficients.
     2. At each sky position, sweep ψ across [0, π) and φc across [0, 2π).
     3. Compute (R, δ) from the detector_signal model.
-    4. Confirm that at ι=0, (R, δ) is constant along φc+2ψ = const lines
-       (harness correctness check).
-    5. At non-zero ι, compute which linear combination (φc+2ψ or φc−2ψ)
-       correlates more strongly with R, δ.
+    4. Confirm that at ι=0, (R, δ) is constant along φc+2ψ = const lines (harness correctness check).
+    5. At non-zero ι, compute which linear combination (φc+2ψ or φc−2ψ) correlates more strongly with R, δ.
 
     Args:
         n_sky_samples: Number of random (a,b) sky-position pairs.
@@ -85,9 +82,9 @@ def _check_sign_combination(
     Phi = np.linspace(0.0, 2.0 * np.pi, n_Phi)
 
     # --- Harness correctness check: ι=0 must be fully degenerate ---
-    # For each (a,b) pair, fix one const_line = φc + 2ψ.  Sweep ψ
-    # (adjusting φc to stay on the line).  At ι=0, (R,δ) must be constant
-    # within each group — the defining property of the degeneracy.
+    # For each (a,b) pair, fix one const_line = φc + 2ψ.
+    # Sweep ψ (adjusting φc to stay on the line).
+    # At ι=0, (R,δ) must be constant within each group — the defining property of the degeneracy.
     iota_zero = 0.0
     max_R_std = 0.0
     max_delta_std = 0.0
@@ -129,11 +126,10 @@ def _check_sign_combination(
     # --- At non-zero ι, check which combo is better constrained ---
     # CRITICAL (h/t rev2/rev3 reviews):
     #   1. Compute correlations SEPARATELY for cos ι > 0 and cos ι < 0.
-    #   2. SWEEP ι from near-face-on (ι≈0.1) to near-edge-on (ι≈1.4) to
-    #      confirm the ratio TRENDS correctly — should grow as ι→0 and
-    #      shrink as ι→π/2 per the underlying physics.
-    #   3. Bootstrap the ratio at the two reference ι values to check
-    #      whether 1.2× is statistically distinguishable from 1.0×.
+    #   2. SWEEP ι from near-face-on (ι≈0.1) to near-edge-on (ι≈1.4) to confirm the ratio TRENDS correctly —
+    #      should grow as ι→0 and shrink as ι→π/2 per the underlying physics.
+    #   3. Bootstrap the ratio at the two reference ι values to check whether 1.2x is statistically distinguishable
+    #      from 1.0×.
     # n_sweep is now a parameter (was hardcoded to 50)
 
     def _correlations_at_iota(iota_val, rng_local):
@@ -150,8 +146,10 @@ def _check_sign_combination(
                 psi = (cA - cB_fixed) / 4.0
                 sig = detector_signal(psi, phic, iota_val, a, b, Phi)
                 R, delta = project_to_R_delta(sig, Phi)
-                R_vals.append(R); delta_vals.append(delta)
-            R_vals = np.array(R_vals); delta_vals = np.array(delta_vals)
+                R_vals.append(R)
+                delta_vals.append(delta)
+            R_vals = np.array(R_vals)
+            delta_vals = np.array(delta_vals)
             cA_corr_R.append(np.abs(np.corrcoef(cA_vals, R_vals)[0, 1]))
             cA_corr_delta.append(np.abs(np.corrcoef(cA_vals, delta_vals)[0, 1]))
 
@@ -164,8 +162,10 @@ def _check_sign_combination(
                 psi = (cA_fixed - cB) / 4.0
                 sig = detector_signal(psi, phic, iota_val, a, b, Phi)
                 R, delta = project_to_R_delta(sig, Phi)
-                R_vals.append(R); delta_vals.append(delta)
-            R_vals = np.array(R_vals); delta_vals = np.array(delta_vals)
+                R_vals.append(R)
+                delta_vals.append(delta)
+            R_vals = np.array(R_vals)
+            delta_vals = np.array(delta_vals)
             cB_corr_R.append(np.abs(np.corrcoef(cB_vals, R_vals)[0, 1]))
             cB_corr_delta.append(np.abs(np.corrcoef(cB_vals, delta_vals)[0, 1]))
 
@@ -176,12 +176,12 @@ def _check_sign_combination(
         return float(mean_A), float(mean_B), raw_A, raw_B
 
     # --- ι SWEEP: confirm the ratio trends correctly with inclination ---
-    # Physics prediction: the gap between well- and poorly-constrained combos
-    # should WIDEN as ι→0 (more degenerate) and CLOSE as ι→π/2 (less degenerate).
+    # Physics prediction: the gap between well- and poorly-constrained combos should WIDEN as ι→0 (more degenerate) and
+    # CLOSE as ι→π/2 (less degenerate).
     # A ratio that stays flat at ~1.2× across all ι would be suspicious.
-    # Deep grid sweep: n_iota_sweep points per sign regime from near-face-on
-    # to near-edge-on.  Avoid the exact poles where finite differences break.
-    sweep_iotas_pos = np.linspace(0.05, np.pi / 2 - 0.02, n_iota_sweep)       # cos ι > 0
+    # Deep grid sweep: n_iota_sweep points per sign regime from near-face-on to near-edge-on.
+    # Avoid the exact poles where finite differences break.
+    sweep_iotas_pos = np.linspace(0.05, np.pi / 2 - 0.02, n_iota_sweep)  # cos ι > 0
     sweep_iotas_neg = np.linspace(np.pi / 2 + 0.02, np.pi - 0.05, n_iota_sweep)  # cos ι < 0
 
     sweep_results = []
@@ -207,7 +207,7 @@ def _check_sign_combination(
     # --- Sign-split reference points (π/4 and 3π/4) with bootstrap ---
     results_by_sign = {}
     for sign_label, iota_val in [("cos_ι_>_0", np.pi / 4.0),
-                                  ("cos_ι_<_0", 3.0 * np.pi / 4.0)]:
+                                 ("cos_ι_<_0", 3.0 * np.pi / 4.0)]:
         mA, mB, raw_A, raw_B = _correlations_at_iota(iota_val, rng)
 
         winner = "combo_A" if mA > mB else "combo_B"
@@ -257,7 +257,7 @@ def _check_sign_combination(
     # --- ι SWEEP summary ---
     print(f"\n  ι sweep ({len(sweep_results)} points, cos ι > 0 and cos ι < 0):")
     print(f"  {'ι [rad]':>8s}  {'sign':>5s}  {'winner':>8s}  {'ratio':>7s}")
-    print(f"  {'-'*8}  {'-'*5}  {'-'*8}  {'-'*7}")
+    print(f"  {'-' * 8}  {'-' * 5}  {'-' * 8}  {'-' * 7}")
     for s in sweep_results:
         print(f"  {s['iota']:8.3f}  {s['cos_iota_sign']:>5s}  {s['winner']:>8s}  {s['ratio']:6.2f}x")
 
@@ -289,7 +289,7 @@ def _check_sign_combination(
     print(f"  → Primary (cos ι > 0): well_constrained = {well_constrained}")
 
     # --- Export sweep results to CSV ---
-    sweep_csv_path = "experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.csv"
+    sweep_csv_path = "./experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.csv"
     _export_sweep_csv(sweep_results, results_by_sign, sweep_csv_path)
     print(f"\n  Sweep results exported to: {sweep_csv_path}")
 
@@ -315,7 +315,7 @@ def _export_sweep_csv(sweep_results, results_by_sign, path):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["iota_rad", "cos_iota_sign", "winner", "ratio",
-                     "corr_A", "corr_B"])
+                    "corr_A", "corr_B"])
         for s in sweep_results:
             w.writerow([s["iota"], s["cos_iota_sign"], s["winner"],
                         s["ratio"], s["corr_A"], s["corr_B"]])
@@ -327,7 +327,7 @@ def _export_sweep_csv(sweep_results, results_by_sign, path):
 
 
 def _plot_ratio_vs_iota(sweep_results, results_by_sign):
-    """Plot combo correlation ratio vs inclination angle ι."""
+    """Plot combo correlation ratio vs. the inclination angle ι."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -353,9 +353,9 @@ def _plot_ratio_vs_iota(sweep_results, results_by_sign):
     ax1.set_ylim(0.9, None)
     # Annotate the reference point
     r45 = results_by_sign["cos_ι_>_0"]
-    ax1.axvline(x=np.pi/4, color="gray", linestyle=":", alpha=0.3)
+    ax1.axvline(x=np.pi / 4, color="gray", linestyle=":", alpha=0.3)
     ax1.annotate(f"ι=π/4: {r45['ratio']:.2f}x\n({r45['well_constrained']})",
-                 xy=(np.pi/4, r45["ratio"]), xytext=(np.pi/4+0.2, r45["ratio"]+0.02),
+                 xy=(np.pi / 4, r45["ratio"]), xytext=(np.pi / 4 + 0.2, r45["ratio"] + 0.02),
                  arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9)
 
     # Right: cos ι < 0
@@ -368,18 +368,21 @@ def _plot_ratio_vs_iota(sweep_results, results_by_sign):
     ax2.legend(loc="upper left")
     ax2.set_ylim(0.9, None)
     r135 = results_by_sign["cos_ι_<_0"]
-    ax2.axvline(x=3*np.pi/4, color="gray", linestyle=":", alpha=0.3)
+    ax2.axvline(x=3 * np.pi / 4, color="gray", linestyle=":", alpha=0.3)
     ax2.annotate(f"ι=3π/4: {r135['ratio']:.2f}x\n({r135['well_constrained']})",
-                 xy=(3*np.pi/4, r135["ratio"]),
-                 xytext=(3*np.pi/4-0.5, r135["ratio"]+0.02),
+                 xy=(3 * np.pi / 4, r135["ratio"]),
+                 xytext=(3 * np.pi / 4 - 0.5, r135["ratio"] + 0.02),
                  arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9)
 
-    fig.suptitle("Step 1.1 — Combo correlation ratio vs inclination",
-                 fontweight="bold")
+    save_fig(fig, "experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota")
+
+
+def save_fig(fig: Figure, path, second: str = 'png'):
     fig.tight_layout()
-    fig.savefig("experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.png")
+    fmt = ['pdf'] + [second]
+    for i in fmt:
+        fig.savefig(f'{path}.{i}', dpi=300)
     plt.close(fig)
-    print("  Plot saved to: experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.png")
 
 
 # ---------------------------------------------------------------------------
@@ -406,11 +409,10 @@ def main():
         help="Skip w(ι) derivation (Step 1.2)",
     )
     # Default rationale: these values balance resolution against runtime.
-    # 200 sky positions × 25 ι points × 50 combo sweeps ≈ 500k evaluations
-    # per sign regime (~1M total for Step 1.1).  Pilot run at 8 points
-    # showed a clean trend; 25 gives ~3× the resolution.  200 bootstrap
-    # sky positions and 200 w(ι) grid points are 4× and 2× the original
-    # values respectively.  All are tunable — see --help.
+    # 200 sky positions × 25 ι points × 50 combo sweeps ≈ 500k evaluations per sign regime (~1M total for Step 1.1).
+    # Pilot run at 8 points showed a clean trend; 25 gives ~3× the resolution.
+    # 200 bootstrap sky positions and 200 w(ι) grid points are 4× and 2× the original values respectively.
+    # All are tunable — see --help.
     parser.add_argument(
         "--n-sky", type=int, default=200,
         help="Sky positions for averaging (default: 200)",
@@ -472,7 +474,7 @@ def main():
         print(f"  w(cos²ι=0) ≈ {w_interp[-1]:.4f} (edge-on, ι≈π/2)")
         # Intermediate shape check: report 5 equally-spaced ι values
         n = len(result_1_2["iota_grid"])
-        indices = [0, n//4, n//2, 3*n//4, n-1]
+        indices = [0, n // 4, n // 2, 3 * n // 4, n - 1]
         print(f"  Intermediate shape (5 of {n} points):")
         for idx in indices:
             iota_v = result_1_2["iota_grid"][idx]

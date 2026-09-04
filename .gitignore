@@ -170,3 +170,16 @@ structure.md
 !**/snr_*.log
 !**/perturbation_*.log
 !**/inclination_*.log
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bbl-SAVE-ERROR
+*.blg
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+experiments/phic_psi_poc/paper/literature_review/*.pdf
+experiments/phic_psi_poc/paper/paper_phic_psi_degeneracy.pdf

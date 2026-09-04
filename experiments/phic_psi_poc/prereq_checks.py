@@ -419,8 +419,8 @@ def main():
         help="Sky positions for averaging (default: 200)",
     )
     parser.add_argument(
-        "--n-iota-sweep", type=int, default=25,
-        help="ι points per sign regime in Step 1.1 sweep (default: 25)",
+        "--n-iota-sweep", type=int, default=50,
+        help="ι points per sign regime in Step 1.1 sweep (default: 50)",
     )
     parser.add_argument(
         "--n-iota-w", type=int, default=200,

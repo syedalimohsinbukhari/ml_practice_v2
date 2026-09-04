@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Flatten the figures listed in figures_registry.yaml into paper/ for an arXiv-style submission tree.
+"""Flatten the figures listed in figures_registry.yaml into paper/paper1/ for an arXiv-style submission tree.
 
-arXiv compiles from a flat, self-contained source directory:
-every file \\includegraphics'd from paper_phic_psi_degeneracy.tex (and its \\input sections) must sit alongside the
+paper/paper1/ is the Overleaf-linked nested git repo that holds the actual arXiv submission source
+(see paper/paper1/main.tex); arXiv compiles from a flat, self-contained source directory, so
+every file \\includegraphics'd from main.tex (and its \\input sections) must sit alongside the
 .tex sources, not one level up in the experiment's *_output/ directories where they are actually produced.
+
+This script itself stays in paper/ (with figures_registry.yaml) so its relative path resolution into the
+experiment root is unaffected by where the copies land.
 
 Usage:
     python3 collect_figures.py # copy PNG (+ PDF where present)
@@ -22,6 +26,7 @@ import yaml
 
 PAPER_DIR = Path(__file__).resolve().parent
 EXPERIMENT_ROOT = PAPER_DIR.parent
+DEST_DIR = PAPER_DIR / "paper1"
 REGISTRY_PATH = PAPER_DIR / "figures_registry.yaml"
 
 
@@ -41,16 +46,16 @@ def copy_figures(entries: list[dict], formats: set[str], dry_run: bool) -> int:
             continue
         for fmt in sorted(entry_formats):
             src_path = source.with_suffix(f".{fmt}")
-            dest_path = PAPER_DIR / Path(dest_name).with_suffix(f".{fmt}")
+            dest_path = DEST_DIR / Path(dest_name).with_suffix(f".{fmt}")
             if not src_path.exists():
                 print(f"MISSING: {src_path.relative_to(EXPERIMENT_ROOT)} (id={entry['id']})", file=sys.stderr)
                 missing += 1
                 continue
             if dry_run:
-                print(f"{src_path.relative_to(EXPERIMENT_ROOT)} -> paper/{dest_path.name}")
+                print(f"{src_path.relative_to(EXPERIMENT_ROOT)} -> paper1/{dest_path.name}")
                 continue
             shutil.copy2(src_path, dest_path)
-            print(f"copied paper/{dest_path.name}")
+            print(f"copied paper1/{dest_path.name}")
     return missing
 
 

@@ -35,9 +35,10 @@ import numpy as np
 from matplotlib.figure import Figure
 
 # Ensure repo root and src/ are on the path
-_REPO_ROOT = str(Path(__file__).resolve().parents[2])
-sys.path.insert(0, _REPO_ROOT)
-sys.path.insert(0, str(Path(_REPO_ROOT) / "src"))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_EXPERIMENT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(_REPO_ROOT))
+sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from experiments.plot_style import update_style
 
@@ -289,7 +290,7 @@ def _check_sign_combination(
     print(f"  → Primary (cos ι > 0): well_constrained = {well_constrained}")
 
     # --- Export sweep results to CSV ---
-    sweep_csv_path = "./experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota.csv"
+    sweep_csv_path = _EXPERIMENT_DIR / "sweep_1_1_ratio_vs_iota.csv"
     _export_sweep_csv(sweep_results, results_by_sign, sweep_csv_path)
     print(f"\n  Sweep results exported to: {sweep_csv_path}")
 
@@ -374,7 +375,7 @@ def _plot_ratio_vs_iota(sweep_results, results_by_sign):
                  xytext=(3 * np.pi / 4 - 0.5, r135["ratio"] + 0.02),
                  arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9)
 
-    save_fig(fig, "experiments/phic_psi_poc/sweep_1_1_ratio_vs_iota")
+    save_fig(fig, _EXPERIMENT_DIR / "sweep_1_1_ratio_vs_iota")
 
 
 def save_fig(fig: Figure, path, second: str = 'png'):
@@ -393,8 +394,8 @@ def save_fig(fig: Figure, path, second: str = 'png'):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--data-path", default="combined_repackaged.hdf",
-        help="Path to HDF5 file (default: combined_repackaged.hdf)",
+        "--data-path", default=str(_REPO_ROOT / "combined_repackaged.hdf"),
+        help="Path to HDF5 file (default: ROOT/combined_repackaged.hdf)",
     )
     parser.add_argument(
         "--skip-histogram", action="store_true",
@@ -418,8 +419,8 @@ def main():
         help="Sky positions for averaging (default: 200)",
     )
     parser.add_argument(
-        "--n-iota-sweep", type=int, default=25,
-        help="ι points per sign regime in Step 1.1 sweep (default: 25)",
+        "--n-iota-sweep", type=int, default=50,
+        help="ι points per sign regime in Step 1.1 sweep (default: 50)",
     )
     parser.add_argument(
         "--n-iota-w", type=int, default=200,

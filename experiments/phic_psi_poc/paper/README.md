@@ -31,3 +31,8 @@ Source PDFs backing `references.bib`, one file per citation key.
 - `ismailfawaz2019deep.pdf` — arXiv:1809.04356
 - `ioannidis2005false.pdf` — PLoS Medicine, open access (DOI 10.1371/journal.pmed.0020124)
 - `huber1964robust.pdf` — Huber 1964, *Annals of Mathematical Statistics* 35(1), (sourced by the author; no arXiv preprint exists)
+- `allen2012findchirp.pdf` — arXiv:gr-qc/0509116 (merger-time/SNR matched-filter reference, §1 introduction)
+- `fairhurst2009triangulation.pdf` — arXiv:0908.2356 (sky-localization reference, §1 introduction)
+- `singer2016bayestar.pdf` — arXiv:1508.03634 (sky-localization reference, §1 introduction)
+- `veitch2010bayesian.pdf` — arXiv:0911.3820 (explicit ψ/ι posterior degeneracy + multimodal-sampling discussion, §1 introduction)
+- `aasi2013pe.pdf` — arXiv:1304.1775 (LVC PE paper documenting degenerate, multi-modal extrinsic-parameter posteriors, §1 introduction)

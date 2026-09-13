@@ -1,7 +1,7 @@
 # φc/ψ Degeneracy PoC — Experiment Index
 
 **Branch**: `poc/phic-psi-degeneracy`
-**Last updated**: 2026-09-04
+**Last updated**: 2026-09-09
 
 ---
 
@@ -15,6 +15,7 @@
 | [`results.md`](results.md) | Detailed run-by-run results tables |
 | [`tanh_to_linear_postmortem.md`](tanh_to_linear_postmortem.md) | Full postmortem of tanh→linear fix and normalize_unit pathology discovery (Runs 1–5) |
 | [`inclination_loss_trace.md`](inclination_loss_trace.md) | Code-path trace: inclination uses Huber loss, no normalize_unit — separate failure mechanism |
+| [`LINKED.md`](LINKED.md) | Mechanically generated link-inventory audit of every `.md`/`.tex` file in this tree — outbound/inbound reference counts, broken references, orphaned files. Regenerate from a fresh scan rather than hand-editing; not a substitute for this index. |
 
 ---
 

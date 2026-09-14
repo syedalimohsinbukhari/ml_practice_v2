@@ -1,0 +1,147 @@
+======================================================================
+φc/ψ Degeneracy PoC — Prerequisite Checks
+======================================================================
+
+── Step 1.1: Sign / combination check ──
+  ✓ Harness check passed: (R,δ) constant at ι=0 along 2φc+2ψ=const (max std(R)=1.16e-14, max std(δ)=5.87e-16)
+  cos ι > 0 (ι=π/4):  well-constrained = combo_B (ratio = 1.17x, 95% CI = [1.11, 1.24])
+  cos ι < 0 (ι=3π/4): well-constrained = combo_A (ratio = 1.19x, 95% CI = [1.12, 1.26])
+  Sign flip at cos ι = 0: YES — label depends on sign(cos ι)
+
+  ι sweep (100 points, cos ι > 0 and cos ι < 0):
+   ι [rad]   sign    winner    ratio
+  --------  -----  --------  -------
+     0.050      +   combo_B    1.62x
+     0.081      +   combo_B    1.61x
+     0.111      +   combo_B    1.61x
+     0.142      +   combo_B    1.62x
+     0.173      +   combo_B    1.62x
+     0.203      +   combo_B    1.64x
+     0.234      +   combo_B    1.64x
+     0.264      +   combo_B    1.61x
+     0.295      +   combo_B    1.61x
+     0.326      +   combo_B    1.60x
+     0.356      +   combo_B    1.65x
+     0.387      +   combo_B    1.63x
+     0.418      +   combo_B    1.61x
+     0.448      +   combo_B    1.61x
+     0.479      +   combo_B    1.59x
+     0.509      +   combo_B    1.59x
+     0.540      +   combo_B    1.48x
+     0.571      +   combo_B    1.43x
+     0.601      +   combo_B    1.35x
+     0.632      +   combo_B    1.30x
+     0.663      +   combo_B    1.23x
+     0.693      +   combo_B    1.20x
+     0.724      +   combo_B    1.14x
+     0.754      +   combo_B    1.19x
+     0.785      +   combo_B    1.14x
+     0.816      +   combo_B    1.19x
+     0.846      +   combo_B    1.14x
+     0.877      +   combo_B    1.19x
+     0.908      +   combo_B    1.16x
+     0.938      +   combo_B    1.13x
+     0.969      +   combo_B    1.10x
+     0.999      +   combo_B    1.20x
+     1.030      +   combo_B    1.17x
+     1.061      +   combo_B    1.12x
+     1.091      +   combo_B    1.19x
+     1.122      +   combo_B    1.08x
+     1.153      +   combo_B    1.19x
+     1.183      +   combo_B    1.13x
+     1.214      +   combo_B    1.14x
+     1.245      +   combo_B    1.12x
+     1.275      +   combo_B    1.13x
+     1.306      +   combo_B    1.13x
+     1.336      +   combo_B    1.16x
+     1.367      +   combo_B    1.10x
+     1.398      +   combo_B    1.14x
+     1.428      +   combo_B    1.06x
+     1.459      +   combo_B    1.11x
+     1.490      +   combo_B    1.10x
+     1.520      +   combo_B    1.04x
+     1.551      +   combo_B    1.07x
+     1.591      −   combo_A    1.05x
+     1.621      −   combo_A    1.01x
+     1.652      −   combo_A    1.07x
+     1.683      −   combo_A    1.10x
+     1.713      −   combo_A    1.13x
+     1.744      −   combo_A    1.05x
+     1.775      −   combo_A    1.09x
+     1.805      −   combo_A    1.11x
+     1.836      −   combo_A    1.10x
+     1.866      −   combo_A    1.07x
+     1.897      −   combo_A    1.15x
+     1.928      −   combo_A    1.10x
+     1.958      −   combo_A    1.10x
+     1.989      −   combo_A    1.07x
+     2.020      −   combo_A    1.11x
+     2.050      −   combo_A    1.16x
+     2.081      −   combo_A    1.13x
+     2.111      −   combo_A    1.11x
+     2.142      −   combo_A    1.16x
+     2.173      −   combo_A    1.14x
+     2.203      −   combo_A    1.19x
+     2.234      −   combo_A    1.14x
+     2.265      −   combo_A    1.15x
+     2.295      −   combo_A    1.15x
+     2.326      −   combo_A    1.15x
+     2.357      −   combo_A    1.15x
+     2.387      −   combo_A    1.16x
+     2.418      −   combo_A    1.22x
+     2.448      −   combo_A    1.24x
+     2.479      −   combo_A    1.27x
+     2.510      −   combo_A    1.27x
+     2.540      −   combo_A    1.43x
+     2.571      −   combo_A    1.44x
+     2.602      −   combo_A    1.52x
+     2.632      −   combo_A    1.59x
+     2.663      −   combo_A    1.57x
+     2.693      −   combo_A    1.60x
+     2.724      −   combo_A    1.57x
+     2.755      −   combo_A    1.60x
+     2.785      −   combo_A    1.63x
+     2.816      −   combo_A    1.61x
+     2.847      −   combo_A    1.64x
+     2.877      −   combo_A    1.61x
+     2.908      −   combo_A    1.62x
+     2.938      −   combo_A    1.61x
+     2.969      −   combo_A    1.60x
+     3.000      −   combo_A    1.62x
+     3.030      −   combo_A    1.62x
+     3.061      −   combo_A    1.62x
+     3.092      −   combo_A    1.60x
+
+  Trend check (ratio ↑ as ι→0 or ι→π, i.e. toward face-on):
+    cos ι > 0: ratio at ι≈0.1 = 1.62x, at ι≈π/2 = 1.07x → ✓ widens toward face-on
+    cos ι < 0: ratio at ι≈π/2 = 1.05x, at ι≈π = 1.60x → ✓ widens toward face-on
+
+  Significance (95% CI excludes 1.0 = statistically distinguishable):
+    cos ι > 0: YES
+    cos ι < 0: YES
+  → Recommendation: condition well_constrained_combo on sign(cos ι)
+    at training time, not a single fixed label.
+  → Primary (cos ι > 0): well_constrained = combo_B
+
+  Sweep results exported to: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/sweep_1_1_ratio_vs_iota.csv
+
+── Step 1.2: Curriculum weight derivation ──
+  Sky-averaging: ✓ averaged over 200 random sky-location (a,b) pairs
+  ι grid: 200 points from ι≈0.001 to ι≈π/2
+  Interpolation on cos²ι (linear), corrected h_plus/h_cross (A.5).  w(cos²ι=1) = 0.0000 (face-on), w(cos²ι=0) = 0.1416 (edge-on).  Max residual = 0.00e+00, RMS residual = 0.00e+00.
+  w(cos²ι=1) ≈ 0.0000 (face-on, ι≈0)
+  w(cos²ι=0) ≈ 0.1416 (edge-on, ι≈π/2)
+  Intermediate shape (5 of 200 points):
+    ι=0.001  cos²ι=1.000  w=0.0000
+    ι=0.395  cos²ι=0.852  w=0.1109
+    ι=0.789  cos²ι=0.496  w=0.9956
+    ι=1.184  cos²ι=0.143  w=0.3551
+    ι=1.570  cos²ι=0.000  w=0.1416
+
+── Step 1.6: cos ι histogram ──
+  Face-on fraction (|cos ι| > 0.9): 28.7%
+  Edge-on fraction (|cos ι| < 0.5): 32.7%
+
+======================================================================
+Prerequisite checks complete.
+======================================================================

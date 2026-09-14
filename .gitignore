@@ -170,6 +170,7 @@ structure.md
 !**/snr_*.log
 !**/perturbation_*.log
 !**/inclination_*.log
+!**/prereq_checks_*.log
 
 # LaTeX build artifacts
 *.aux

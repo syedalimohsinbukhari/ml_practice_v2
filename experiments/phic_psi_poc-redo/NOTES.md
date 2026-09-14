@@ -58,6 +58,9 @@ Data representation, true-inclination batch access, and the static per-sample cu
 - [x] Step 1.1/1.2/1.6 — prerequisite checks, redone under corrected formula
 - [x] Step 2.2/2.3 — `transform_utils.py`/`curriculum.py`/`trainer.py` implemented and verified
 - [x] Step 3 — `validation_script.py`, 29/29 checks pass
-- [ ] Build config YAMLs for the full 7-architecture Round-1-equivalent sweep (baseline mode) + `config_poc.yaml` (poc mode, TCN) using this section's decisions
-- [ ] Hand training off to the lab GPU machine (this machine is CPU-only per CLAUDE.md)
-- [ ] Down-select re-validation once Round-1-equivalent results land
+- [x] Config YAMLs for the full 7-architecture Round-1-equivalent sweep (`config_baseline.yaml`, `config_poc.yaml`, `config_tcn.yaml`, `config_cnn_baseline.yaml`, `config_cnn_attention.yaml`, `config_inception_time.yaml`, `config_resnet1d.yaml`) — all verified end-to-end on CPU (forward pass, loss, gradient step, no `None` grads) before handoff
+- [ ] Hand training off to the lab GPU machine (this machine is CPU-only per CLAUDE.md) — `python experiments/phic_psi_poc-redo/run_full.py` chains train→plot→evaluate for all 7 configs
+- [ ] Down-select re-validation once Round-1-equivalent results land — compare against the original's 4-model certified set (poc_a, poc_b, tcn, cnn_attention), document explicitly whether it still holds
+- [ ] Once the down-select is confirmed, redo the magnitude-penalty/combo-phase runs (Run 7-equivalent) and λ-retune confirmatory pass on the surviving models
+
+**The redo folder is now functionally complete for a first training pass** — every script and config has been built, numerically or computationally verified on CPU, and is ready to hand to the lab GPU machine. Nothing beyond this point can be verified further without GPU access.

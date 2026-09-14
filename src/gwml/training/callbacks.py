@@ -40,6 +40,31 @@ class WarmupLR(keras.callbacks.Callback):
             self.model.optimizer.learning_rate.assign(lr)
 
 
+class PeriodicCheckpoint(keras.callbacks.Callback):
+    """Save weights every N epochs, in addition to best/final.
+
+    Historically only ``best.weights.h5`` (best val_loss) and
+    ``final.weights.h5`` (end of training) were ever saved — instrument
+    calibration against early training was blocked once because no
+    intermediate checkpoint existed (see the φc/ψ degeneracy redo's
+    perturbation-trace work, and this repo's CLAUDE.md "Training runs:
+    periodic checkpoints" rule). This callback closes that gap.
+    """
+
+    def __init__(self, out_dir: str | Path, every_n: int = 10):
+        super().__init__()
+        self.out_dir = Path(out_dir)
+        self.every_n = every_n
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch + 1) % self.every_n:
+            return
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.model.save_weights(
+            str(self.out_dir / f"epoch_{epoch + 1:03d}.weights.h5")
+        )
+
+
 class LiveScatterCallback(keras.callbacks.Callback):
     """Every N epochs, save a 2x2 pred-vs-true scatter grid to PNG.
 

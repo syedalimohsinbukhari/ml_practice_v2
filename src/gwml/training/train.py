@@ -18,6 +18,7 @@ from gwml.models import build_model
 from gwml.training.callbacks import (
     DiagnosticSubsetsCallback,
     LiveScatterCallback,
+    PeriodicCheckpoint,
     WarmupLR,
 )
 from gwml.training.losses import MultiHeadTrainer
@@ -99,6 +100,9 @@ def _build_callbacks(cfg, run_dir, val_strain, val_params, transforms):
         keras.callbacks.ModelCheckpoint(
             str(run_dir / "best.weights.h5"),
             monitor="val_loss", save_best_only=True, save_weights_only=True,
+        ),
+        PeriodicCheckpoint(
+            run_dir / "checkpoints", every_n=tcfg.get("checkpoint_every_n", 10),
         ),
         keras.callbacks.CSVLogger(str(run_dir / "history.csv")),
         keras.callbacks.TensorBoard(log_dir=str(run_dir / "tb")),

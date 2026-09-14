@@ -1,0 +1,72 @@
+# Run B (redo) — PoC: sum/diff combo heads + inclination curriculum weighting
+#
+# φc and ψ are trained ONLY through their derived combo_A / combo_B losses,
+# now 2φc+2ψ / 2φc−2ψ (formulae_reference.md A.2) instead of the original's
+# φc+2ψ / φc−2ψ — see experiments/phic_psi_poc/diagnostic_log.md's
+# 2026-09-09 dated entry for why. Corrected combo construction lives in
+# trainer.py's _build_combo_vectors (imported locally by train_poc.py).
+#
+# well_constrained_combo determined by this redo's own Step 1.1 rerun
+# (NOTES.md, 2026-09-14) — do not assume it carries over from the original's
+# Step 1.1 result, which tested the wrong combo pair entirely.
+
+name: phic_psi_poc_redo_b
+run_dir: runs/phic_psi_poc_redo_b
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: poc
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  # Combo clamps at moderate default (same as other PERIODIC heads).
+  # Don't pre-tighten — w(ι) already handles face-on suppression.
+  combo_log_var_clamp:
+    default: 3.0
+    combo_A: 3.0
+    combo_B: 3.0
+  variance_penalty: 0.0
+  # Radial regularisation for PERIODIC heads using circular loss —
+  # same rationale as config_baseline.yaml.
+  magnitude_penalty_lambda: 0.01
+  # From this redo's Step 1.1 (2026-09-14, NOTES.md): combo_B (2φc−2ψ) is
+  # well-constrained for cos ι > 0, ratio=1.17x, 95% CI=[1.11,1.24] —
+  # significant, unlike the original's equivalent (wrong-formula) check.
+  # The well-constrained label FLIPS sign with cos ι — sign_dependent_combo
+  # enables dynamic per-sample assignment in the trainer. (combo_B happens
+  # to be the same letter label the original settled on — coincidence of
+  # which candidate got named "A" vs "B", not evidence the physics matches.)
+  well_constrained_combo: combo_B
+  sign_dependent_combo: true
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  checkpoint_every_n: 10
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

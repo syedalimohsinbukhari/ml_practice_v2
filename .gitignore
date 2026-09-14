@@ -182,5 +182,5 @@ structure.md
 *.fls
 *.fdb_latexmk
 *.synctex.gz
-experiments/phic_psi_poc/paper/literature_review/*.pdf
+experiments/paper/literature_review/*.pdf
 .mcp.json

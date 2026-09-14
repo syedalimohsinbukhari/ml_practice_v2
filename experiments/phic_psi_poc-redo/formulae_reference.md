@@ -110,30 +110,27 @@ Same recipe as the original, re-run against the corrected A.5:
 
 **Do not carry forward the original's `w = 1 − cos²ι` default or its empirical-fit numbers** — both were derived from the uncorrected A.5 antenna-pattern model and must be re-derived from the corrected one before use.
 
-### A.8 Reconstruction branch-handling — derived and verified (2026-09-14)
+### A.8 Reconstruction branch-handling — derived, then corrected after implementation (2026-09-14)
+
+> **⚠ Correction, same day.** The first version of this section (below, struck through in spirit but kept for the record per this repo's frozen-vs-living-docs discipline of not silently erasing a wrong turn) claimed a fixed closed-form rule — "candidate branch indices `k` (for φc) and `j` (for ψ) must share parity" — for which 4 of the naive 8 reconstruction candidates are jointly consistent. **That rule is wrong.** Implementing it in `transform_utils.py` and adding a runtime assertion that checks the closed-form prediction against a brute-force re-encode-and-check immediately failed on real (random) inputs. A 20,000-trial numerical sweep confirmed: exactly 4 of 8 candidates are *always* jointly consistent (that count is real and holds), but *which* 4 (i.e. whether φc-branch-parity-even pairs with ψ-branch `j=0` or `j=1`) is ~50/50 and **not recoverable from `combo_A`/`combo_B` alone** — it depends on an integer wrap-count that `arctan2`'s mod-2π reduction destroys before it reaches the reconstruction code. The algebraic derivation below implicitly anchored the candidate indexing at the true φc/ψ themselves rather than at `arctan2`'s arbitrary representative; that assumption is what silently broke it. **Net effect: no closed-form shortcut exists. The reconstruction must brute-force all 8 candidates and re-encode-check every time**, exactly as the original (`φc±2ψ`) version always did — this section's only lasting correction to the original is the branch *count* (4-fold φc / 2-fold ψ instead of 2-fold φc / 4-fold ψ), not a new shortcut. `transform_utils.py`'s `reconstruct_phic_psi` implements the brute-force version; verified against 5,000 random trials, 100% recovery, always exactly 4 survivors.
 
 Let `U = 2φc` (φc's own physical period is 2π, so U ranges over [0,4π) as φc completes one cycle) and `V = 2ψ` (ψ's own physical period is π, so V ranges over exactly [0,2π) as ψ completes one cycle — V alone is already a *bijection* onto ψ's full physical range, no ambiguity from the doubling itself). `combo_A ≡ U+V` and `combo_B ≡ U−V` (both mod 2π, since combo_A/B are unit-vector angles).
 
-**Recovering ψ (2-fold):**
+**Recovering ψ (2-fold, count confirmed correct):**
 ```
 2V ≡ combo_A − combo_B  (mod 2π)   ⇒   V ≡ ½(combo_A − combo_B)  (mod π)
 ```
 Knowing `2V mod 2π` only pins `V` down mod π — a 2-fold ambiguity in V's own [0,2π) range (`V₀`, `V₀+π`). Since `V=2ψ` is already bijective onto ψ's range, this maps 1:1 to a **2-fold** ambiguity in ψ: candidates `ψ₀`, `ψ₀+π/2`.
 
-**Recovering φc (4-fold):**
+**Recovering φc (4-fold, count confirmed correct):**
 ```
 2U ≡ combo_A + combo_B  (mod 2π)   ⇒   U ≡ ½(combo_A + combo_B)  (mod π)
 ```
 Same logic gives `U` mod π, i.e. `2φc` mod π, i.e. `φc` mod π/2 — a **4-fold** ambiguity in φc's [0,2π) range: candidates spaced π/2 apart, `φc₀ + k·π/2` for `k∈{0,1,2,3}`.
 
-**The two ambiguities are not independently combinable — this is the part that matters for the reconstruction code.** Parametrize `φc = φc₀+k·π/2` (k=0..3), `ψ = ψ₀+j·π/2` (j=0,1). Re-encoding via A.2:
-```
-combo_A_candidate = combo_A_true + (k+j)π   (mod 2π)
-combo_B_candidate = combo_B_true + (k−j)π   (mod 2π)
-```
-Both vanish (reproduce the true pair) iff `(k+j)` is even — and `(k+j)` and `(k−j)` always share parity (they differ by `2j`), so **one** parity check (`k≡j mod 2`) gates both conditions simultaneously. This keeps exactly 4 of the naive `4×2=8` `(k,j)` combinations — not an independent 4-fold×2-fold product.
+**The two ambiguities are not independently combinable — exactly 4 of the naive `4×2=8` `(k,j)` pairs are jointly consistent, always, confirmed over 20,000 random trials.** ~~Parametrize `φc = φc₀+k·π/2` (k=0..3), `ψ = ψ₀+j·π/2` (j=0,1). Re-encoding via A.2: `combo_A_candidate = combo_A_true + (k+j)π (mod 2π)`, `combo_B_candidate = combo_B_true + (k−j)π (mod 2π)`. Both vanish iff `(k+j)` is even, giving a fixed parity rule.~~ **This algebra is retracted** — it silently assumes `k` and `j` are measured from the *true* φc/ψ (where the relation genuinely would hold), but the actual reconstruction indexes branches from `arctan2`'s arbitrary representative of `4φc mod 2π`/`4ψ mod 2π`, which differs from the true value by an unknown, unrecoverable multiple of `π/2` (φc side) or `π` (ψ side) — exactly the integer that determines which parity pattern applies. No closed-form fix was found; brute force is the correct and final approach.
 
-**Implication for the reconstruction code:** write the parity rule (`k≡j mod 2`) directly into candidate generation as the fast path — it's a closed-form filter, not something to brute-force. Still keep the original's re-encode-and-check-against-both-combos filter as a validation cross-check alongside it (cheap, and catches any implementation bug in the parity shortcut itself). As in the original, this is a validation-script technique requiring ground truth to disambiguate the surviving 4 candidates — not a real-inference reconstruction method.
+**Implication for the reconstruction code:** enumerate all 4×2=8 candidates, re-encode each via A.2, and keep only those matching both `combo_A` and `combo_B` (same technique the original used, just with the corrected branch counts). Do not implement a parity shortcut. As in the original, this is a validation-script technique requiring ground truth to disambiguate the surviving 4 candidates — not a real-inference reconstruction method.
 
 ## B. Model architecture — bare outline only
 

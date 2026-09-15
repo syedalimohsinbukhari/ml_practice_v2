@@ -49,7 +49,7 @@ Criterion fixed in [`preregistration_lam_retune.md`](preregistration_lam_retune.
 |---|---|---|
 | `python experiments/phic_psi_poc-redo/train_poc.py experiments/phic_psi_poc-redo/config_lam005_retune_b.yaml` | `trainer.py`, mode=poc, `magnitude_penalty_lambda=0.05` — **primary test** | not yet run |
 | `python experiments/phic_psi_poc-redo/train_poc.py experiments/phic_psi_poc-redo/config_lam005_retune_a.yaml` | same, mode=baseline — **required control**, must be trained alongside | not yet run |
-| `python experiments/phic_psi_poc-redo/diagnostic_logvar_gate.py` (rerun) | needs its `RUNS` dict updated to point at `runs/phic_psi_lam005_retune_{a,b}/` before this is meaningful for the retune — **not done automatically by the command above** | pending script update |
+| `python experiments/phic_psi_poc-redo/diagnostic_logvar_gate.py` (rerun) | `ROUNDS` dict now includes `λ=0.05 (retune)` → `runs/phic_psi_lam005_retune_{a,b}/` alongside λ=0.01 for context; the last entry in `ROUNDS` is the round the OVERALL VERDICT is computed for | ready — will report the retune's verdict once the runs above exist |
 
 If the gate still fails at λ=0.05: `config_lam010_retune_{a,b}.yaml` (not yet created — copy the λ=0.05 pair, bump to 0.10) is the pre-registered fallback, same pattern the original used for its own retune.
 

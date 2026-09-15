@@ -50,8 +50,8 @@
 **Same-day self-correction (2026-09-14, after implementing `transform_utils.py`):** the review's proposed closed-form parity rule for picking the 4 consistent candidates without brute force (`k≡j mod 2`) was implemented, tested, and immediately falsified — a 20,000-trial numerical sweep showed the parity pattern is ~50/50 and data-dependent (depends on an integer `arctan2`'s mod-2π reduction destroys), not fixed. Retracted in `formulae_reference.md` §A.8 and `redo_procedure.md` §2.6, kept on the record rather than silently erased, per this repo's frozen-vs-living-docs convention. The reconstruction code brute-forces all 8 candidates every time — verified against 5,000 random trials, 100% recovery.
 
 Next steps, in order:
-1. [x] Pre-register the λ-retune criterion — [`preregistration_lam_retune.md`](preregistration_lam_retune.md), written 2026-09-15, before any retune exists. Primary tests: `poc_redo_b`'s `combo_A` and `combo_B` (each combo's own angle, not the individually-unsupervised φc/ψ). `poc_redo_a` retrained in parallel as a required control, not a third primary test.
-2. Build the λ=0.05 retune configs and hand off to the lab GPU machine (CPU-only here).
-3. Rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results; only if it passes do Steps 1–3 (bootstrap significance, effect size, SNR stratification — all need the lab GPU machine) run, per the preregistration's decision table.
+1. [x] Pre-register the λ-retune criterion — [`preregistration_lam_retune.md`](preregistration_lam_retune.md), written 2026-09-15, before any retune exists.
+2. [x] Build the λ=0.05 retune configs — [`config_lam005_retune_b.yaml`](config_lam005_retune_b.yaml) (primary), [`config_lam005_retune_a.yaml`](config_lam005_retune_a.yaml) (required control), both CPU-verified.
+3. Hand off to the lab GPU machine (CPU-only here). Rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results — if it fails again, λ=0.10 next per the preregistration's fallback order; only if it passes do Steps 1–3 (bootstrap significance, effect size, SNR stratification — all need the lab GPU machine) run.
 
 The original (wrong-formula) investigation is untouched at `experiments/phic_psi_poc/`, and fully preserved as a static snapshot on the `archive/phic-psi-poc-v1` branch.

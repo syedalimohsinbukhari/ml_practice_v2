@@ -39,15 +39,17 @@
 
 **Code implementation (§2/§3) is complete**: `transform_utils.py`, `curriculum.py`, `trainer.py` all built, all numerically verified (5,000–20,000-trial checks where relevant); `validation_script.py` 29/29 pass. All 7 config YAMLs built and verified end-to-end on CPU (forward pass, loss, gradient step — no `None` grads) for both `mode: baseline` and `mode: poc`.
 
-**The redo folder is functionally complete for a first training pass.** Nothing further can be verified without GPU access — next action is handing `run_full.py` (or individual configs) to the lab GPU machine.
+**Round 1 (full 7-architecture sweep) trained 2026-09-15 — see `NOTES.md`.** Infrastructure fully validated (positive controls healthy in every run, periodic checkpoints present, plot/eval pipeline confirmed working end-to-end). Down-select re-validated on fresh evidence: original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) still holds.
+
+**⚠ Central question not yet answered.** `config_poc.yaml`'s combo_A/combo_B circular loss stays flat (~0.98–1.01) across all 80 epochs — nearly identical to the original's wrong-formula result (0.9989/0.9913 vs. this run's 0.9999/0.9895) — so the corrected formula alone did not produce visible learning. But `std_ratio` for the raw φc/ψ vectors is settling low (≈0.64/0.25) and the uncertainty weights are climbing while loss stays flat — the same log_var-runaway/std_ratio-gate pattern the original needed a dedicated λ-retune investigation to resolve before trusting its own null result. **Verdict: UNINTERPRETABLE, not NULL, pending that same diagnostic discipline here.**
 
 **Resolved by the 2026-09-14 review** (`comments.md`): A.8's reconstruction branch-handling, previously flagged "re-derive before coding," now has confirmed branch counts — ψ is 2-fold ambiguous, φc is 4-fold ambiguous, exactly 4 of the naive 8 candidate pairs are always jointly consistent. Also noted, not a bug: A.5's toy `F_plus`/`F_cross` uses the opposite handedness convention (`e^{+2iψ}`) from some literature conventions — washes out, self-check passes regardless.
 
 **Same-day self-correction (2026-09-14, after implementing `transform_utils.py`):** the review's proposed closed-form parity rule for picking the 4 consistent candidates without brute force (`k≡j mod 2`) was implemented, tested, and immediately falsified — a 20,000-trial numerical sweep showed the parity pattern is ~50/50 and data-dependent (depends on an integer `arctan2`'s mod-2π reduction destroys), not fixed. Retracted in `formulae_reference.md` §A.8 and `redo_procedure.md` §2.6, kept on the record rather than silently erased, per this repo's frozen-vs-living-docs convention. The reconstruction code brute-forces all 8 candidates every time — verified against 5,000 random trials, 100% recovery.
 
 Next steps, in order:
-1. Hand the full 7-architecture Round-1-equivalent training sweep (§4) to the lab GPU machine — this machine (T530) is CPU-only, per this repo's `CLAUDE.md`. `python experiments/phic_psi_poc-redo/run_full.py` chains train→plot→evaluate for all 7 configs.
-2. Run the down-select re-validation step (§4) and document, with a fresh comparison table, whether the original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) still holds under the corrected formula.
-3. Once confirmed, redo the magnitude-penalty/combo-phase runs (Run 7-equivalent) and λ-retune confirmatory pass on the surviving models.
+1. **Blocking**: build and run the log_var-trajectory diagnostic (std_ratio + weight_combo_A/B gate) against `phic_psi_poc_redo_b`'s checkpoints before treating the flat combo_A/combo_B loss as a real null result.
+2. If the gate fails (the climbing-weight/low-std_ratio pattern already visible suggests it will), a λ-retune pass mirroring the original's Runs 8–9b — pre-register the criterion first, per that investigation's own lesson about not eyeballing std_ratio after the fact.
+3. Only once combo_A/combo_B reads as a clean, gate-passed null (or shows real learning) does the central degeneracy question get an actual answer.
 
 The original (wrong-formula) investigation is untouched at `experiments/phic_psi_poc/`, and fully preserved as a static snapshot on the `archive/phic-psi-poc-v1` branch.

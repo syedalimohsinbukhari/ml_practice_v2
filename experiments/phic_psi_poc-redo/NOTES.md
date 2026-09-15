@@ -52,15 +52,50 @@ Data representation, true-inclination batch access, and the static per-sample cu
 | `checkpoint_every_n=10` | New: satisfies CLAUDE.md's periodic-checkpoint requirement from the start (`src/gwml/training/callbacks.py`'s `PeriodicCheckpoint`) |
 | Full 7-architecture Round-1-equivalent sweep | Per explicit instruction — redo the full down-select rather than assume the original's 4-model certified set still holds |
 
+## Round 1 — full 7-architecture sweep, first result under corrected formula (2026-09-15)
+
+All 7 configs trained on the lab GPU machine (80 epochs each). Runs (latest timestamp used where a config was rerun):
+
+| Config | run_dir | val_r2_mchirp | val_r2_merger_time | val_r2_snr | φc/ψ signal (val, last-10 mean) |
+|---|---|---|---|---|---|
+| `config_baseline.yaml` (Run A, tcn) | `phic_psi_poc_redo_a/20260915_051948` | 0.961 | 0.916 | 0.787 | coa_phase=1.0155, pol_angle=1.0009 |
+| `config_poc.yaml` (Run B, tcn) | `phic_psi_poc_redo_b/20260915_061008` | 0.960 | 0.921 | 0.785 | **combo_A=0.9999, combo_B=0.9895** |
+| `config_tcn.yaml` | `phic_psi_redo_tcn/20260915_064106` | 0.961 | 0.919 | 0.790 | coa_phase=1.0093, pol_angle=1.0069 |
+| `config_cnn_baseline.yaml` | `phic_psi_redo_cnn_baseline/20260915_054959` | 0.833 | 0.818 | 0.699 | coa_phase=1.0081, pol_angle=0.9995 |
+| `config_cnn_attention.yaml` | `phic_psi_redo_cnn_attention/20260915_054256` | 0.922 | 0.904 | 0.720 | coa_phase=1.0012, pol_angle=1.0088 |
+| `config_inception_time.yaml` | `phic_psi_redo_inception_time/20260915_055532` | 0.906 | **0.000** | 0.712 | coa_phase=1.0084, pol_angle=0.9940 |
+| `config_resnet1d.yaml` | `phic_psi_redo_resnet1d/20260915_063256` | 0.897 | 0.870 | 0.757 | coa_phase=1.0063, pol_angle=1.0037 |
+
+### Down-select re-validation — original 4-model certified set holds
+
+Cross-checked against the original's own post-tanh-fix numbers (the closest apples-to-apples comparison, per its 2026-07-24 consistency-audit note): `cnn_baseline` mchirp/merger_time here (0.833/0.818) match the original's post-fix figures (≈0.83/0.82) almost exactly; `inception_time` merger_time here (0.000) matches the original's (≈+0.0001) almost exactly. This is a strong internal-consistency signal — the redo's baseline-mode pipeline reproduces the same architecture-level behavior the original found, on the same held-out weaknesses.
+
+**Conclusion: the original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) still holds.** `cnn_baseline` and `inception_time` remain measurably weaker (inception_time still cannot learn `merger_time` at all — an architecture limitation, not a formula artifact, reproduced independently here). `resnet1d` is intermediate (0.897/0.870/0.757) but doesn't clear tcn/cnn_attention. Carrying forward poc_a(tcn baseline)/poc_b(tcn poc)/tcn/cnn_attention for any further phase is justified by fresh evidence, not assumed.
+
+### ⚠ Central result: the corrected combo formula does not, on its own, produce learning
+
+`config_poc.yaml` (Run B, TCN, `2φc+2ψ`/`2φc−2ψ`) is the run that actually exercises the corrected formula. **`circular_loss_combo_A`/`circular_loss_combo_B` stay flat at ~0.98–1.01 across all 80 epochs, both train and validation** — full trajectory checked (min/max/mean/last-10-mean), no hidden mid-training excursion. Positive controls in the *same run* confirm this isn't a broken harness (mchirp R²=0.960, merger_time R²=0.921, snr R²=0.785 — all healthy).
+
+**Directly compared against the original's equivalent run** (`runs/archive_phic_psi_poc_v1/phic_psi_poc_b/20260720_213202`, wrong formula `φc+2ψ`/`φc−2ψ`, Run 7, λ=0.01): `val_circular_loss_combo_A/B` last-10 means there were **0.9989/0.9913** — essentially indistinguishable from this redo's **0.9999/0.9895**. Fixing the combo formula did not change the outcome.
+
+**This does not confirm the degeneracy is fundamental — it specifically fails to confirm the hypothesis that the original's null result was an artifact of testing the wrong combo pair.** Two things are worth flagging as not yet ruled out, both direct parallels to open threads the original investigation had to chase down before it could trust its own null result:
+
+- **std_ratio for the raw coa_phase/polarization_angle vectors settles low** (val last-10 means: coa_phase≈0.64, polarization_angle≈0.25 — see `runs/phic_psi_poc_redo_b/20260915_061008/history.csv`), well below the healthy ~1.0 band, despite `magnitude_penalty_lambda=0.01` being active from epoch 0. The original hit exactly this kind of std_ratio pathology for specific head/model combinations and needed a dedicated λ-retune investigation (Runs 8–9b) before treating the result as interpretable — that diagnostic discipline (the `preregistration_lam_retune.md`-style Step-0 interpretability gate) hasn't been applied to this redo run yet.
+- **The uncertainty weights are climbing, not the loss**: `weight_combo_A`/`weight_combo_B` (=exp(−log_var)) rise from ~1.1 to ~1.36 over training while circular loss never moves — the trainer is growing *more confident* in heads that aren't learning. This is the same log_var-runaway pattern `diagnostic_checks.py`'s Check 3 (`check_logvar_trajectory`) was built to catch in the original investigation.
+
+**Verdict at this stage: UNINTERPRETABLE, not NULL** — same distinction the original's own preregistration framework insisted on (a std_ratio/log_var gate failing means the result can't be read as evidence either way yet, not that it's evidence of no learning). Next step, mirroring the original's own methodology rather than skipping ahead of it: run the redo's diagnostic/log_var-trajectory checks and, if the gate fails, a λ-retune pass, before drawing any conclusion about whether the corrected degeneracy hypothesis holds.
+
 ## Next steps
 
 - [x] Step 0 — branches, folder, shared checkpoint-callback fix
 - [x] Step 1.1/1.2/1.6 — prerequisite checks, redone under corrected formula
 - [x] Step 2.2/2.3 — `transform_utils.py`/`curriculum.py`/`trainer.py` implemented and verified
 - [x] Step 3 — `validation_script.py`, 29/29 checks pass
-- [x] Config YAMLs for the full 7-architecture Round-1-equivalent sweep (`config_baseline.yaml`, `config_poc.yaml`, `config_tcn.yaml`, `config_cnn_baseline.yaml`, `config_cnn_attention.yaml`, `config_inception_time.yaml`, `config_resnet1d.yaml`) — all verified end-to-end on CPU (forward pass, loss, gradient step, no `None` grads) before handoff
-- [ ] Hand training off to the lab GPU machine (this machine is CPU-only per CLAUDE.md) — `python experiments/phic_psi_poc-redo/run_full.py` chains train→plot→evaluate for all 7 configs
-- [ ] Down-select re-validation once Round-1-equivalent results land — compare against the original's 4-model certified set (poc_a, poc_b, tcn, cnn_attention), document explicitly whether it still holds
-- [ ] Once the down-select is confirmed, redo the magnitude-penalty/combo-phase runs (Run 7-equivalent) and λ-retune confirmatory pass on the surviving models
+- [x] Config YAMLs for the full 7-architecture Round-1-equivalent sweep — verified end-to-end on CPU before handoff
+- [x] Full 7-architecture sweep trained on the lab GPU machine (2026-09-15, see above)
+- [x] Down-select re-validation — original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) confirmed still holds, on fresh evidence
+- [ ] **Blocking:** run the log_var-trajectory diagnostic (std_ratio + weight_combo_A/B gate) on `phic_psi_poc_redo_b` before any conclusion is drawn about the corrected combo formula — currently UNINTERPRETABLE, not NULL
+- [ ] If the gate fails (likely, given the climbing-weight/low-std_ratio pattern already visible), a λ-retune pass mirroring the original's Runs 8–9b, pre-registering the criterion first per that investigation's own lesson
+- [ ] Only once combo_A/combo_B reads as a clean NULL (gate passes, still flat) or shows real learning does the central degeneracy question get an answer
 
-**The redo folder is now functionally complete for a first training pass** — every script and config has been built, numerically or computationally verified on CPU, and is ready to hand to the lab GPU machine. Nothing beyond this point can be verified further without GPU access.
+**The redo folder produced its first full-sweep result on 2026-09-15** — infrastructure is fully validated (positive controls healthy across all 7 runs, periodic checkpoints, plot/eval pipeline all confirmed working), but the central question (does the corrected formula let the model learn where the wrong one couldn't) is not yet answered — it's gated on the diagnostic work above, not concluded from this one run.

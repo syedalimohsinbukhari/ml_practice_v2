@@ -1,0 +1,81 @@
+# λ=0.05 retune — PRIMARY test, per preregistration_lam_retune.md.
+#
+# Same as config_poc.yaml but magnitude_penalty_lambda raised 0.01→0.05.
+#
+# Purpose: the Round-1 run at λ=0.01 (runs/phic_psi_poc_redo_b/20260915_061008)
+# showed circular_loss_combo_A/B flat at ~0.98-1.01 across all 80 epochs —
+# nearly identical to the original's own wrong-formula null result. But
+# diagnostic_logvar_gate.py (2026-09-15) found the Step 0 std_ratio gate
+# FAILS for both coa_phase (frac_unhealthy=0.225, trend=+0.00638) and
+# polarization_angle (frac_unhealthy=0.850, trend=-0.00402), so that flat
+# loss is UNINTERPRETABLE, not a confirmed null — |v|-space hasn't
+# stabilized. This config is the pre-registered primary test (combo_A and
+# combo_B, per preregistration_lam_retune.md's Scope) for whether a 5x
+# stronger penalty clears the gate. Retrained in parallel with
+# config_lam005_retune_a.yaml (the required control, same λ).
+#
+# combo formula (2φc+2ψ / 2φc−2ψ, formulae_reference.md A.2) and
+# well_constrained_combo=combo_B/sign_dependent_combo=true (this redo's own
+# Step 1.1, NOTES.md 2026-09-14) are unchanged from config_poc.yaml — only
+# the penalty strength is under test here.
+
+name: phic_psi_lam005_retune_b
+run_dir: runs/phic_psi_lam005_retune_b
+
+data:
+  path: combined_repackaged.hdf
+  batch_size: 128
+
+model:
+  trunk: tcn
+  trunk_cfg: {}
+  heads: [ mchirp, merger_time, snr, sky_position, coa_phase,
+           polarization_angle, inclination ]
+  head_cfg:
+    hidden_units: 64
+    bounded: true
+
+loss:
+  mode: poc
+  huber_delta: 1.0
+  weighting: uncertainty
+  snr_weight_alpha: null
+  log_var_clamp: 3.0
+  # Combo clamps at moderate default (same as other PERIODIC heads).
+  # Don't pre-tighten — w(ι) already handles face-on suppression.
+  combo_log_var_clamp:
+    default: 3.0
+    combo_A: 3.0
+    combo_B: 3.0
+  variance_penalty: 0.0
+  # Radial regularisation for PERIODIC heads using circular loss —
+  # same rationale as config_baseline.yaml.
+  magnitude_penalty_lambda: 0.05   # ← RETUNE: 5x the from-day-1 default 0.01
+  # From this redo's Step 1.1 (2026-09-14, NOTES.md): combo_B (2φc−2ψ) is
+  # well-constrained for cos ι > 0, ratio=1.17x, 95% CI=[1.11,1.24] —
+  # significant, unlike the original's equivalent (wrong-formula) check.
+  # The well-constrained label FLIPS sign with cos ι — sign_dependent_combo
+  # enables dynamic per-sample assignment in the trainer. (combo_B happens
+  # to be the same letter label the original settled on — coincidence of
+  # which candidate got named "A" vs "B", not evidence the physics matches.)
+  well_constrained_combo: combo_B
+  sign_dependent_combo: true
+
+optim:
+  lr: 1.0e-3
+  warmup_epochs: 0
+  schedule:
+    type: plateau
+    factor: 0.5
+    patience: 5
+    min_lr: 1.0e-6
+
+train:
+  epochs: 80
+  seed: 42
+  deterministic_ops: false
+  diagnostics_every_n: 5
+  checkpoint_every_n: 10
+  scatter_subset: 1000
+  early_stopping: false
+  verbose: 2

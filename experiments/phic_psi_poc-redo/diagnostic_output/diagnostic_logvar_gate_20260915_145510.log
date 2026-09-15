@@ -1,0 +1,99 @@
+====================================================================================================
+Step 0 diagnostic — std_ratio gate across λ rounds (poc_redo_b / poc_redo_a)
+Thresholds copied from experiments/phic_psi_poc/diagnostic_lam005_retune.py
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+  λ=0.01 (Round 1) [b]  ->  /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/runs/phic_psi_poc_redo_b/20260915_061008
+----------------------------------------------------------------------------------------------------
+
+  Step 0 gate — coa_phase:
+    frac unhealthy (last 40 ep) = 0.225
+    late-epoch trend/ep                    = +0.00638
+    final val_std_ratio                    = 0.583
+    GATE FAIL
+
+  Step 0 gate — polarization_angle:
+    frac unhealthy (last 40 ep) = 0.850
+    late-epoch trend/ep                    = -0.00402
+    final val_std_ratio                    = 0.251
+    GATE FAIL
+
+  val_weight_combo_A (descriptive, not a hard gate):
+    first=1.1817  last=1.3605  late trend/ep=+0.00035  still rising in last 40 ep? False
+
+  val_weight_combo_B (descriptive, not a hard gate):
+    first=1.1716  last=1.3536  late trend/ep=+0.00018  still rising in last 40 ep? False
+
+----------------------------------------------------------------------------------------------------
+  λ=0.01 (Round 1) [a]  ->  /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/runs/phic_psi_poc_redo_a/20260915_051948
+----------------------------------------------------------------------------------------------------
+
+  Step 0 gate — coa_phase:
+    frac unhealthy (last 40 ep) = 0.750
+    late-epoch trend/ep                    = -0.00721
+    final val_std_ratio                    = 0.407
+    GATE FAIL
+
+  Step 0 gate — polarization_angle:
+    frac unhealthy (last 40 ep) = 1.000
+    late-epoch trend/ep                    = +0.00076
+    final val_std_ratio                    = 0.374
+    GATE FAIL
+
+----------------------------------------------------------------------------------------------------
+  λ=0.05 (retune) [b]  ->  /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/runs/phic_psi_lam005_retune_b/20260915_154203
+----------------------------------------------------------------------------------------------------
+
+  Step 0 gate — coa_phase:
+    frac unhealthy (last 40 ep) = 1.000
+    late-epoch trend/ep                    = +0.00093
+    final val_std_ratio                    = 0.315
+    GATE FAIL
+
+  Step 0 gate — polarization_angle:
+    frac unhealthy (last 40 ep) = 0.725
+    late-epoch trend/ep                    = +0.00679
+    final val_std_ratio                    = 0.531
+    GATE FAIL
+
+  val_weight_combo_A (descriptive, not a hard gate):
+    first=1.1766  last=1.3768  late trend/ep=+0.00058  still rising in last 40 ep? False
+
+  val_weight_combo_B (descriptive, not a hard gate):
+    first=1.1791  last=1.3641  late trend/ep=+0.00036  still rising in last 40 ep? False
+
+----------------------------------------------------------------------------------------------------
+  λ=0.05 (retune) [a]  ->  /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/runs/phic_psi_lam005_retune_a/20260915_175801
+----------------------------------------------------------------------------------------------------
+
+  Step 0 gate — coa_phase:
+    frac unhealthy (last 40 ep) = 0.350
+    late-epoch trend/ep                    = -0.00561
+    final val_std_ratio                    = 0.522
+    GATE FAIL
+
+  Step 0 gate — polarization_angle:
+    frac unhealthy (last 40 ep) = 0.425
+    late-epoch trend/ep                    = +0.00383
+    final val_std_ratio                    = 0.572
+    GATE FAIL
+
+----------------------------------------------------------------------------------------------------
+  λ=0.10 (retune) [b]  ->  None
+----------------------------------------------------------------------------------------------------
+  no run directory found
+
+----------------------------------------------------------------------------------------------------
+  λ=0.10 (retune) [a]  ->  None
+----------------------------------------------------------------------------------------------------
+  no run directory found
+
+Plots written: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/logvar_gate_trajectories.png / .pdf
+
+====================================================================================================
+OVERALL VERDICT — round under test: λ=0.10 (retune) (all 4 readings must pass):
+  NOT YET RUN — no data for this round yet.
+====================================================================================================
+
+Summary written: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/diagnostic_logvar_gate_20260915_145510.md

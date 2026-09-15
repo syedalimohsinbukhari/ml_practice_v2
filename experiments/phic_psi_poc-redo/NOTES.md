@@ -106,6 +106,23 @@ Ran [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) — the Step 0 gate
 
 **Next: a λ-retune pass, mirroring the original's Runs 8–9b**, pre-registering the criterion first (same discipline `preregistration_lam_retune.md` itself insists on) before running it — not deciding the threshold after seeing results.
 
+## λ=0.05 retune — Step 0 gate result: FAIL again, UNINTERPRETABLE (2026-09-15)
+
+`config_lam005_retune_b.yaml`/`config_lam005_retune_a.yaml` trained on the lab GPU machine (80 epochs each, same seed/schedule as Round 1). Runs: `phic_psi_lam005_retune_b/20260915_154203`, `phic_psi_lam005_retune_a/20260915_175801`. Reran [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) with the `ROUNDS` dict extended to include this round (script already had the entry from day 1). Full output: [`diagnostic_output/diagnostic_logvar_gate_20260915_145042.{log,md}`](diagnostic_output/), plots updated in place at [`diagnostic_output/logvar_gate_trajectories.{png,pdf}`](diagnostic_output/).
+
+**Mechanical verdict: GATE FAILS on all four readings again, at 5x the original penalty:**
+
+| Run | Head | frac unhealthy (last 40 ep) | trend/ep | final std_ratio | Gate |
+|---|---|---|---|---|---|
+| lam005_retune_b | coa_phase | 1.000 | +0.00093 | 0.315 | FAIL |
+| lam005_retune_b | polarization_angle | 0.725 | +0.00679 | 0.531 | FAIL |
+| lam005_retune_a | coa_phase | 0.350 | −0.00561 | 0.522 | FAIL |
+| lam005_retune_a | polarization_angle | 0.425 | +0.00383 | 0.572 | FAIL |
+
+**Per `preregistration_lam_retune.md`'s own decision table: still UNINTERPRETABLE, not NULL.** The gate did not clear at λ=0.05 for either the primary run or its control — `poc_redo_b`'s `combo_A`/`combo_B` result cannot yet be read as evidence in either direction. Worth noting for the record: `lam005_retune_a`'s (control) frac-unhealthy numbers did improve somewhat over its own λ=0.01 baseline (coa_phase 0.750→0.350, polarization_angle 1.000→0.425) — the penalty is doing *something* — but neither head clears the <10% threshold, and `lam005_retune_b`'s coa_phase is worse on frac-unhealthy (0.225→1.000) even though its final std_ratio and trend aren't dramatically different. Not a case for reading tea leaves on partial improvement — the gate is binary per the preregistration, and it fails.
+
+**Per the preregistration's pre-committed fallback order ("Gate fails at λ=0.05 → try λ=0.10 before drawing any conclusion"): built and CPU-verified `config_lam010_retune_b.yaml`/`config_lam010_retune_a.yaml`** (same structure, `magnitude_penalty_lambda: 0.10`, both wiring-checked end-to-end — forward pass, loss, gradient step, no `None` grads). This is the last fallback step the preregistration commits to; if it also fails, the preregistration's own instruction is to report "λ alone insufficient for this architecture/head, post-formula-fix" rather than open a new unplanned round.
+
 ## Next steps
 
 - [x] Step 0 — branches, folder, shared checkpoint-callback fix
@@ -118,7 +135,9 @@ Ran [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) — the Step 0 gate
 - [x] Step 0 std_ratio gate (`diagnostic_logvar_gate.py`) — **FAILS on both heads, both poc_redo_a and poc_redo_b.** Verdict: UNINTERPRETABLE, not NULL. Failure appears in baseline mode too, so it's very unlikely to be formula-specific — most likely λ=0.01 insufficient for TCN here, matching the original's own pre-retune finding.
 - [x] λ-retune criterion pre-registered — [`preregistration_lam_retune.md`](preregistration_lam_retune.md), written 2026-09-15 before any retune exists. Primary tests: `poc_redo_b`'s `combo_A`/`combo_B` own angles (not individual φc/ψ — those have no direct supervision in poc mode). `poc_redo_a` retrained in parallel as a required control. Frozen from this point — dated addenda only if it needs revision later.
 - [x] λ=0.05 configs built — [`config_lam005_retune_b.yaml`](config_lam005_retune_b.yaml) (primary, copied from `config_poc.yaml`), [`config_lam005_retune_a.yaml`](config_lam005_retune_a.yaml) (required control, copied from `config_baseline.yaml`). Both verified end-to-end on CPU (forward pass, loss, gradient step, no `None` grads).
-- [ ] Hand off to the lab GPU machine, rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results — if it fails again, `config_lam010_retune_{a,b}.yaml` at λ=0.10 next, per the preregistration's fallback order
+- [x] λ=0.05 trained on the lab GPU machine and Step 0 gate rerun (2026-09-15) — **FAILS again, all four readings.** Verdict: still UNINTERPRETABLE. See "λ=0.05 retune" section above.
+- [x] λ=0.10 fallback configs built — [`config_lam010_retune_b.yaml`](config_lam010_retune_b.yaml), [`config_lam010_retune_a.yaml`](config_lam010_retune_a.yaml), both CPU-verified (forward pass, loss, gradient step, no `None` grads). Last step the preregistration's fallback order commits to.
+- [ ] Hand off λ=0.10 configs to the lab GPU machine, rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results — if it fails again too, report "λ alone insufficient for this architecture/head, post-formula-fix" per the preregistration, not a new unplanned round
 - [ ] Only once combo_A/combo_B's gate passes (clean NULL) or shows real learning (per the preregistration's decision table) does the central degeneracy question get an answer
 
-**The redo folder produced its first full-sweep result on 2026-09-15** — infrastructure is fully validated (positive controls healthy across all 7 runs, periodic checkpoints, plot/eval pipeline all confirmed working), but the central question (does the corrected formula let the model learn where the wrong one couldn't) is not yet answered — it's gated on the diagnostic work above, not concluded from this one run.
+**The redo folder produced its first full-sweep result on 2026-09-15** — infrastructure is fully validated (positive controls healthy across all 7 runs, periodic checkpoints, plot/eval pipeline all confirmed working), but the central question (does the corrected formula let the model learn where the wrong one couldn't) is not yet answered — it's gated on the diagnostic work above, not concluded from this one run. The λ=0.05 retune (also 2026-09-15) did not clear the gate either; λ=0.10 is queued as the pre-registered last fallback.

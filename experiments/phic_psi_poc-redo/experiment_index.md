@@ -1,7 +1,7 @@
 # φc/ψ Degeneracy PoC — Redo — Experiment Index
 
 **Branch**: `poc/phic-psi-degeneracy-redo`
-**Last updated**: 2026-09-14
+**Last updated**: 2026-09-15
 
 ---
 
@@ -25,9 +25,11 @@
 | [`validation_script.py`](validation_script.py) | Standalone (no GPU/model) test suite for the transform/reconstruction math, §3. 29/29 checks pass. |
 | [`prereq_checks.py`](prereq_checks.py) | Steps 1.1/1.2/1.6 empirical checks, corrected combo↔(φc,ψ) conversion and sweep ranges. Results in `NOTES.md` and `prereq_checks_full_run.log`. |
 | [`train_poc.py`](train_poc.py), [`plot_poc.py`](plot_poc.py), [`evaluate_poc.py`](evaluate_poc.py), [`run_full.py`](run_full.py) | Training/plotting/evaluation orchestration, copied verbatim in logic from the original — no formula-specific code in any of them. |
-| [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) | Step 0 std_ratio gate (thresholds copied from `preregistration_lam_retune.md`/`diagnostic_lam005_retune.py`) against `phic_psi_poc_redo_b`/`phic_psi_poc_redo_a`'s `history.csv`. CPU-only, no model loading. Result: FAIL on both heads, both runs — see `NOTES.md`. |
-| [`preregistration_lam_retune.md`](preregistration_lam_retune.md) | **Frozen as of 2026-09-15** — pre-committed λ-retune decision criterion for `poc_redo_b`'s `combo_A`/`combo_B`, written before any λ=0.05/0.10 retune exists. Do not edit after retune results land; dated addenda only. |
+| [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) | Step 0 std_ratio gate (thresholds copied from `preregistration_lam_retune.md`/`diagnostic_lam005_retune.py`), `ROUNDS` dict across λ=0.01/0.05 so far. CPU-only, no model loading. Result: FAIL on all four readings, every round tried so far — see `NOTES.md`. |
+| [`preregistration_lam_retune.md`](preregistration_lam_retune.md) | **Frozen as of 2026-09-15** — pre-committed λ-retune decision criterion for `poc_redo_b`'s `combo_A`/`combo_B`, written before any λ=0.05/0.10 retune exists. Not edited after retune results land; dated addendum appended 2026-09-15 recording the λ=0.05 outcome instead. |
 | `config_baseline.yaml`, `config_poc.yaml`, `config_tcn.yaml`, `config_cnn_baseline.yaml`, `config_cnn_attention.yaml`, `config_inception_time.yaml`, `config_resnet1d.yaml` | Full 7-architecture Round-1-equivalent sweep configs. `checkpoint_every_n: 10` and `magnitude_penalty_lambda: 0.01` present in all seven from day 1 (three of the original's configs never had the latter). `config_poc.yaml`'s `well_constrained_combo`/`sign_dependent_combo` set from this redo's own Step 1.1 rerun, not copied from the original. |
+| [`config_lam005_retune_b.yaml`](config_lam005_retune_b.yaml), [`config_lam005_retune_a.yaml`](config_lam005_retune_a.yaml) | λ=0.05 retune pair (primary/control), per `preregistration_lam_retune.md`. Trained 2026-09-15 — Step 0 gate FAILS again on all four readings, still UNINTERPRETABLE. See `NOTES.md`. |
+| [`config_lam010_retune_b.yaml`](config_lam010_retune_b.yaml), [`config_lam010_retune_a.yaml`](config_lam010_retune_a.yaml) | λ=0.10 retune pair (primary/control), pre-registration's last fallback step. Built and CPU-verified 2026-09-15 (forward pass, loss, gradient step, no `None` grads); not yet trained on GPU. |
 
 ## Analysis outputs
 
@@ -44,7 +46,7 @@
 
 **Round 1 (full 7-architecture sweep) trained 2026-09-15 — see `NOTES.md`.** Infrastructure fully validated (positive controls healthy in every run, periodic checkpoints present, plot/eval pipeline confirmed working end-to-end). Down-select re-validated on fresh evidence: original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) still holds.
 
-**⚠ Central question not yet answered — mechanically confirmed UNINTERPRETABLE (2026-09-15).** `config_poc.yaml`'s combo_A/combo_B circular loss stays flat (~0.98–1.01) across all 80 epochs — nearly identical to the original's wrong-formula result (0.9989/0.9913 vs. this run's 0.9999/0.9895). `diagnostic_logvar_gate.py` ran the Step 0 std_ratio gate (thresholds from `preregistration_lam_retune.md`) against it: **FAILS on both heads.** (Correction: the earlier "weight_combo_A/B still climbing" read was checked mechanically and does not hold up — it plateaus; see `NOTES.md`'s dated correction.) The same gate also fails on `poc_redo_a` (baseline mode, no combo transform at all), pointing at `magnitude_penalty_lambda=0.01` being insufficient for TCN here — the same issue the original hit before its own λ-retune (Runs 8–9b) — rather than something specific to the formula fix. **Verdict: UNINTERPRETABLE, not NULL. Next: a pre-registered λ-retune pass.**
+**⚠ Central question not yet answered — mechanically confirmed UNINTERPRETABLE (2026-09-15), still UNINTERPRETABLE after the λ=0.05 retune (also 2026-09-15).** `config_poc.yaml`'s combo_A/combo_B circular loss stays flat (~0.98–1.01) across all 80 epochs — nearly identical to the original's wrong-formula result (0.9989/0.9913 vs. this run's 0.9999/0.9895). `diagnostic_logvar_gate.py` ran the Step 0 std_ratio gate (thresholds from `preregistration_lam_retune.md`) against it: **FAILS on both heads.** (Correction: the earlier "weight_combo_A/B still climbing" read was checked mechanically and does not hold up — it plateaus; see `NOTES.md`'s dated correction.) The same gate also fails on `poc_redo_a` (baseline mode, no combo transform at all), pointing at `magnitude_penalty_lambda=0.01` being insufficient for TCN here — the same issue the original hit before its own λ-retune (Runs 8–9b) — rather than something specific to the formula fix. The pre-registered λ=0.05 retune (`config_lam005_retune_{a,b}.yaml`) was trained and the gate rerun: **FAILS again, all four readings** — some improvement in the control's frac-unhealthy numbers, but neither head clears threshold in either run. Per the preregistration's fallback order, λ=0.10 configs (`config_lam010_retune_{a,b}.yaml`) are built and CPU-verified, queued for the lab GPU machine as the last committed fallback step. **Verdict: still UNINTERPRETABLE, not NULL.**
 
 **Resolved by the 2026-09-14 review** (`comments.md`): A.8's reconstruction branch-handling, previously flagged "re-derive before coding," now has confirmed branch counts — ψ is 2-fold ambiguous, φc is 4-fold ambiguous, exactly 4 of the naive 8 candidate pairs are always jointly consistent. Also noted, not a bug: A.5's toy `F_plus`/`F_cross` uses the opposite handedness convention (`e^{+2iψ}`) from some literature conventions — washes out, self-check passes regardless.
 
@@ -53,6 +55,8 @@
 Next steps, in order:
 1. [x] Pre-register the λ-retune criterion — [`preregistration_lam_retune.md`](preregistration_lam_retune.md), written 2026-09-15, before any retune exists.
 2. [x] Build the λ=0.05 retune configs — [`config_lam005_retune_b.yaml`](config_lam005_retune_b.yaml) (primary), [`config_lam005_retune_a.yaml`](config_lam005_retune_a.yaml) (required control), both CPU-verified.
-3. Hand off to the lab GPU machine (CPU-only here). Rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results — if it fails again, λ=0.10 next per the preregistration's fallback order; only if it passes do Steps 1–3 (bootstrap significance, effect size, SNR stratification — all need the lab GPU machine) run.
+3. [x] λ=0.05 trained on the lab GPU machine, Step 0 gate rerun (2026-09-15) — **FAILS again, all four readings.** Still UNINTERPRETABLE.
+4. [x] Build the λ=0.10 fallback configs — [`config_lam010_retune_b.yaml`](config_lam010_retune_b.yaml) (primary), [`config_lam010_retune_a.yaml`](config_lam010_retune_a.yaml) (required control), both CPU-verified. Last step the preregistration's fallback order commits to.
+5. Hand off λ=0.10 to the lab GPU machine (CPU-only here). Rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results — if it fails again too, report "λ alone insufficient for this architecture/head, post-formula-fix" per the preregistration rather than opening a new unplanned round; only if it passes do Steps 1–3 (bootstrap significance, effect size, SNR stratification — all need the lab GPU machine) run.
 
 The original (wrong-formula) investigation is untouched at `experiments/phic_psi_poc/`, and fully preserved as a static snapshot on the `archive/phic-psi-poc-v1` branch.

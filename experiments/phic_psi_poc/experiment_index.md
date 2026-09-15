@@ -7,44 +7,44 @@
 
 ## Core narrative (read in this order)
 
-| File | Description |
-|------|-------------|
-| [`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) | Self-contained synthesis of the full investigation (Runs 1–9b) — best single entry point for onboarding; compresses `NOTES.md`/`diagnostic_log.md` |
-| [`NOTES.md`](NOTES.md) | Running notes: design decisions, run log, setup, next steps |
-| [`diagnostic_log.md`](diagnostic_log.md) | **Thesis reference**: chronological log of every diagnostic run, hypothesis tested, outcome, and wrong turns. Definitive record. |
-| [`results.md`](results.md) | Detailed run-by-run results tables |
-| [`tanh_to_linear_postmortem.md`](tanh_to_linear_postmortem.md) | Full postmortem of tanh→linear fix and normalize_unit pathology discovery (Runs 1–5) |
-| [`inclination_loss_trace.md`](inclination_loss_trace.md) | Code-path trace: inclination uses Huber loss, no normalize_unit — separate failure mechanism |
-| [`LINKED.md`](LINKED.md) | Mechanically generated link-inventory audit of every `.md`/`.tex` file in this tree — outbound/inbound reference counts, broken references, orphaned files. Regenerate from a fresh scan rather than hand-editing; not a substitute for this index. |
+| File                                                                   | Description                                                                                                                                                                                                                                         |
+|------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`experiment_summary_2026-07-22.md`](experiment_summary_2026-07-22.md) | Self-contained synthesis of the full investigation (Runs 1–9b) — best single entry point for onboarding; compresses `NOTES.md`/`diagnostic_log.md`                                                                                                  |
+| [`NOTES.md`](NOTES.md)                                                 | Running notes: design decisions, run log, setup, next steps                                                                                                                                                                                         |
+| [`diagnostic_log.md`](diagnostic_log.md)                               | **Thesis reference**: chronological log of every diagnostic run, hypothesis tested, outcome, and wrong turns. Definitive record.                                                                                                                    |
+| [`results.md`](results.md)                                             | Detailed run-by-run results tables                                                                                                                                                                                                                  |
+| [`tanh_to_linear_postmortem.md`](tanh_to_linear_postmortem.md)         | Full postmortem of tanh→linear fix and normalize_unit pathology discovery (Runs 1–5)                                                                                                                                                                |
+| [`inclination_loss_trace.md`](inclination_loss_trace.md)               | Code-path trace: inclination uses Huber loss, no normalize_unit — separate failure mechanism                                                                                                                                                        |
+| [`LINKED.md`](LINKED.md)                                               | Mechanically generated link-inventory audit of every `.md`/`.tex` file in this tree — outbound/inbound reference counts, broken references, orphaned files. Regenerate from a fresh scan rather than hand-editing; not a substitute for this index. |
 
 ---
 
 ## Verification — Sections A–E (2026-07-21)
 
-| Section | File | Description |
-|---------|------|-------------|
-| Plan | [`run7_verification_plan.md`](run7_verification_plan.md) | Agreed 5-section verification plan (gating criteria before ι-conditioning) |
-| Rebuttal (superseded) | [`run7_verification_rebuttal.md`](run7_verification_rebuttal.md) | Initial rebuttal — **superseded by actual verification results**. Retained for record. |
-| **A.2** | [`std_ratio_trajectories.md`](std_ratio_trajectories.md) | Full epoch-by-epoch std_ratio trajectories for all 4 models, both periodic heads |
-| **B** | [`poc_b_config_diff.md`](poc_b_config_diff.md) | poc_b vs poc_a config diff + collapse mechanism explanation |
-| **C** | [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md) | cnn_attention vs tcn config diff + outlier explanation |
-| **D** | [`bootstrap_output/bootstrap_ang_mae_20260721_093533.md`](bootstrap_output/bootstrap_ang_mae_20260721_093533.md) | Bootstrap CI on ang_MAE: N=10,000 shuffles, all models, all periodic heads |
-| — | (validation ordering check) | Data is i.i.d. (window variance ratio=0.99). Bootstrap shuffle-null is valid — no row-ordering confound. |
-| **E** | [`snr_output/snr_stratification_20260721_094039.md`](snr_output/snr_stratification_20260721_094039.md) | SNR-stratified ang_MAE: tercile analysis, all models, all periodic heads |
-| — (2026-07-23) | [`inclination_output/inclination_stratification_20260723_130630.md`](inclination_output/inclination_stratification_20260723_130630.md) | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3, all models, all periodic heads). No cross-model edge-on-favoring recovery; every φ_c/ψ deviation falls within its own model's ι-control noise floor except tcn/φ_c (wrong-signed, already-flagged std_ratio instability). Written up as Table 6.6 / §6.7 in the thesis chapter. |
-| — (2026-07-23) | [`inclination_output/inclination_control_stratification_20260723_140016.md`](inclination_output/inclination_control_stratification_20260723_140016.md) | v2-review follow-up: same face-on/mixed/edge-on bands applied to chirp mass (known-good, non-angular). R² spread 0.005–0.010, MAE spread 0.034–0.080 M_⊙ across bands for every model — banding itself does not inject variance at a scale relevant to the φ_c/ψ deviations. Written up as Table 6.7 / §6.7. |
+| Section               | File                                                                                                                                                   | Description                                                                                                                                                                                                                                                                                                                                                                       |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Plan                  | [`run7_verification_plan.md`](run7_verification_plan.md)                                                                                               | Agreed 5-section verification plan (gating criteria before ι-conditioning)                                                                                                                                                                                                                                                                                                        |
+| Rebuttal (superseded) | [`run7_verification_rebuttal.md`](run7_verification_rebuttal.md)                                                                                       | Initial rebuttal — **superseded by actual verification results**. Retained for record.                                                                                                                                                                                                                                                                                            |
+| **A.2**               | [`std_ratio_trajectories.md`](std_ratio_trajectories.md)                                                                                               | Full epoch-by-epoch std_ratio trajectories for all 4 models, both periodic heads                                                                                                                                                                                                                                                                                                  |
+| **B**                 | [`poc_b_config_diff.md`](poc_b_config_diff.md)                                                                                                         | poc_b vs poc_a config diff + collapse mechanism explanation                                                                                                                                                                                                                                                                                                                       |
+| **C**                 | [`cnn_attention_config_diff.md`](cnn_attention_config_diff.md)                                                                                         | cnn_attention vs tcn config diff + outlier explanation                                                                                                                                                                                                                                                                                                                            |
+| **D**                 | [`bootstrap_output/bootstrap_ang_mae_20260721_093533.md`](bootstrap_output/bootstrap_ang_mae_20260721_093533.md)                                       | Bootstrap CI on ang_MAE: N=10,000 shuffles, all models, all periodic heads                                                                                                                                                                                                                                                                                                        |
+| —                     | (validation ordering check)                                                                                                                            | Data is i.i.d. (window variance ratio=0.99). Bootstrap shuffle-null is valid — no row-ordering confound.                                                                                                                                                                                                                                                                          |
+| **E**                 | [`snr_output/snr_stratification_20260721_094039.md`](snr_output/snr_stratification_20260721_094039.md)                                                 | SNR-stratified ang_MAE: tercile analysis, all models, all periodic heads                                                                                                                                                                                                                                                                                                          |
+| — (2026-07-23)        | [`inclination_output/inclination_stratification_20260723_130630.md`](inclination_output/inclination_stratification_20260723_130630.md)                 | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3, all models, all periodic heads). No cross-model edge-on-favoring recovery; every φ_c/ψ deviation falls within its own model's ι-control noise floor except tcn/φ_c (wrong-signed, already-flagged std_ratio instability). Written up as Table 6.6 / §6.7 in the thesis chapter. |
+| — (2026-07-23)        | [`inclination_output/inclination_control_stratification_20260723_140016.md`](inclination_output/inclination_control_stratification_20260723_140016.md) | v2-review follow-up: same face-on/mixed/edge-on bands applied to chirp mass (known-good, non-angular). R² spread 0.005–0.010, MAE spread 0.034–0.080 M_⊙ across bands for every model — banding itself does not inject variance at a scale relevant to the φ_c/ψ deviations. Written up as Table 6.7 / §6.7.                                                                      |
 
 ---
 
 ## Run 8/9 — λ ablation and retune (2026-07-21 – 2026-07-22)
 
-| Item | File | Description |
-|------|------|-------------|
-| Run 8 (λ=0 ablation) | [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md) | Write-up: isolates Run 7's val-loss creep as a λ/log-var interaction artifact (3/4 clean); closes item F.1/F.2 |
-| Run 8 outputs | [`lam0_ablation_output/`](lam0_ablation_output/) | Auto-generated report + trajectories, λ=0 |
-| Pre-registration | [`preregistration_lam_retune.md`](preregistration_lam_retune.md) | Locked decision criteria for Run 9a/9b, written before either result existed — do not edit retroactively |
-| Run 9a (λ=0.05) | [`lam005_retune_output/lam005_retune_report.md`](lam005_retune_output/lam005_retune_report.md), [`lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md`](lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md) | Both primary targets (tcn coa_phase, poc_a pol_angle) failed the Step 0 gate — close but unhealthy in the last 40 epochs |
-| Run 9b (λ=0.10) | [`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/lam010_retune_report.md), [`lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md`](lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md) | Both primary targets failed the gate again, worse than λ=0.05 — verdict: λ alone insufficient, neither null nor counter-evidence |
+| Item                 | File                                                                                                                                                                                                                                   | Description                                                                                                                      |
+|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| Run 8 (λ=0 ablation) | [`assessment_lam0_ablation_2026-07-22.md`](assessment_lam0_ablation_2026-07-22.md)                                                                                                                                                     | Write-up: isolates Run 7's val-loss creep as a λ/log-var interaction artifact (3/4 clean); closes item F.1/F.2                   |
+| Run 8 outputs        | [`lam0_ablation_output/`](lam0_ablation_output/)                                                                                                                                                                                       | Auto-generated report + trajectories, λ=0                                                                                        |
+| Pre-registration     | [`preregistration_lam_retune.md`](preregistration_lam_retune.md)                                                                                                                                                                       | Locked decision criteria for Run 9a/9b, written before either result existed — do not edit retroactively                         |
+| Run 9a (λ=0.05)      | [`lam005_retune_output/lam005_retune_report.md`](lam005_retune_output/lam005_retune_report.md), [`lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md`](lam005_retune_output/diagnostic_lam005_retune_20260722_142705.md) | Both primary targets (tcn coa_phase, poc_a pol_angle) failed the Step 0 gate — close but unhealthy in the last 40 epochs         |
+| Run 9b (λ=0.10)      | [`lam010_retune_output/lam010_retune_report.md`](lam010_retune_output/lam010_retune_report.md), [`lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md`](lam010_retune_output/diagnostic_lam010_retune_20260722_171025.md) | Both primary targets failed the gate again, worse than λ=0.05 — verdict: λ alone insufficient, neither null nor counter-evidence |
 
 Scripts: [`run_lam0_ablation.py`](run_lam0_ablation.py), [`run_lam005_retune.py`](run_lam005_retune.py),
 [`run_lam010_retune.py`](run_lam010_retune.py) (each chains train→plot→evaluate→diagnostic, then overlays
@@ -64,27 +64,27 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 
 ## Closing phase — A.3 trace, review cycle, thesis chapter (2026-07-23)
 
-| Item | File | Description |
-|------|------|-------------|
-| Punch list | [`phic_psi_closing_punch_list.md`](phic_psi_closing_punch_list.md) | Reviewer-supplied closing checklist separating pre-finalization items from future work; all items dispositioned (see `diagnostic_log.md` same-date sections) |
-| Trace script | [`perturbation_trace_standalone.py`](perturbation_trace_standalone.py) | Un-gated A.3 trace; `final` and `early` (calibration) stages, per-sample paired statistics, per-step batch-loss logging |
-| Trace outputs | [`perturbation_trace_output/`](perturbation_trace_output/) | Auto-generated reports/logs: first run (091229), final-stage rerun with paired stats (095054), early-stage calibration (095357). **Reading note:** the `Verdict` column is the retired geometry classifier — read the numeric columns |
-| Reviewer memo | [`reviewer_response_a3_2026-07-23.md`](reviewer_response_a3_2026-07-23.md) | Point-by-point response to the A.3 review (per-case statistics, calibration outcome, classifier retirement, mchirp-degradation explanation, MDE note) |
-| Thesis chapter | [`thesis/chapter_phic_psi_degeneracy.md`](thesis/chapter_phic_psi_degeneracy.md), [`thesis/chapter_phic_psi_degeneracy.tex`](thesis/chapter_phic_psi_degeneracy.tex) | The chapter, one document in two formats (edit both in the same session); claim-to-artifact map in its appendix |
-| Prose tooling | [`thesis/sentence_per_line.py`](thesis/sentence_per_line.py) | One-sentence-per-line reflow tool for prose files (see root `CLAUDE.md` conventions) |
-| v4 review checklist | [`thesis/reviews/v4_correction_checklist.md`](thesis/reviews/v4_correction_checklist.md) | Item-by-item cross-check of all three v4 adversarial reviews against the chapter's then-current text; drove the Round 4 text edits (see below) |
+| Item                | File                                                                                                                                                                 | Description                                                                                                                                                                                                                           |
+|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Punch list          | [`phic_psi_closing_punch_list.md`](phic_psi_closing_punch_list.md)                                                                                                   | Reviewer-supplied closing checklist separating pre-finalization items from future work; all items dispositioned (see `diagnostic_log.md` same-date sections)                                                                          |
+| Trace script        | [`perturbation_trace_standalone.py`](perturbation_trace_standalone.py)                                                                                               | Un-gated A.3 trace; `final` and `early` (calibration) stages, per-sample paired statistics, per-step batch-loss logging                                                                                                               |
+| Trace outputs       | [`perturbation_trace_output/`](perturbation_trace_output/)                                                                                                           | Auto-generated reports/logs: first run (091229), final-stage rerun with paired stats (095054), early-stage calibration (095357). **Reading note:** the `Verdict` column is the retired geometry classifier — read the numeric columns |
+| Reviewer memo       | [`reviewer_response_a3_2026-07-23.md`](reviewer_response_a3_2026-07-23.md)                                                                                           | Point-by-point response to the A.3 review (per-case statistics, calibration outcome, classifier retirement, mchirp-degradation explanation, MDE note)                                                                                 |
+| Thesis chapter      | [`thesis/chapter_phic_psi_degeneracy.md`](thesis/chapter_phic_psi_degeneracy.md), [`thesis/chapter_phic_psi_degeneracy.tex`](thesis/chapter_phic_psi_degeneracy.tex) | The chapter, one document in two formats (edit both in the same session); claim-to-artifact map in its appendix                                                                                                                       |
+| Prose tooling       | [`thesis/sentence_per_line.py`](thesis/sentence_per_line.py)                                                                                                         | One-sentence-per-line reflow tool for prose files (see root `CLAUDE.md` conventions)                                                                                                                                                  |
+| v4 review checklist | [`thesis/reviews/v4_correction_checklist.md`](thesis/reviews/v4_correction_checklist.md)                                                                             | Item-by-item cross-check of all three v4 adversarial reviews against the chapter's then-current text; drove the Round 4 text edits (see below)                                                                                        |
 
 ---
 
 ## Standalone paper (2026-09-04, branch `phic_psi_poc_paper`)
 
-| File | Description |
-|------|-------------|
-| [`paper/collect_figures.py`](paper/collect_figures.py) | Flattens the figures listed in `figures_registry.yaml` into `paper/paper1/` for the arXiv-style flat submission tree. Stays in the main repo (not in `paper1/`) so its relative path resolution into the experiment root is unaffected by where the copies land. |
-| [`paper/figures_registry.yaml`](paper/figures_registry.yaml) | Registry of every figure `\includegraphics`'d from `paper/paper1/main.tex` and its `\input` sections, driving `collect_figures.py`. Lives in the main repo alongside the script, not in the Overleaf-linked `paper1/`. |
-| `paper/paper1/main.tex` | **As of 2026-09-04, the paper's actual source moved into `paper/paper1/`**, a nested git repo linked to Overleaf (`git.overleaf.com`) — it is untracked by the main repo (its own `.git` makes it opaque to the parent repo's history) and is the paper's system of record going forward; the top-level duplicate `.tex`/`.bib`/`.png` files formerly tracked directly under `paper/` were removed as redundant. Standalone arXiv-ready LaTeX paper adapted from the thesis chapter — light trim: thesis-only scaffolding (draft-status banner, adversarial-review bookkeeping, "wider thesis" cross-references) removed; title/author/abstract, a resolved bibliography, and a repository-pointing reproducibility appendix added. New §8.2 "Relation to full-posterior methods" positions the point-estimation null against neural-posterior-estimation approaches (Vitamin, DINGO, DINGO-IS), which already handle degenerate targets correctly by construction — added after a lit-check turned up no competing result but confirmed NPE is the field's actual answer to this degeneracy. Compiles cleanly with `pdflatex` + `bibtex` (self-contained `article` class, no thesis dependency); the compiled PDF is Overleaf's build output (`paper1/out/main.pdf`, gitignored), not checked in. |
-| `paper/paper1/references.bib` | BibTeX for all 28 citation keys used in the paper (grown from 16 to 28 after a pass to strengthen thin bibliographic support — Huber loss, Adam, batch norm, Fisher-matrix bounds, the pre-registration/replication-crisis framing, Bilby, and four more NPE-lineage papers beyond Vitamin/DINGO) — every entry verified against the arXiv API and/or Crossref (title, authors, venue, volume/issue/page or article number, DOI) before being written, and every entry confirmed actually cited in the compiled `.bbl` (no unused bib entries). |
-| [`paper/literature_review/`](paper/literature_review/) | Source PDFs backing `references.bib`, one per citation key, each spot-checked against expected title/authors. 26/28 present (23 fetched from arXiv/open-access sources, 3 supplied by the author); `mardia2000circular` (a Wiley book) and `huber1964robust` (a 1964 journal paper, pre-arXiv) have no free PDF found. See its `README.md` for the per-entry breakdown. Stays directly under `paper/` (not moved into `paper1/`) — not part of the arXiv submission tree. |
+| File                                                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+|--------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`paper/collect_figures.py`](paper/collect_figures.py)       | Flattens the figures listed in `figures_registry.yaml` into `paper/paper1/` for the arXiv-style flat submission tree. Stays in the main repo (not in `paper1/`) so its relative path resolution into the experiment root is unaffected by where the copies land.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| [`paper/figures_registry.yaml`](paper/figures_registry.yaml) | Registry of every figure `\includegraphics`'d from `paper/paper1/main.tex` and its `\input` sections, driving `collect_figures.py`. Lives in the main repo alongside the script, not in the Overleaf-linked `paper1/`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `paper/paper1/main.tex`                                      | **As of 2026-09-04, the paper's actual source moved into `paper/paper1/`**, a nested git repo linked to Overleaf (`git.overleaf.com`) — it is untracked by the main repo (its own `.git` makes it opaque to the parent repo's history) and is the paper's system of record going forward; the top-level duplicate `.tex`/`.bib`/`.png` files formerly tracked directly under `paper/` were removed as redundant. Standalone arXiv-ready LaTeX paper adapted from the thesis chapter — light trim: thesis-only scaffolding (draft-status banner, adversarial-review bookkeeping, "wider thesis" cross-references) removed; title/author/abstract, a resolved bibliography, and a repository-pointing reproducibility appendix added. New §8.2 "Relation to full-posterior methods" positions the point-estimation null against neural-posterior-estimation approaches (Vitamin, DINGO, DINGO-IS), which already handle degenerate targets correctly by construction — added after a lit-check turned up no competing result but confirmed NPE is the field's actual answer to this degeneracy. Compiles cleanly with `pdflatex` + `bibtex` (self-contained `article` class, no thesis dependency); the compiled PDF is Overleaf's build output (`paper1/out/main.pdf`, gitignored), not checked in. |
+| `paper/paper1/references.bib`                                | BibTeX for all 28 citation keys used in the paper (grown from 16 to 28 after a pass to strengthen thin bibliographic support — Huber loss, Adam, batch norm, Fisher-matrix bounds, the pre-registration/replication-crisis framing, Bilby, and four more NPE-lineage papers beyond Vitamin/DINGO) — every entry verified against the arXiv API and/or Crossref (title, authors, venue, volume/issue/page or article number, DOI) before being written, and every entry confirmed actually cited in the compiled `.bbl` (no unused bib entries).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| [`../paper/literature_review/`](../paper/literature_review/) | Source PDFs backing `references.bib`, one per citation key, each spot-checked against expected title/authors. 26/28 present (23 fetched from arXiv/open-access sources, 3 supplied by the author); `mardia2000circular` (a Wiley book) and `huber1964robust` (a 1964 journal paper, pre-arXiv) have no free PDF found. See its `README.md` for the per-entry breakdown. Stays directly under `paper/` (not moved into `paper1/`) — not part of the arXiv submission tree.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -92,33 +92,33 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 
 ### Run 7 (magnitude penalty λ=0.01, 2026-07-20)
 
-| File | Description |
-|------|-------------|
-| [`analysis_output/analysis_report_20260720_234304.md`](analysis_output/analysis_report_20260720_234304.md) | Consolidated prediction analysis: scalar heads, periodic heads, sky position, health check |
-| [`analysis_output/scalar_heads_20260720_234304.csv`](analysis_output/scalar_heads_20260720_234304.csv) | mchirp, merger_time, snr per-model stats |
-| [`analysis_output/periodic_heads_20260720_234304.csv`](analysis_output/periodic_heads_20260720_234304.csv) | coa_phase, pol_angle, inclination per-model circular stats |
-| [`analysis_output/sky_position_20260720_234304.csv`](analysis_output/sky_position_20260720_234304.csv) | Sky position angular errors |
-| [`analysis_output/health_check_20260720_234304.csv`](analysis_output/health_check_20260720_234304.csv) | Per-model per-head health grades |
-| [`analysis_output/health_check_20260720_234304.png`](analysis_output/health_check_20260720_234304.png) | Health check heatmap |
-| [`analysis_output/histogram_coa_phase_20260720_234304.png`](analysis_output/histogram_coa_phase_20260720_234304.png) | φc prediction distributions |
-| [`analysis_output/histogram_polarization_angle_20260720_234304.png`](analysis_output/histogram_polarization_angle_20260720_234304.png) | ψ prediction distributions |
-| [`analysis_output/histogram_inclination_20260720_234304.png`](analysis_output/histogram_inclination_20260720_234304.png) | ι prediction distributions |
-| [`analysis_output/scatter_mchirp_20260720_234304.png`](analysis_output/scatter_mchirp_20260720_234304.png) | True vs predicted mchirp |
-| [`analysis_output/scatter_merger_time_20260720_234304.png`](analysis_output/scatter_merger_time_20260720_234304.png) | True vs predicted merger_time |
-| [`analysis_output/scatter_snr_20260720_234304.png`](analysis_output/scatter_snr_20260720_234304.png) | True vs predicted SNR |
+| File                                                                                                                                   | Description                                                                                |
+|----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| [`analysis_output/analysis_report_20260720_234304.md`](analysis_output/analysis_report_20260720_234304.md)                             | Consolidated prediction analysis: scalar heads, periodic heads, sky position, health check |
+| [`analysis_output/scalar_heads_20260720_234304.csv`](analysis_output/scalar_heads_20260720_234304.csv)                                 | mchirp, merger_time, snr per-model stats                                                   |
+| [`analysis_output/periodic_heads_20260720_234304.csv`](analysis_output/periodic_heads_20260720_234304.csv)                             | coa_phase, pol_angle, inclination per-model circular stats                                 |
+| [`analysis_output/sky_position_20260720_234304.csv`](analysis_output/sky_position_20260720_234304.csv)                                 | Sky position angular errors                                                                |
+| [`analysis_output/health_check_20260720_234304.csv`](analysis_output/health_check_20260720_234304.csv)                                 | Per-model per-head health grades                                                           |
+| [`analysis_output/health_check_20260720_234304.png`](analysis_output/health_check_20260720_234304.png)                                 | Health check heatmap                                                                       |
+| [`analysis_output/histogram_coa_phase_20260720_234304.png`](analysis_output/histogram_coa_phase_20260720_234304.png)                   | φc prediction distributions                                                                |
+| [`analysis_output/histogram_polarization_angle_20260720_234304.png`](analysis_output/histogram_polarization_angle_20260720_234304.png) | ψ prediction distributions                                                                 |
+| [`analysis_output/histogram_inclination_20260720_234304.png`](analysis_output/histogram_inclination_20260720_234304.png)               | ι prediction distributions                                                                 |
+| [`analysis_output/scatter_mchirp_20260720_234304.png`](analysis_output/scatter_mchirp_20260720_234304.png)                             | True vs predicted mchirp                                                                   |
+| [`analysis_output/scatter_merger_time_20260720_234304.png`](analysis_output/scatter_merger_time_20260720_234304.png)                   | True vs predicted merger_time                                                              |
+| [`analysis_output/scatter_snr_20260720_234304.png`](analysis_output/scatter_snr_20260720_234304.png)                                   | True vs predicted SNR                                                                      |
 
 ### Pre-post comparison (tanh→linear fix)
 
-| File | Description |
-|------|-------------|
+| File                                                 | Description                                          |
+|------------------------------------------------------|------------------------------------------------------|
 | [`pre_post_comparison.csv`](pre_post_comparison.csv) | Pre-fix vs post-fix metrics across all architectures |
 
 ### Step 1.1 prereq sweep
 
-| File | Description |
-|------|-------------|
+| File                                                         | Description                                                          |
+|--------------------------------------------------------------|----------------------------------------------------------------------|
 | [`sweep_1_1_ratio_vs_iota.csv`](sweep_1_1_ratio_vs_iota.csv) | Combo well-constrained ratio vs inclination (grid sweep + bootstrap) |
-| [`sweep_1_1_ratio_vs_iota.png`](sweep_1_1_ratio_vs_iota.png) | Ratio vs ι plot |
+| [`sweep_1_1_ratio_vs_iota.png`](sweep_1_1_ratio_vs_iota.png) | Ratio vs ι plot                                                      |
 
 ---
 
@@ -126,41 +126,41 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 
 ### Run 7 diagnostics (2026-07-21) — definitive
 
-| File | Description |
-|------|-------------|
+| File                                                                                                                 | Description                                         |
+|----------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------|
 | [`diagnostic_output/diagnostic_checks_20260721_000331.log`](diagnostic_output/diagnostic_checks_20260721_000331.log) | Checks 1–7 on Run 7 (magnitude penalty) checkpoints |
 
 ### Earlier diagnostic runs (historical)
 
-| Run | Date | Log file | Key finding |
-|-----|------|----------|-------------|
-| 1 | 2026-07-18 12:50 | [`diagnostic_checks_20260718_125027.log`](diagnostic_output/diagnostic_checks_20260718_125027.log) | Checks 1–4. Data pipeline clean. Loss wiring bug found. Log-vars frozen. |
-| 2 | 2026-07-18 13:17 | [`diagnostic_checks_20260718_131719.log`](diagnostic_output/diagnostic_checks_20260718_131719.log) | Check 4 smoking gun: φc/ψ Δ=0.00. Tanh saturation ruled out (Check 5). |
-| 3 | 2026-07-18 13:41 | [`diagnostic_checks_20260718_134134.log`](diagnostic_output/diagnostic_checks_20260718_134134.log) | Check 6: **tanh saturation confirmed**. Root cause found. |
-| 4 | 2026-07-18 | [`diagnostic_checks_20260718_140622.log`](diagnostic_output/diagnostic_checks_20260718_140622.log) | Check 7: saturation at init (step 0). Born dead. |
+| Run | Date             | Log file                                                                                           | Key finding                                                              |
+|-----|------------------|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| 1   | 2026-07-18 12:50 | [`diagnostic_checks_20260718_125027.log`](diagnostic_output/diagnostic_checks_20260718_125027.log) | Checks 1–4. Data pipeline clean. Loss wiring bug found. Log-vars frozen. |
+| 2   | 2026-07-18 13:17 | [`diagnostic_checks_20260718_131719.log`](diagnostic_output/diagnostic_checks_20260718_131719.log) | Check 4 smoking gun: φc/ψ Δ=0.00. Tanh saturation ruled out (Check 5).   |
+| 3   | 2026-07-18 13:41 | [`diagnostic_checks_20260718_134134.log`](diagnostic_output/diagnostic_checks_20260718_134134.log) | Check 6: **tanh saturation confirmed**. Root cause found.                |
+| 4   | 2026-07-18       | [`diagnostic_checks_20260718_140622.log`](diagnostic_output/diagnostic_checks_20260718_140622.log) | Check 7: saturation at init (step 0). Born dead.                         |
 
 ### Diagnostic plots
 
-| File | Description |
-|------|-------------|
-| [`diagnostic_output/true_label_distributions.png`](diagnostic_output/true_label_distributions.png) | True label histograms (Check 1) |
-| [`diagnostic_output/logvar_trajectories.png`](diagnostic_output/logvar_trajectories.png) | Log-var trajectories over training (Check 3) |
-| [`diagnostic_output/combo_loss_trajectories.png`](diagnostic_output/combo_loss_trajectories.png) | Circular/combo loss trajectories (Check 3) |
-| [`diagnostic_output/true_label_stats.csv`](diagnostic_output/true_label_stats.csv) | True label statistics |
+| File                                                                                               | Description                                  |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------|
+| [`diagnostic_output/true_label_distributions.png`](diagnostic_output/true_label_distributions.png) | True label histograms (Check 1)              |
+| [`diagnostic_output/logvar_trajectories.png`](diagnostic_output/logvar_trajectories.png)           | Log-var trajectories over training (Check 3) |
+| [`diagnostic_output/combo_loss_trajectories.png`](diagnostic_output/combo_loss_trajectories.png)   | Circular/combo loss trajectories (Check 3)   |
+| [`diagnostic_output/true_label_stats.csv`](diagnostic_output/true_label_stats.csv)                 | True label statistics                        |
 
 ---
 
 ## Configuration files
 
-| File | Mode | Trunk | Description |
-|------|------|-------|-------------|
-| [`config_baseline.yaml`](config_baseline.yaml) | baseline | tcn | poc_a — circular loss on individual φc/ψ |
-| [`config_poc.yaml`](config_poc.yaml) | poc | tcn | poc_b — combo heads + curriculum weighting |
-| [`config_tcn.yaml`](config_tcn.yaml) | baseline | tcn | Plain TCN baseline |
-| [`config_cnn_attention.yaml`](config_cnn_attention.yaml) | baseline | cnn_attention | CNN + transformer + attention pooling |
-| [`config_cnn_baseline.yaml`](config_cnn_baseline.yaml) | baseline | cnn_baseline | Plain CNN baseline (not in Run 7) |
-| [`config_inception_time.yaml`](config_inception_time.yaml) | baseline | inception_time | InceptionTime (not in Run 7) |
-| [`config_resnet1d.yaml`](config_resnet1d.yaml) | baseline | resnet1d | ResNet1D (not in Run 7) |
+| File                                                       | Mode     | Trunk          | Description                                |
+|------------------------------------------------------------|----------|----------------|--------------------------------------------|
+| [`config_baseline.yaml`](config_baseline.yaml)             | baseline | tcn            | poc_a — circular loss on individual φc/ψ   |
+| [`config_poc.yaml`](config_poc.yaml)                       | poc      | tcn            | poc_b — combo heads + curriculum weighting |
+| [`config_tcn.yaml`](config_tcn.yaml)                       | baseline | tcn            | Plain TCN baseline                         |
+| [`config_cnn_attention.yaml`](config_cnn_attention.yaml)   | baseline | cnn_attention  | CNN + transformer + attention pooling      |
+| [`config_cnn_baseline.yaml`](config_cnn_baseline.yaml)     | baseline | cnn_baseline   | Plain CNN baseline (not in Run 7)          |
+| [`config_inception_time.yaml`](config_inception_time.yaml) | baseline | inception_time | InceptionTime (not in Run 7)               |
+| [`config_resnet1d.yaml`](config_resnet1d.yaml)             | baseline | resnet1d       | ResNet1D (not in Run 7)                    |
 
 ---
 
@@ -168,51 +168,51 @@ compressed synthesis in [`experiment_summary_2026-07-22.md`](experiment_summary_
 
 ### Training
 
-| File | Description |
-|------|-------------|
-| [`train_poc.py`](train_poc.py) | Main training entry point — builds SumDiffTrainer, runs training |
-| [`run_full.py`](run_full.py) | Batch runner: train → plot → evaluate for all configs |
+| File                                           | Description                                                                 |
+|------------------------------------------------|-----------------------------------------------------------------------------|
+| [`train_poc.py`](train_poc.py)                 | Main training entry point — builds SumDiffTrainer, runs training            |
+| [`run_full.py`](run_full.py)                   | Batch runner: train → plot → evaluate for all configs                       |
 | [`run_magnitude_fix.py`](run_magnitude_fix.py) | Run 7 launcher: chains train→plot→eval for poc_a, poc_b, TCN, CNN Attention |
 
 ### Analysis & diagnostics
 
-| File | Description |
-|------|-------------|
-| [`analyse_predictions.py`](analyse_predictions.py) | Load all models, predict on validation, compute per-head stats, generate CSVs + markdown + PNGs |
-| [`diagnostic_checks.py`](diagnostic_checks.py) | Seven deep diagnostic checks (true labels, loss wiring, log-var trajectory, gradient routing, logit saturation, gradient chain, init saturation timing) |
-| [`bootstrap_ang_mae.py`](bootstrap_ang_mae.py) | Section D: bootstrap CI on ang_MAE (N=10,000 shuffles) |
-| [`snr_stratification.py`](snr_stratification.py) | Section E: SNR-stratified ang_MAE (tercile analysis) |
-| [`inclination_stratification.py`](inclination_stratification.py) | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3) — **run 2026-07-23**; results in `inclination_output/`, written up as Table 6.6 / §6.7 |
-| [`plot_certified_memorization.py`](plot_certified_memorization.py) | v2-review follow-up: train-vs-validation circular loss for the two certified models (poc_b, cnn_attention) specifically, read directly from each run's `history.csv` — no model loading, no GPU. Output: `diagnostic_output/certified_models_train_val_loss.png`, written up as Fig. 8.1 / §8.2 |
+| File                                                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`analyse_predictions.py`](analyse_predictions.py)                               | Load all models, predict on validation, compute per-head stats, generate CSVs + markdown + PNGs                                                                                                                                                                                                                                                                                                                                               |
+| [`diagnostic_checks.py`](diagnostic_checks.py)                                   | Seven deep diagnostic checks (true labels, loss wiring, log-var trajectory, gradient routing, logit saturation, gradient chain, init saturation timing)                                                                                                                                                                                                                                                                                       |
+| [`bootstrap_ang_mae.py`](bootstrap_ang_mae.py)                                   | Section D: bootstrap CI on ang_MAE (N=10,000 shuffles)                                                                                                                                                                                                                                                                                                                                                                                        |
+| [`snr_stratification.py`](snr_stratification.py)                                 | Section E: SNR-stratified ang_MAE (tercile analysis)                                                                                                                                                                                                                                                                                                                                                                                          |
+| [`inclination_stratification.py`](inclination_stratification.py)                 | Adversarial-review follow-up: inclination-stratified ang_MAE (face-on/mixed/edge-on bands per §3) — **run 2026-07-23**; results in `inclination_output/`, written up as Table 6.6 / §6.7                                                                                                                                                                                                                                                      |
+| [`plot_certified_memorization.py`](plot_certified_memorization.py)               | v2-review follow-up: train-vs-validation circular loss for the two certified models (poc_b, cnn_attention) specifically, read directly from each run's `history.csv` — no model loading, no GPU. Output: `diagnostic_output/certified_models_train_val_loss.png`, written up as Fig. 8.1 / §8.2                                                                                                                                               |
 | [`inclination_control_stratification.py`](inclination_control_stratification.py) | v2-review follow-up: chirp-mass MAE/R² stratified by the same face-on/mixed/edge-on bands as `inclination_stratification.py`, to check whether banding itself injects spurious variance into a known-good non-angular head — **run 2026-07-23**; R² spread only 0.005–0.010 across bands for every model, ruling out banding-induced noise at a scale relevant to Table 6.6. Results in `inclination_output/`, written up as Table 6.7 / §6.7 |
-| [`prereq_checks.py`](prereq_checks.py) | Step 1.1–1.6 prerequisite verification (combo ratio sweep, w(ι) derivation, cos ι histogram) |
-| [`validation_script.py`](validation_script.py) | Manual validation utilities |
+| [`prereq_checks.py`](prereq_checks.py)                                           | Step 1.1–1.6 prerequisite verification (combo ratio sweep, w(ι) derivation, cos ι histogram)                                                                                                                                                                                                                                                                                                                                                  |
+| [`validation_script.py`](validation_script.py)                                   | Manual validation utilities                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### Evaluation & plotting
 
-| File | Description |
-|------|-------------|
-| [`evaluate_poc.py`](evaluate_poc.py) | Per-model evaluation on train/validation splits |
-| [`plot_poc.py`](plot_poc.py) | Training history plots |
-| [`scripts/evaluate.py`](scripts/evaluate.py) | Evaluation subprocess (called by run_full.py) |
-| [`scripts/plot_run.py`](scripts/plot_run.py) | Plotting subprocess (called by run_full.py) |
-| [`scripts/train.py`](scripts/train.py) | Training subprocess (called by run_full.py) |
+| File                                         | Description                                     |
+|----------------------------------------------|-------------------------------------------------|
+| [`evaluate_poc.py`](evaluate_poc.py)         | Per-model evaluation on train/validation splits |
+| [`plot_poc.py`](plot_poc.py)                 | Training history plots                          |
+| [`scripts/evaluate.py`](scripts/evaluate.py) | Evaluation subprocess (called by run_full.py)   |
+| [`scripts/plot_run.py`](scripts/plot_run.py) | Plotting subprocess (called by run_full.py)     |
+| [`scripts/train.py`](scripts/train.py)       | Training subprocess (called by run_full.py)     |
 
 ### Shared plotting utilities
 
-| File | Description |
-|------|-------------|
+| File                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`plot_style.py`](plot_style.py) | Shared matplotlib style (`update_style()`) + `SERIES_COLORS` semantic color dict for all `experiments/` plotting scripts. Deliberate duplicate of `src/gwml/evaluation/plot_style.py` (kept in sync by hand, not imported cross-package). Retrofitted into every plotting entry point 2026-07-23 — see `NOTES.md`'s "Plotting-style retrofit" entry for the full list of legend/color/grid fixes and which figures were actually regenerated vs. still pending a lab-machine rerun. |
 
 ---
 
 ## Supporting modules (in experiment directory)
 
-| File | Description |
-|------|-------------|
-| [`trainer.py`](trainer.py) | `SumDiffTrainer` — extends MultiHeadTrainer with combo loss, curriculum weighting, magnitude penalty |
-| [`curriculum.py`](curriculum.py) | `w(ι)` derivation (Jacobian condition number sweep), TF wrapper, cos ι histogram |
-| [`transform_utils.py`](transform_utils.py) | `normalize_unit`, `complex_mul`, `combo_labels` — numpy + TF implementations |
+| File                                       | Description                                                                                          |
+|--------------------------------------------|------------------------------------------------------------------------------------------------------|
+| [`trainer.py`](trainer.py)                 | `SumDiffTrainer` — extends MultiHeadTrainer with combo loss, curriculum weighting, magnitude penalty |
+| [`curriculum.py`](curriculum.py)           | `w(ι)` derivation (Jacobian condition number sweep), TF wrapper, cos ι histogram                     |
+| [`transform_utils.py`](transform_utils.py) | `normalize_unit`, `complex_mul`, `combo_labels` — numpy + TF implementations                         |
 
 ---
 

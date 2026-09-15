@@ -110,6 +110,10 @@ ROUNDS = {
         "b": _REPO_ROOT / "runs" / "phic_psi_lam005_retune_b",
         "a": _REPO_ROOT / "runs" / "phic_psi_lam005_retune_a",
     },
+    "λ=0.10 (retune)": {
+        "b": _REPO_ROOT / "runs" / "phic_psi_lam010_retune_b",
+        "a": _REPO_ROOT / "runs" / "phic_psi_lam010_retune_a",
+    },
 }
 HEADS = ("coa_phase", "polarization_angle")
 

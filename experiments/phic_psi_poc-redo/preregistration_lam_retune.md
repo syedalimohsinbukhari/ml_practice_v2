@@ -65,9 +65,19 @@ If `combo_A` and `combo_B` land on different rows of this table, both verdicts a
 
 This table will be implemented directly in a diagnostic script (mirroring `diagnostic_lam005_retune.py`/`diagnostic_lam010_retune.py`) as an automated final verdict, computed from the retuned checkpoints with no manual threshold-picking after the fact. If a future re-read of the results disagrees with the mechanical verdict, that disagreement itself gets written down as a dated note on this document, not resolved by quietly picking a different threshold — same commitment the original made, and the same one this redo already had to honor once today (the `weight_combo_A/B` correction in `NOTES.md`).
 
-## Next actions (not yet done)
+## Next actions (as written 2026-09-15, before any retune existed)
 
 - [ ] Build `config_lam005_retune.yaml`/`config_lam005_retune_tcn.yaml`-equivalent configs for `poc_redo_b` and `poc_redo_a` at λ=0.05 (copy from `experiments/phic_psi_poc/config_lam005_retune*.yaml`, same local-import/naming conventions already established for this redo).
 - [ ] Hand the λ=0.05 retrain to the lab GPU machine — this machine is CPU-only.
 - [ ] Rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results before touching Steps 1–3.
 - [ ] Only if Step 0 passes at λ=0.05 (or, failing that, at λ=0.10): implement and run Steps 1–3 per this document.
+
+---
+
+## Dated addendum — 2026-09-15, λ=0.05 result
+
+Per this document's own commitment ("frozen as of 2026-09-15... dated addenda only" — `experiment_index.md`'s description of this file), the checklist and criteria above are left exactly as written; this addendum records what happened against them, not a rewrite of them.
+
+The λ=0.05 configs were built, CPU-verified, and trained on the lab GPU machine (`runs/phic_psi_lam005_retune_b/20260915_154203`, `runs/phic_psi_lam005_retune_a/20260915_175801`). `diagnostic_logvar_gate.py`'s Step 0 gate was rerun against them per this document's own Step 0 section: **all four readings FAIL** (`poc_redo_b`'s coa_phase and polarization_angle, `poc_redo_a`'s coa_phase and polarization_angle — see `NOTES.md`'s 2026-09-15 "λ=0.05 retune" entry for the full numbers). Per this document's own decision table ("fail → next fallback lambda... FAIL → UNINTERPRETABLE" / "Gate fails at λ=0.05 → try λ=0.10 before drawing any conclusion"), the verdict is **UNINTERPRETABLE**, and the pre-committed next action is the λ=0.10 fallback — not a revision of this criterion. Steps 1–3 were not run; they remain gated on Step 0 passing, exactly as this document specifies.
+
+`config_lam010_retune_b.yaml`/`config_lam010_retune_a.yaml` (λ=0.10) have been built and CPU-verified, per the pre-committed fallback order, and are queued for the lab GPU machine. This is the last λ value this preregistration's fallback order commits to; if it also fails, per this document's own Step 0 section, the correct report is "λ alone insufficient for this architecture/head, post-formula-fix" — not a new, unplanned λ value chosen after seeing results.

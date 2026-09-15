@@ -10,6 +10,7 @@
 | File | Description |
 |---|---|
 | [`NOTES.md`](NOTES.md) | Running narrative log — Step 1 prerequisite-check results, design decisions, next steps. Read this first. |
+| [`run_commands.md`](run_commands.md) | Every run command so far (and ready-to-run next), staged, with what each invokes and what it writes — auto-generated reference, regenerate/extend rather than hand-edit. |
 | [`redo_procedure.md`](redo_procedure.md) | Step-by-step build plan for the redo, mirroring the original `planning_files/phic_psi_implementation_plan_v4.md`'s structure, with every step marked `[UNCHANGED]`/`[CORRECTED]`/`[NEW]` against the corrected `2φc±2ψ` combo formula. |
 | [`formulae_reference.md`](formulae_reference.md) | Exact physics/loss formulae used at each step (vector algebra, combo construction, isotropic circular loss, magnitude penalty, toy antenna-pattern model, curriculum weight derivation, reconstruction branch-handling). Model architectures given as a bare outline only, no per-layer math. |
 | [`comments.md`](comments.md) | External review of the redo package (2026-09-14) — confirms the core `2φc±2ψ` fix is internally consistent throughout, hand-verifies the A.5 self-check, and proposed the A.8 branch-ambiguity re-derivation. The branch-*count* part held up; the closed-form parity-filter part did not (see below). |

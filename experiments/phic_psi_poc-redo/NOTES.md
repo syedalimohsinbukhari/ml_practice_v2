@@ -85,6 +85,27 @@ Cross-checked against the original's own post-tanh-fix numbers (the closest appl
 
 **Verdict at this stage: UNINTERPRETABLE, not NULL** — same distinction the original's own preregistration framework insisted on (a std_ratio/log_var gate failing means the result can't be read as evidence either way yet, not that it's evidence of no learning). Next step, mirroring the original's own methodology rather than skipping ahead of it: run the redo's diagnostic/log_var-trajectory checks and, if the gate fails, a λ-retune pass, before drawing any conclusion about whether the corrected degeneracy hypothesis holds.
 
+## Step 0 diagnostic — std_ratio gate result: FAIL, UNINTERPRETABLE (2026-09-15)
+
+Ran [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) — the Step 0 gate from `experiments/phic_psi_poc/preregistration_lam_retune.md`, thresholds copied verbatim (`[0.5,2.0]` healthy band, <10% of last 40 epochs unhealthy, trend within ±0.005/ep). CPU-only, reads `history.csv` only, no model loading. Full output: [`diagnostic_output/diagnostic_logvar_gate_20260915_101447.{log,md}`](diagnostic_output/), [`diagnostic_output/logvar_gate_trajectories.{png,pdf}`](diagnostic_output/).
+
+**Mechanical verdict: GATE FAILS on both heads, for both `poc_redo_b` (poc mode) and `poc_redo_a` (baseline mode):**
+
+| Run | Head | frac unhealthy (last 40 ep) | trend/ep | final std_ratio | Gate |
+|---|---|---|---|---|---|
+| poc_redo_b | coa_phase | 0.225 | +0.00638 | 0.583 | FAIL |
+| poc_redo_b | polarization_angle | 0.850 | −0.00402 | 0.251 | FAIL |
+| poc_redo_a | coa_phase | 0.750 | −0.00721 | 0.407 | FAIL |
+| poc_redo_a | polarization_angle | 1.000 | +0.00076 | 0.374 | FAIL |
+
+**Per `preregistration_lam_retune.md`'s own decision table: `phic_psi_poc_redo_b`'s flat `circular_loss_combo_A`/`combo_B` result is UNINTERPRETABLE, not a confirmed null.** `|v|`-space (the raw φc/ψ vectors) hasn't stabilized under `magnitude_penalty_lambda=0.01`, so the flat loss can't yet be trusted as evidence the corrected formula fails too.
+
+**Correction to the 2026-09-15 Round-1 write-up above:** that entry flagged `weight_combo_A`/`weight_combo_B` as "still climbing" as a second red flag. This script checked it mechanically (same late-window trend test) and that read doesn't hold up: `late_trend` for both is ≈+0.0003–0.0004, well inside the same ±0.005/ep threshold — the weight rises early (epochs 0–~10) then plateaus, it is *not* still rising in the diagnostic window. Leaving the original entry as written (frozen, dated) rather than editing it, per this repo's convention — this paragraph is the correction of record.
+
+**New finding worth the emphasis it deserves: the SAME gate failure shows up in `poc_redo_a` (baseline mode), which never touches the combo transform at all.** This points at something upstream of the corrected-formula question entirely — most likely `magnitude_penalty_lambda=0.01` simply being insufficient for TCN at this head/mode combination, matching the original's *own* finding almost exactly ("tcn coa_phase still declining at λ=0.01, Run 7") before it needed a dedicated λ-retune (Runs 8–9b) to even attempt an interpretable read. The redo inherited this same open problem by keeping λ=0.01 "from day 1" rather than rediscovering it — expected, not a new bug, but it means the gate failure is very unlikely to be specific to the formula fix.
+
+**Next: a λ-retune pass, mirroring the original's Runs 8–9b**, pre-registering the criterion first (same discipline `preregistration_lam_retune.md` itself insists on) before running it — not deciding the threshold after seeing results.
+
 ## Next steps
 
 - [x] Step 0 — branches, folder, shared checkpoint-callback fix
@@ -94,8 +115,8 @@ Cross-checked against the original's own post-tanh-fix numbers (the closest appl
 - [x] Config YAMLs for the full 7-architecture Round-1-equivalent sweep — verified end-to-end on CPU before handoff
 - [x] Full 7-architecture sweep trained on the lab GPU machine (2026-09-15, see above)
 - [x] Down-select re-validation — original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) confirmed still holds, on fresh evidence
-- [ ] **Blocking:** run the log_var-trajectory diagnostic (std_ratio + weight_combo_A/B gate) on `phic_psi_poc_redo_b` before any conclusion is drawn about the corrected combo formula — currently UNINTERPRETABLE, not NULL
-- [ ] If the gate fails (likely, given the climbing-weight/low-std_ratio pattern already visible), a λ-retune pass mirroring the original's Runs 8–9b, pre-registering the criterion first per that investigation's own lesson
-- [ ] Only once combo_A/combo_B reads as a clean NULL (gate passes, still flat) or shows real learning does the central degeneracy question get an answer
+- [x] Step 0 std_ratio gate (`diagnostic_logvar_gate.py`) — **FAILS on both heads, both poc_redo_a and poc_redo_b.** Verdict: UNINTERPRETABLE, not NULL. Failure appears in baseline mode too, so it's very unlikely to be formula-specific — most likely λ=0.01 insufficient for TCN here, matching the original's own pre-retune finding.
+- [ ] λ-retune pass mirroring the original's Runs 8–9b — pre-register the criterion first (same discipline `preregistration_lam_retune.md` insists on), then rerun the Step 0 gate before touching Steps 1–3
+- [ ] Only once combo_A/combo_B's gate passes (clean NULL) or shows real learning does the central degeneracy question get an answer
 
 **The redo folder produced its first full-sweep result on 2026-09-15** — infrastructure is fully validated (positive controls healthy across all 7 runs, periodic checkpoints, plot/eval pipeline all confirmed working), but the central question (does the corrected formula let the model learn where the wrong one couldn't) is not yet answered — it's gated on the diagnostic work above, not concluded from this one run.

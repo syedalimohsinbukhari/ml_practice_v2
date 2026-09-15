@@ -1,0 +1,50 @@
+====================================================================================================
+Step 0 diagnostic — std_ratio gate (phic_psi_poc_redo_b combo-mode run)
+Thresholds copied from experiments/phic_psi_poc/diagnostic_lam005_retune.py
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+  poc_redo_b (poc, tcn)  ->  /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/runs/phic_psi_poc_redo_b/20260915_061008
+----------------------------------------------------------------------------------------------------
+
+  Step 0 gate — coa_phase:
+    frac unhealthy (last 40 ep) = 0.225
+    late-epoch trend/ep                    = +0.00638
+    final val_std_ratio                    = 0.583
+    GATE FAIL
+
+  Step 0 gate — polarization_angle:
+    frac unhealthy (last 40 ep) = 0.850
+    late-epoch trend/ep                    = -0.00402
+    final val_std_ratio                    = 0.251
+    GATE FAIL
+
+  val_weight_combo_A (descriptive, not a hard gate):
+    first=1.1817  last=1.3605  late trend/ep=+0.00035  still rising in last 40 ep? False
+
+  val_weight_combo_B (descriptive, not a hard gate):
+    first=1.1716  last=1.3536  late trend/ep=+0.00018  still rising in last 40 ep? False
+
+----------------------------------------------------------------------------------------------------
+  poc_redo_a (baseline, tcn)  ->  /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/runs/phic_psi_poc_redo_a/20260915_051948
+----------------------------------------------------------------------------------------------------
+
+  Step 0 gate — coa_phase:
+    frac unhealthy (last 40 ep) = 0.750
+    late-epoch trend/ep                    = -0.00721
+    final val_std_ratio                    = 0.407
+    GATE FAIL
+
+  Step 0 gate — polarization_angle:
+    frac unhealthy (last 40 ep) = 1.000
+    late-epoch trend/ep                    = +0.00076
+    final val_std_ratio                    = 0.374
+    GATE FAIL
+
+Plots written: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/logvar_gate_trajectories.png / .pdf
+
+====================================================================================================
+OVERALL VERDICT (poc_redo_b, both heads must pass): FAIL -> UNINTERPRETABLE. Per preregistration_lam_retune.md's own decision table, do not read the flat circular loss as evidence either way. Next step: lambda-retune, same pattern as the original's Runs 8-9b.
+====================================================================================================
+
+Summary written: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/diagnostic_logvar_gate_20260915_101447.md

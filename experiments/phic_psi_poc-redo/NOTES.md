@@ -116,7 +116,8 @@ Ran [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) — the Step 0 gate
 - [x] Full 7-architecture sweep trained on the lab GPU machine (2026-09-15, see above)
 - [x] Down-select re-validation — original 4-model certified set (poc_a, poc_b, tcn, cnn_attention) confirmed still holds, on fresh evidence
 - [x] Step 0 std_ratio gate (`diagnostic_logvar_gate.py`) — **FAILS on both heads, both poc_redo_a and poc_redo_b.** Verdict: UNINTERPRETABLE, not NULL. Failure appears in baseline mode too, so it's very unlikely to be formula-specific — most likely λ=0.01 insufficient for TCN here, matching the original's own pre-retune finding.
-- [ ] λ-retune pass mirroring the original's Runs 8–9b — pre-register the criterion first (same discipline `preregistration_lam_retune.md` insists on), then rerun the Step 0 gate before touching Steps 1–3
-- [ ] Only once combo_A/combo_B's gate passes (clean NULL) or shows real learning does the central degeneracy question get an answer
+- [x] λ-retune criterion pre-registered — [`preregistration_lam_retune.md`](preregistration_lam_retune.md), written 2026-09-15 before any retune exists. Primary tests: `poc_redo_b`'s `combo_A`/`combo_B` own angles (not individual φc/ψ — those have no direct supervision in poc mode). `poc_redo_a` retrained in parallel as a required control. Frozen from this point — dated addenda only if it needs revision later.
+- [ ] Build λ=0.05 retune configs, hand off to the lab GPU machine, rerun the Step 0 gate
+- [ ] Only once combo_A/combo_B's gate passes (clean NULL) or shows real learning (per the preregistration's decision table) does the central degeneracy question get an answer
 
 **The redo folder produced its first full-sweep result on 2026-09-15** — infrastructure is fully validated (positive controls healthy across all 7 runs, periodic checkpoints, plot/eval pipeline all confirmed working), but the central question (does the corrected formula let the model learn where the wrong one couldn't) is not yet answered — it's gated on the diagnostic work above, not concluded from this one run.

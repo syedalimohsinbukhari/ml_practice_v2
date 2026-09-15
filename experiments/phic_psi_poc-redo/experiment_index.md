@@ -25,6 +25,7 @@
 | [`prereq_checks.py`](prereq_checks.py) | Steps 1.1/1.2/1.6 empirical checks, corrected combo↔(φc,ψ) conversion and sweep ranges. Results in `NOTES.md` and `prereq_checks_full_run.log`. |
 | [`train_poc.py`](train_poc.py), [`plot_poc.py`](plot_poc.py), [`evaluate_poc.py`](evaluate_poc.py), [`run_full.py`](run_full.py) | Training/plotting/evaluation orchestration, copied verbatim in logic from the original — no formula-specific code in any of them. |
 | [`diagnostic_logvar_gate.py`](diagnostic_logvar_gate.py) | Step 0 std_ratio gate (thresholds copied from `preregistration_lam_retune.md`/`diagnostic_lam005_retune.py`) against `phic_psi_poc_redo_b`/`phic_psi_poc_redo_a`'s `history.csv`. CPU-only, no model loading. Result: FAIL on both heads, both runs — see `NOTES.md`. |
+| [`preregistration_lam_retune.md`](preregistration_lam_retune.md) | **Frozen as of 2026-09-15** — pre-committed λ-retune decision criterion for `poc_redo_b`'s `combo_A`/`combo_B`, written before any λ=0.05/0.10 retune exists. Do not edit after retune results land; dated addenda only. |
 | `config_baseline.yaml`, `config_poc.yaml`, `config_tcn.yaml`, `config_cnn_baseline.yaml`, `config_cnn_attention.yaml`, `config_inception_time.yaml`, `config_resnet1d.yaml` | Full 7-architecture Round-1-equivalent sweep configs. `checkpoint_every_n: 10` and `magnitude_penalty_lambda: 0.01` present in all seven from day 1 (three of the original's configs never had the latter). `config_poc.yaml`'s `well_constrained_combo`/`sign_dependent_combo` set from this redo's own Step 1.1 rerun, not copied from the original. |
 
 ## Analysis outputs
@@ -49,8 +50,8 @@
 **Same-day self-correction (2026-09-14, after implementing `transform_utils.py`):** the review's proposed closed-form parity rule for picking the 4 consistent candidates without brute force (`k≡j mod 2`) was implemented, tested, and immediately falsified — a 20,000-trial numerical sweep showed the parity pattern is ~50/50 and data-dependent (depends on an integer `arctan2`'s mod-2π reduction destroys), not fixed. Retracted in `formulae_reference.md` §A.8 and `redo_procedure.md` §2.6, kept on the record rather than silently erased, per this repo's frozen-vs-living-docs convention. The reconstruction code brute-forces all 8 candidates every time — verified against 5,000 random trials, 100% recovery.
 
 Next steps, in order:
-1. Pre-register a λ-retune criterion (mirroring `preregistration_lam_retune.md`) for `poc_redo_b`'s coa_phase/polarization_angle std_ratio gate failure, before running any retune — don't pick the threshold after seeing results.
-2. Run the retune, then rerun `diagnostic_logvar_gate.py`'s Step 0 gate.
-3. Only once combo_A/combo_B reads as a clean, gate-passed null (or shows real learning) does the central degeneracy question get an actual answer — Steps 1–3 of the preregistration (bootstrap significance, effect size, SNR stratification) need the lab GPU machine, not this one.
+1. [x] Pre-register the λ-retune criterion — [`preregistration_lam_retune.md`](preregistration_lam_retune.md), written 2026-09-15, before any retune exists. Primary tests: `poc_redo_b`'s `combo_A` and `combo_B` (each combo's own angle, not the individually-unsupervised φc/ψ). `poc_redo_a` retrained in parallel as a required control, not a third primary test.
+2. Build the λ=0.05 retune configs and hand off to the lab GPU machine (CPU-only here).
+3. Rerun `diagnostic_logvar_gate.py`'s Step 0 gate on the results; only if it passes do Steps 1–3 (bootstrap significance, effect size, SNR stratification — all need the lab GPU machine) run, per the preregistration's decision table.
 
 The original (wrong-formula) investigation is untouched at `experiments/phic_psi_poc/`, and fully preserved as a static snapshot on the `archive/phic-psi-poc-v1` branch.

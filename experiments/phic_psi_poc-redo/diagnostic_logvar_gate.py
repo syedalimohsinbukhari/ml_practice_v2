@@ -25,9 +25,16 @@ comparison point. Earlier rounds (e.g. λ=0.01, already known to fail) stay
 in the dict for side-by-side context every time this reruns; the **last**
 entry in `ROUNDS` is treated as the round under test — its per-round
 verdict is the "OVERALL VERDICT" this script reports and the one that
-decides whether to try the next λ or move on to Steps 1-3. Extending to a
-λ=0.10 fallback (per the preregistration's own fallback order) is just
-appending one more entry.
+decides whether to try the next λ or move on to Steps 1-3. λ=0.10 (the
+preregistration's own last committed fallback) was appended and run this
+way; it also failed (3 of 4 readings) — see `NOTES.md`'s 2026-09-16 entry.
+No further λ value is authorized by the preregistration, so this dict is
+not expected to grow further; the OVERALL VERDICT branch below still
+prints a generic "try the next fallback lambda" message on any FAIL,
+which is now stale for this specific round (there is no next fallback) —
+read that message in light of `preregistration_lam_retune.md`'s own
+decision table, not literally, until/unless a new preregistration reopens
+this line of investigation.
 
 The weight_combo_A/weight_combo_B (=exp(-log_var)) trajectory is reported
 descriptively alongside the gate, not as a second hard gate: unlike
@@ -99,8 +106,9 @@ GATE_WINDOW = 40
 # Every λ round tried so far, in order. Each entry: "b" = poc_redo_b
 # equivalent (primary, poc mode), "a" = poc_redo_a equivalent (required
 # control, baseline mode). The LAST entry is the round under test — see
-# module docstring. Add the λ=0.10 fallback here (same pattern) if λ=0.05
-# also fails.
+# module docstring. λ=0.10 was the preregistration's last committed
+# fallback and it also failed (3 of 4 readings, 2026-09-16) — no further
+# entry is authorized without a new preregistration.
 ROUNDS = {
     "λ=0.01 (Round 1)": {
         "b": _REPO_ROOT / "runs" / "phic_psi_poc_redo_b",
@@ -115,6 +123,11 @@ ROUNDS = {
         "a": _REPO_ROOT / "runs" / "phic_psi_lam010_retune_a",
     },
 }
+
+# preregistration_lam_retune.md's fallback order commits to no λ beyond
+# this round. A FAIL here is reported as "λ alone insufficient", not as
+# "try the next fallback" (there isn't one without a new preregistration).
+LAST_AUTHORIZED_ROUND = "λ=0.10 (retune)"
 HEADS = ("coa_phase", "polarization_angle")
 
 
@@ -282,11 +295,17 @@ def main() -> None:
         print(f"OVERALL VERDICT — round under test: {current_round_label} (all 4 readings must pass):")
         if not current_rows or not have_all_four:
             print("  NOT YET RUN — no data for this round yet.")
-        else:
+        elif overall_pass:
             print("  PASS -> combo_A/combo_B flat loss is interpretable as a real null result, "
-                  "proceed to Steps 1-3 on the lab GPU machine"
-                  if overall_pass else
-                  "  FAIL -> UNINTERPRETABLE. Per preregistration_lam_retune.md's own decision table, do not read "
+                  "proceed to Steps 1-3 on the lab GPU machine")
+        elif current_round_label == LAST_AUTHORIZED_ROUND:
+            print("  FAIL -> UNINTERPRETABLE. Per preregistration_lam_retune.md's own decision table, do not read "
+                  "the flat circular loss as evidence either way. This is the preregistration's last committed "
+                  "fallback (no λ beyond this one is authorized) — report as 'λ alone insufficient for this "
+                  "architecture/head, post-formula-fix,' not as a null tally or counter-evidence. A further λ "
+                  "value requires a new preregistration, not an ad hoc choice after this result.")
+        else:
+            print("  FAIL -> UNINTERPRETABLE. Per preregistration_lam_retune.md's own decision table, do not read "
                   "the flat circular loss as evidence either way. Next step: next fallback lambda "
                   "(0.10), same pattern as the original's Runs 8-9b.")
         print("=" * 100)

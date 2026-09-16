@@ -1,0 +1,127 @@
+====================================================================================================
+BOOTSTRAP CI ON ang_MAE — periodic heads, redo certified 4-model set (REDO)
+N bootstrap = 10000, validation samples = 5000
+====================================================================================================
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_a (baseline)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Building model from runs/phic_psi_poc_redo_a/20260915_051948 ...
+  Predicting on 5000 samples ...
+  coa_phase: running 10000 bootstrap iterations ...
+    observed  = 1.5736 rad
+    null mean = 1.5695 rad  (theory: 1.5708)
+    null 95% CI = [1.5480, 1.5904]
+    z = -0.38σ (WORSE)  p = 0.6494
+  polarization_angle: running 10000 bootstrap iterations ...
+    observed  = 0.7850 rad
+    null mean = 0.7836 rad  (theory: 0.7854)
+    null 95% CI = [0.7802, 0.7870]
+    z = -0.82σ (WORSE)  p = 0.7931
+  inclination: running 10000 bootstrap iterations ...
+    observed  = 1.5494 rad
+    null mean = 1.5701 rad  (theory: 1.5708)
+    null 95% CI = [1.5498, 1.5900]
+    z = +2.00σ (BETTER)  p = 0.0223 ★ SIG
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: poc_b (PoC)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Building model from runs/phic_psi_poc_redo_b/20260915_061008 ...
+  Predicting on 5000 samples ...
+  coa_phase: running 10000 bootstrap iterations ...
+    observed  = 1.5716 rad
+    null mean = 1.5703 rad  (theory: 1.5708)
+    null 95% CI = [1.5643, 1.5765]
+    z = -0.39σ (WORSE)  p = 0.6494
+  polarization_angle: running 10000 bootstrap iterations ...
+    observed  = 0.7837 rad
+    null mean = 0.7837 rad  (theory: 0.7854)
+    null 95% CI = [0.7834, 0.7839]
+    z = -0.63σ (WORSE)  p = 0.7400
+  inclination: running 10000 bootstrap iterations ...
+    observed  = 1.5448 rad
+    null mean = 1.5728 rad  (theory: 1.5708)
+    null 95% CI = [1.5516, 1.5944]
+    z = +2.58σ (BETTER)  p = 0.0052 ★ SIG
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: tcn
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Building model from runs/phic_psi_redo_tcn/20260915_064106 ...
+  Predicting on 5000 samples ...
+  coa_phase: running 10000 bootstrap iterations ...
+    observed  = 1.5853 rad
+    null mean = 1.5768 rad  (theory: 1.5708)
+    null 95% CI = [1.5629, 1.5909]
+    z = -1.18σ (WORSE)  p = 0.8791
+  polarization_angle: running 10000 bootstrap iterations ...
+    observed  = 0.7881 rad
+    null mean = 0.7856 rad  (theory: 0.7854)
+    null 95% CI = [0.7760, 0.7952]
+    z = -0.50σ (WORSE)  p = 0.6920
+  inclination: running 10000 bootstrap iterations ...
+    observed  = 1.5400 rad
+    null mean = 1.5699 rad  (theory: 1.5708)
+    null 95% CI = [1.5472, 1.5927]
+    z = +2.58σ (BETTER)  p = 0.0059 ★ SIG
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  MODEL: cnn_attention
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  Building model from runs/phic_psi_redo_cnn_attention/20260915_054256 ...
+  Predicting on 5000 samples ...
+  coa_phase: running 10000 bootstrap iterations ...
+    observed  = 1.5936 rad
+    null mean = 1.5702 rad  (theory: 1.5708)
+    null 95% CI = [1.5473, 1.5935]
+    z = -1.97σ (WORSE)  p = 0.9759
+  polarization_angle: running 10000 bootstrap iterations ...
+    observed  = 0.7779 rad
+    null mean = 0.7858 rad  (theory: 0.7854)
+    null 95% CI = [0.7741, 0.7973]
+    z = +1.33σ (BETTER)  p = 0.0908
+  inclination: running 10000 bootstrap iterations ...
+    observed  = 1.5290 rad
+    null mean = 1.5723 rad  (theory: 1.5708)
+    null 95% CI = [1.5490, 1.5961]
+    z = +3.58σ (BETTER)  p = 0.0003 ★ SIG
+
+
+====================================================================================================
+SUMMARY: Bootstrap significance test on ang_MAE
+====================================================================================================
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  coa_phase  (period=6.2832, null_theory=1.5708 rad)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Model                       obs  null_mean              null_CI        z        p      verdict
+----------------------------------------------------------------------------------------------
+poc_a (baseline)         1.5736     1.5695     [1.5480, 1.5904]   -0.38   0.6494 not sig (worse)
+poc_b (PoC)              1.5716     1.5703     [1.5643, 1.5765]   -0.39   0.6494 not sig (worse)
+tcn                      1.5853     1.5768     [1.5629, 1.5909]   -1.18   0.8791 not sig (worse)
+cnn_attention            1.5936     1.5702     [1.5473, 1.5935]   -1.97   0.9759 not sig (worse)
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  polarization_angle  (period=3.1416, null_theory=0.7854 rad)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Model                       obs  null_mean              null_CI        z        p      verdict
+----------------------------------------------------------------------------------------------
+poc_a (baseline)         0.7850     0.7836     [0.7802, 0.7870]   -0.82   0.7931 not sig (worse)
+poc_b (PoC)              0.7837     0.7837     [0.7834, 0.7839]   -0.63   0.7400 not sig (worse)
+tcn                      0.7881     0.7856     [0.7760, 0.7952]   -0.50   0.6920 not sig (worse)
+cnn_attention            0.7779     0.7858     [0.7741, 0.7973]   +1.33   0.0908      not sig
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  inclination  (period=6.2832, null_theory=1.5708 rad)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Model                       obs  null_mean              null_CI        z        p      verdict
+----------------------------------------------------------------------------------------------
+poc_a (baseline)         1.5494     1.5701     [1.5498, 1.5900]   +2.00   0.0223     ★ BETTER
+poc_b (PoC)              1.5448     1.5728     [1.5516, 1.5944]   +2.58   0.0052     ★ BETTER
+tcn                      1.5400     1.5699     [1.5472, 1.5927]   +2.58   0.0059     ★ BETTER
+cnn_attention            1.5290     1.5723     [1.5490, 1.5961]   +3.58   0.0003     ★ BETTER
+
+
+Markdown report: experiments/phic_psi_poc-redo/bootstrap_output/bootstrap_ang_mae_20260916_113955.md
+Done.

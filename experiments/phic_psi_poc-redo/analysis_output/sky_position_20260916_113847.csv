@@ -1,0 +1,5 @@
+model,angular_mae_deg,angular_median_deg
+poc_a (baseline),8.720102921462326,0.0
+poc_b (PoC),10.2568940360477,0.0
+tcn,6.024500320851822,0.0
+cnn_attention,4.431350871232372,0.0

@@ -1,0 +1,355 @@
+PHIC_PSI DEEP DIAGNOSTICS (REDO)
+================================================================================
+Output directory: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output
+Log file: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/diagnostic_checks_20260916_113913.log
+
+================================================================================
+CHECK 1: True label distribution (post-HDF5, post-TargetTransforms)
+================================================================================
+
+--- training split ---
+
+  coa_phase (φc):
+    n=25000, unique (raw)=20738, unique (tf)=20737
+    circular R = 0.005620  ✓ well-spread
+    raw deciles:    0.000  0.627  3.141  5.655  6.283
+    tf deciles:     0.000  0.627  3.141  5.655  6.283
+    max bin fraction = 0.0539  (uniform would be 0.0500, collapsed would be 1.0)
+
+  polarization_angle (ψ):
+    n=25000, unique (raw)=20636, unique (tf)=17241
+    circular R = 0.003528  ✓ well-spread
+    raw deciles:    0.001  0.644  3.155  5.656  6.283
+    tf deciles:     0.000  0.315  1.578  2.830  3.141
+    max bin fraction = 0.0532  (uniform would be 0.0500, collapsed would be 1.0)
+
+  inclination (ι):
+    n=25000, unique (raw)=20670, unique (tf)=20670
+    circular R = 0.006553  ✓ well-spread
+    raw deciles:    0.000  0.630  3.133  5.669  6.283
+    tf deciles:     0.000  0.630  3.133  5.669  6.283
+    max bin fraction = 0.0530  (uniform would be 0.0500, collapsed would be 1.0)
+
+--- validation split ---
+
+  coa_phase (φc):
+    n=5000, unique (raw)=4785, unique (tf)=4785
+    circular R = 0.005680  ✓ well-spread
+    raw deciles:    0.001  0.630  3.177  5.641  6.283
+    tf deciles:     0.001  0.630  3.177  5.641  6.283
+    max bin fraction = 0.0586  (uniform would be 0.0500, collapsed would be 1.0)
+
+  polarization_angle (ψ):
+    n=5000, unique (raw)=4812, unique (tf)=4637
+    circular R = 0.012804  ✓ well-spread
+    raw deciles:    0.001  0.634  3.169  5.673  6.280
+    tf deciles:     0.001  0.319  1.563  2.800  3.141
+    max bin fraction = 0.0566  (uniform would be 0.0500, collapsed would be 1.0)
+
+  inclination (ι):
+    n=5000, unique (raw)=4808, unique (tf)=4808
+    circular R = 0.004634  ✓ well-spread
+    raw deciles:    0.000  0.629  3.170  5.672  6.283
+    tf deciles:     0.000  0.629  3.170  5.672  6.283
+    max bin fraction = 0.0580  (uniform would be 0.0500, collapsed would be 1.0)
+
+True label stats CSV: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/true_label_stats.csv
+
+→ If any true label shows circ_r > 0.5 or max_bin > 3× uniform: DATA PIPELINE BUG — stop here, fix before anything else.
+→ If all true labels are well-spread: the collapse is a training phenomenon, proceed to Check 2.
+Plot: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/true_label_distributions.png
+
+
+================================================================================
+CHECK 2: Loss function verification
+================================================================================
+
+--- poc_a (baseline) ---
+  mode: baseline
+  weighting: uncertainty
+  head_loss keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'coa_phase', 'polarization_angle', 'inclination']
+    mchirp: huber_loss
+    merger_time: huber_loss
+    snr: huber_loss
+    sky_position: function
+    coa_phase: huber_loss
+    polarization_angle: huber_loss
+    inclination: huber_loss
+  log_vars keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'coa_phase', 'polarization_angle', 'inclination']
+    mchirp: 0.0000
+    merger_time: 0.0000
+    snr: 0.0000
+    sky_position: 0.0000
+    coa_phase: 0.0000
+    polarization_angle: 0.0000
+    inclination: 0.0000
+
+--- poc_b (PoC) ---
+  mode: poc
+  weighting: uncertainty
+  head_loss keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'inclination']
+    mchirp: huber_loss
+    merger_time: huber_loss
+    snr: huber_loss
+    sky_position: function
+    inclination: huber_loss
+  ✓ individual coa_phase / pol_angle losses correctly removed
+  log_vars keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'inclination', 'combo_A', 'combo_B']
+    mchirp: 0.0000
+    merger_time: 0.0000
+    snr: 0.0000
+    sky_position: 0.0000
+    inclination: 0.0000
+    combo_A: 0.0000
+    combo_B: 0.0000
+
+--- tcn (TNC) ---
+  mode: baseline
+  weighting: uncertainty
+  head_loss keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'coa_phase', 'polarization_angle', 'inclination']
+    mchirp: huber_loss
+    merger_time: huber_loss
+    snr: huber_loss
+    sky_position: function
+    coa_phase: huber_loss
+    polarization_angle: huber_loss
+    inclination: huber_loss
+  log_vars keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'coa_phase', 'polarization_angle', 'inclination']
+    mchirp: 0.0000
+    merger_time: 0.0000
+    snr: 0.0000
+    sky_position: 0.0000
+    coa_phase: 0.0000
+    polarization_angle: 0.0000
+    inclination: 0.0000
+
+--- cnn_attention (ATX) ---
+  mode: baseline
+  weighting: uncertainty
+  head_loss keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'coa_phase', 'polarization_angle', 'inclination']
+    mchirp: huber_loss
+    merger_time: huber_loss
+    snr: huber_loss
+    sky_position: function
+    coa_phase: huber_loss
+    polarization_angle: huber_loss
+    inclination: huber_loss
+  log_vars keys: ['mchirp', 'merger_time', 'snr', 'sky_position', 'coa_phase', 'polarization_angle', 'inclination']
+    mchirp: 0.0000
+    merger_time: 0.0000
+    snr: 0.0000
+    sky_position: 0.0000
+    coa_phase: 0.0000
+    polarization_angle: 0.0000
+    inclination: 0.0000
+
+→ If any individual loss is still registered for coa_phase / pol_angle in poc mode: loss wiring bug.
+→ If head_loss uses 'huber' anywhere for these heads: isotropic loss not applied — fix.
+
+
+================================================================================
+CHECK 3: Log-var trajectory over training
+================================================================================
+
+--- poc_a (baseline) ---
+  relevant columns: ['circular_loss_coa_phase', 'circular_loss_polarization_angle', 'mae_coa_phase', 'mae_polarization_angle', 'r2_coa_phase', 'r2_polarization_angle', 'std_ratio_coa_phase', 'std_ratio_polarization_angle', 'val_circular_loss_coa_phase', 'val_circular_loss_polarization_angle']
+  first 3 epochs:
+   circular_loss_coa_phase  circular_loss_polarization_angle  mae_coa_phase  mae_polarization_angle  r2_coa_phase  r2_polarization_angle  std_ratio_coa_phase  std_ratio_polarization_angle
+0                 1.001319                          0.997861       1.963107                2.079625    -10.962055             -13.684565             3.250917                      3.670933
+1                 1.001681                          1.001210       1.622996                1.823075     -7.301289              -9.523239             2.696368                      3.078633
+2                 1.003122                          0.998369       1.711902                1.853889     -8.679079             -10.482944             2.942337                      3.223868
+  last 3 epochs:
+    circular_loss_coa_phase  circular_loss_polarization_angle  mae_coa_phase  mae_polarization_angle  r2_coa_phase  r2_polarization_angle  std_ratio_coa_phase  std_ratio_polarization_angle
+77                 0.968537                          0.993021       0.660038                0.750240     -0.173839              -0.688080             0.453514                      0.396409
+78                 0.963301                          0.993078       0.656772                0.750092     -0.156046              -0.687721             0.437953                      0.402121
+79                 0.969273                          0.992550       0.659906                0.753505     -0.163250              -0.708539             0.437670                      0.395211
+
+  combo/circular loss columns: ['circular_loss_coa_phase', 'circular_loss_polarization_angle', 'val_circular_loss_coa_phase', 'val_circular_loss_polarization_angle']
+  first 5 epochs:
+   circular_loss_coa_phase  circular_loss_polarization_angle  val_circular_loss_coa_phase  val_circular_loss_polarization_angle
+0                 1.001319                          0.997861                     0.998438                              0.996597
+1                 1.001681                          1.001210                     1.001070                              1.006882
+2                 1.003122                          0.998369                     1.005545                              0.985472
+3                 0.990455                          1.012155                     0.994639                              1.008559
+4                 0.998710                          1.004302                     1.005706                              1.006451
+  last 5 epochs:
+    circular_loss_coa_phase  circular_loss_polarization_angle  val_circular_loss_coa_phase  val_circular_loss_polarization_angle
+75                 0.970545                          0.992584                     1.013944                              1.000977
+76                 0.968114                          0.992330                     1.016408                              1.001117
+77                 0.968537                          0.993021                     1.016408                              1.001210
+78                 0.963301                          0.993078                     1.017493                              1.001106
+79                 0.969273                          0.992550                     1.018143                              1.001144
+
+--- poc_b (PoC) ---
+  relevant columns: ['circular_loss_combo_A', 'circular_loss_combo_B', 'std_ratio_coa_phase', 'std_ratio_polarization_angle', 'val_circular_loss_combo_A', 'val_circular_loss_combo_B', 'val_std_ratio_coa_phase', 'val_std_ratio_polarization_angle', 'val_weight_combo_A', 'val_weight_combo_B']
+  first 3 epochs:
+   circular_loss_combo_A  circular_loss_combo_B  std_ratio_coa_phase  std_ratio_polarization_angle  val_circular_loss_combo_A  val_circular_loss_combo_B  val_std_ratio_coa_phase  val_std_ratio_polarization_angle
+0               0.997047               0.992543             4.285727                      4.184976                   0.991968                   0.999851                 0.770686                          0.476334
+1               0.995630               0.998433             4.029792                      4.004618                   1.000762                   0.991692                 4.555857                          1.798771
+2               0.992175               0.999218             3.824469                      2.762402                   0.993961                   0.994198                 0.619656                          2.229461
+  last 3 epochs:
+    circular_loss_combo_A  circular_loss_combo_B  std_ratio_coa_phase  std_ratio_polarization_angle  val_circular_loss_combo_A  val_circular_loss_combo_B  val_std_ratio_coa_phase  val_std_ratio_polarization_angle
+77               0.983756               0.984623             0.679132                      0.268872                   0.999900                   0.989593                 0.613905                          0.250991
+78               0.983910               0.987317             0.654563                      0.267301                   0.999821                   0.989564                 0.624138                          0.247318
+79               0.983226               0.984427             0.649686                      0.266630                   0.999946                   0.989706                 0.582680                          0.250531
+
+  combo/circular loss columns: ['circular_loss_combo_A', 'circular_loss_combo_B', 'val_circular_loss_combo_A', 'val_circular_loss_combo_B']
+  first 5 epochs:
+   circular_loss_combo_A  circular_loss_combo_B  val_circular_loss_combo_A  val_circular_loss_combo_B
+0               0.997047               0.992543                   0.991968                   0.999851
+1               0.995630               0.998433                   1.000762                   0.991692
+2               0.992175               0.999218                   0.993961                   0.994198
+3               0.995414               0.987695                   1.000820                   0.997514
+4               0.996162               0.994514                   1.001356                   0.997105
+  last 5 epochs:
+    circular_loss_combo_A  circular_loss_combo_B  val_circular_loss_combo_A  val_circular_loss_combo_B
+75               0.987056               0.988687                   0.999793                   0.989279
+76               0.982706               0.986908                   0.999876                   0.989360
+77               0.983756               0.984623                   0.999900                   0.989593
+78               0.983910               0.987317                   0.999821                   0.989564
+79               0.983226               0.984427                   0.999946                   0.989706
+
+--- tcn ---
+  relevant columns: ['circular_loss_coa_phase', 'circular_loss_polarization_angle', 'mae_coa_phase', 'mae_polarization_angle', 'r2_coa_phase', 'r2_polarization_angle', 'std_ratio_coa_phase', 'std_ratio_polarization_angle', 'val_circular_loss_coa_phase', 'val_circular_loss_polarization_angle']
+  first 3 epochs:
+   circular_loss_coa_phase  circular_loss_polarization_angle  mae_coa_phase  mae_polarization_angle  r2_coa_phase  r2_polarization_angle  std_ratio_coa_phase  std_ratio_polarization_angle
+0                 0.991867                          1.004745       1.951097                1.967154    -11.347044             -12.416353             3.372721                      3.515536
+1                 0.997393                          0.996096       1.589634                1.943688     -6.489136             -10.732161             2.551244                      3.232146
+2                 0.997461                          0.995136       1.588437                1.712924     -6.679454              -7.940989             2.582895                      2.812537
+  last 3 epochs:
+    circular_loss_coa_phase  circular_loss_polarization_angle  mae_coa_phase  mae_polarization_angle  r2_coa_phase  r2_polarization_angle  std_ratio_coa_phase  std_ratio_polarization_angle
+77                 0.976326                          0.979457       0.683922                0.711318     -0.309692              -0.451689             0.459285                      0.647898
+78                 0.979151                          0.977499       0.684329                0.712864     -0.310511              -0.460631             0.456446                      0.657001
+79                 0.977739                          0.980246       0.685213                0.710516     -0.313390              -0.447413             0.440988                      0.646503
+
+  combo/circular loss columns: ['circular_loss_coa_phase', 'circular_loss_polarization_angle', 'val_circular_loss_coa_phase', 'val_circular_loss_polarization_angle']
+  first 5 epochs:
+   circular_loss_coa_phase  circular_loss_polarization_angle  val_circular_loss_coa_phase  val_circular_loss_polarization_angle
+0                 0.991867                          1.004745                     1.004542                              1.002187
+1                 0.997393                          0.996096                     0.995723                              1.008651
+2                 0.997461                          0.995136                     0.996165                              1.001631
+3                 1.000672                          1.000402                     0.996452                              1.006158
+4                 1.004293                          1.004260                     1.002440                              0.990244
+  last 5 epochs:
+    circular_loss_coa_phase  circular_loss_polarization_angle  val_circular_loss_coa_phase  val_circular_loss_polarization_angle
+75                 0.977907                          0.979097                     1.009188                              1.006296
+76                 0.976845                          0.979134                     1.008935                              1.006819
+77                 0.976326                          0.979457                     1.008470                              1.007180
+78                 0.979151                          0.977499                     1.008940                              1.007206
+79                 0.977739                          0.980246                     1.009370                              1.006633
+
+→ If log_var/weight for coa_phase collapsed to zero early: exp(−log_var) amplified gradients → total mode collapse is the expected outcome.
+→ If combo loss plateaued to near-zero immediately: the loss surface is flat in φc/ψ directions regardless of curriculum.
+Plot: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/logvar_trajectories.png
+Plot: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/diagnostic_output/combo_loss_trajectories.png
+
+
+================================================================================
+CHECK 4: Gradient routing — do φc/ψ weights change in poc_b?
+================================================================================
+  Layer 'coa_phase' has 2 trainable weight(s):
+    kernel: shape=(64, 2)  norm=1.639343
+    bias: shape=(2,)  norm=0.021923
+  Layer 'polarization_angle' has 2 trainable weight(s):
+    kernel: shape=(64, 2)  norm=1.638601
+    bias: shape=(2,)  norm=0.073666
+
+  Gradient norms for φc/ψ-related weights:
+    kernel: 0.828456 ok
+    bias: 0.081878 ok
+    kernel: 1.109792 ok
+    bias: 0.114878 ok
+
+  Gradient norms for combo log-var weights:
+    log_var_combo_A: grad_norm=0.133177
+    log_var_combo_B: grad_norm=0.002283
+
+  Weight deltas after one gradient step:
+    kernel: delta=2.05e+00 (rel=1.25e+00) ok
+    bias: delta=8.30e-02 (rel=1.13e+00) ok
+
+  ✓ gradient signal reaches φc/ψ weights via combo path.
+
+  Prediction perturbation per head (mean|Δ| after gradient step):
+    mchirp: mean|Δ|=3.28e-04  rel_change=5.27e-04 *changed*
+    merger_time: mean|Δ|=1.50e-04  rel_change=3.21e-04 *changed*
+    snr: mean|Δ|=3.06e-04  rel_change=3.32e-04 *changed*
+    sky_position_mu_raw: (auxiliary output, skipped)
+    sky_position_kappa_raw: (auxiliary output, skipped)
+    coa_phase: mean|Δ|=1.61e-02  rel_change=2.13e-02 *changed*
+    polarization_angle: mean|Δ|=1.33e-02  rel_change=1.48e-02 *changed*
+    inclination: mean|Δ|=1.08e-04  rel_change=2.75e-03 *changed*
+
+  ✓ Gradient step perturbed model predictions — backprop is wired through the loss to at least some heads.
+
+
+================================================================================
+CHECK 6: Gradient chain through circular loss pipeline
+================================================================================
+
+  Batch size: 8
+
+  ======================================================================
+               Gradient chain — d(total_loss)/dtensor norms             
+  ======================================================================
+  Tensor                                       Grad norm          Status    
+  -------------------------------------------- ------------------ ----------
+  dL/d(combo_A_pred)                           0.42454284         OK        
+  dL/d(combo_B_pred)                           0.35622859         OK        
+  dL/d(z_2phic_norm) [after double_angle, A.1.5] 0.37522462         OK        
+  dL/d(z_phic_norm) [after normalize_unit]     0.75044924         OK        
+  dL/d(z_psi_norm) [after normalize_unit]      0.50369138         OK        
+  dL/d(z_phic_raw) [model output]              0.57028604         OK        
+  dL/d(z_psi_raw) [model output]               0.51384407         OK        
+  dL/d(inclination_raw) [healthy baseline]     0.72795123         OK        
+
+  Log-var gradients:                          
+  dL/d(log_var_combo_A)                        0.32745564        
+  dL/d(log_var_combo_B)                        0.04885119        
+
+  ──────────────────────────────────────────────────────────────────────
+  Per-sample forward-pass values (first 3 of 8 samples)
+  ──────────────────────────────────────────────────────────────────────
+
+  Sample 0:
+    1-cosDelta combo_A  loss=1.975883  weight=1.0000  weighted=1.975883
+    1-cosDelta combo_B  loss=0.520352  weight=0.2279  weighted=0.118612
+    combo_A_pred  = [+0.994737, +0.102461]  angle=1.4682
+    combo_A_true  = [-0.993113, +0.117157]  angle=-1.4534
+    combo_B_pred  = [+0.490123, +0.871653]  angle=0.5122
+    combo_B_true  = [+0.999928, -0.011977]  angle=1.5828
+    z_phic_raw  = [+0.649041, -0.350451]  norm=0.7376
+    z_psi_raw  = [-0.370666, -0.715538]  norm=0.8058
+
+  Sample 1:
+    1-cosDelta combo_A  loss=1.839684  weight=1.0000  weighted=1.839684
+    1-cosDelta combo_B  loss=0.007029  weight=0.9786  weighted=0.006879
+    combo_A_pred  = [+0.997236, +0.074302]  angle=1.4964
+    combo_A_true  = [-0.797011, -0.603965]  angle=-2.2193
+    combo_B_pred  = [+0.518459, +0.855103]  angle=0.5450
+    combo_B_true  = [+0.413607, +0.910456]  angle=0.4264
+    z_phic_raw  = [+0.679415, -0.380366]  norm=0.7786
+    z_psi_raw  = [-0.379538, -0.736760]  norm=0.8288
+
+  Sample 2:
+    1-cosDelta combo_A  loss=0.035012  weight=0.4519  weighted=0.015823
+    1-cosDelta combo_B  loss=1.927576  weight=1.0000  weighted=1.927576
+    combo_A_pred  = [+0.997409, +0.071941]  angle=1.4988
+    combo_A_true  = [+0.981357, -0.192194]  angle=1.7642
+    combo_B_pred  = [+0.505332, +0.862925]  angle=0.5298
+    combo_B_true  = [-0.146314, -0.989238]  angle=-2.9948
+    z_phic_raw  = [+0.720117, -0.400104]  norm=0.8238
+    z_psi_raw  = [-0.347637, -0.660453]  norm=0.7464
+
+  ──────────────────────────────────────────────────────────────────────
+  Interpretation guide
+  ──────────────────────────────────────────────────────────────────────
+  1. combo_A_pred / combo_B_pred have healthy grad  → loss reaches combos
+  2. Grad drops from combo_A_pred to z_phic_norm    → complex_mul path
+  3. Grad drops from z_phic_norm to z_phic_raw       → normalize_unit
+  4. Grad at z_phic_raw is tiny but incl_raw is OK   → φc/ψ-specific issue
+  5. If even combo pred gradient is tiny              → loss fn / weighting
+  6. If z_phic_raw grad is OK but weights don't move → layer-level (Check 5)
+
+
+All checks complete (5 of 7 original checks — see module docstring for why 2 are intentionally omitted, not skipped for time).

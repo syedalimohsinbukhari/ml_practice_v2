@@ -1,0 +1,70 @@
+====================================================================================================
+INCLINATION-STRATIFIED CHIRP-MASS MAE/R^2 -- scalar-control check (REDO)
+Bands: face-on |cos(iota)| > 0.9, edge-on |cos(iota)| < 0.5, mixed in between. Validation samples = 5000
+Question: does the banding itself inject spurious MAE/R^2 variance into a head
+we already know is well-learned and non-angular?
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+  MODEL: poc_a (baseline)
+----------------------------------------------------------------------------------------------------
+  Building model from runs/phic_psi_poc_redo_a/20260915_051948 ...
+  Predicting on 5000 samples ...
+
+  mchirp:
+  Band       |cos iota| range            N        MAE      R^2
+  ---------- ---------------------- ------ ---------- --------
+  face-on    [0.9, 1.0]               1442     0.9688   0.9653
+  mixed      [0.5, 0.9]               1918     1.0498   0.9540
+  edge-on    [0.0, 0.5)               1640     1.0044   0.9612
+  ALL        -                        5000     1.0116   0.9597
+  Band-to-band MAE spread: 0.0810   R^2 spread: 0.0113
+
+----------------------------------------------------------------------------------------------------
+  MODEL: poc_b (PoC)
+----------------------------------------------------------------------------------------------------
+  Building model from runs/phic_psi_poc_redo_b/20260915_061008 ...
+  Predicting on 5000 samples ...
+
+  mchirp:
+  Band       |cos iota| range            N        MAE      R^2
+  ---------- ---------------------- ------ ---------- --------
+  face-on    [0.9, 1.0]               1442     0.9955   0.9619
+  mixed      [0.5, 0.9]               1918     1.0310   0.9550
+  edge-on    [0.0, 0.5)               1640     0.9801   0.9586
+  ALL        -                        5000     1.0040   0.9582
+  Band-to-band MAE spread: 0.0509   R^2 spread: 0.0069
+
+----------------------------------------------------------------------------------------------------
+  MODEL: tcn
+----------------------------------------------------------------------------------------------------
+  Building model from runs/phic_psi_redo_tcn/20260915_064106 ...
+  Predicting on 5000 samples ...
+
+  mchirp:
+  Band       |cos iota| range            N        MAE      R^2
+  ---------- ---------------------- ------ ---------- --------
+  face-on    [0.9, 1.0]               1442     0.9494   0.9643
+  mixed      [0.5, 0.9]               1918     1.0000   0.9579
+  edge-on    [0.0, 0.5)               1640     0.9781   0.9611
+  ALL        -                        5000     0.9782   0.9609
+  Band-to-band MAE spread: 0.0506   R^2 spread: 0.0064
+
+----------------------------------------------------------------------------------------------------
+  MODEL: cnn_attention
+----------------------------------------------------------------------------------------------------
+  Building model from runs/phic_psi_redo_cnn_attention/20260915_054256 ...
+  Predicting on 5000 samples ...
+
+  mchirp:
+  Band       |cos iota| range            N        MAE      R^2
+  ---------- ---------------------- ------ ---------- --------
+  face-on    [0.9, 1.0]               1442     1.3963   0.9231
+  mixed      [0.5, 0.9]               1918     1.4561   0.9129
+  edge-on    [0.0, 0.5)               1640     1.3988   0.9295
+  ALL        -                        5000     1.4201   0.9214
+  Band-to-band MAE spread: 0.0598   R^2 spread: 0.0166
+
+
+Markdown report: experiments/phic_psi_poc-redo/inclination_output/inclination_control_stratification_20260916_113639.md
+Done.

@@ -1,0 +1,80 @@
+====================================================================================================
+SNR-STRATIFIED ANGULAR SEPARATION — sky_position, redo certified 4-model set
+N terciles = 3, validation samples = 5000
+Null expectation (theory) = 90.00 deg, materiality floor = 5.73 deg (0.10 rad)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+  MODEL: poc_a (baseline)
+----------------------------------------------------------------------------------------------------
+
+  Tercile    SNR range                 N  mean sep (deg)    vs null
+  ---------- -------------------- ------ --------------- ----------
+  Low        [7.0, 9.6]          1666         86.5600   +3.4400
+  Mid        [9.7, 12.3]          1666         86.5204   +3.4796
+  High       [12.3, 15.0]          1668         86.9946   +3.0054
+  ALL        —                      5000         86.6918   +3.3082
+
+  Monotonic improvement with SNR? NO
+  High-SNR Δ from null = +3.0054 deg  (does not clear the 5.73 deg floor)
+  Verdict (mirrors preregistration_lam_retune.md's Step 3 logic): NULL
+
+----------------------------------------------------------------------------------------------------
+  MODEL: poc_b (PoC)
+----------------------------------------------------------------------------------------------------
+
+  Tercile    SNR range                 N  mean sep (deg)    vs null
+  ---------- -------------------- ------ --------------- ----------
+  Low        [7.0, 9.6]          1666         86.7639   +3.2361
+  Mid        [9.7, 12.3]          1666         87.1982   +2.8018
+  High       [12.3, 15.0]          1668         87.1001   +2.8999
+  ALL        —                      5000         87.0208   +2.9792
+
+  Monotonic improvement with SNR? NO
+  High-SNR Δ from null = +2.8999 deg  (does not clear the 5.73 deg floor)
+  Verdict (mirrors preregistration_lam_retune.md's Step 3 logic): NULL
+
+----------------------------------------------------------------------------------------------------
+  MODEL: tcn
+----------------------------------------------------------------------------------------------------
+
+  Tercile    SNR range                 N  mean sep (deg)    vs null
+  ---------- -------------------- ------ --------------- ----------
+  Low        [7.0, 9.6]          1666         86.1179   +3.8821
+  Mid        [9.7, 12.3]          1666         87.7449   +2.2551
+  High       [12.3, 15.0]          1668         87.4665   +2.5335
+  ALL        —                      5000         87.1099   +2.8901
+
+  Monotonic improvement with SNR? NO
+  High-SNR Δ from null = +2.5335 deg  (does not clear the 5.73 deg floor)
+  Verdict (mirrors preregistration_lam_retune.md's Step 3 logic): NULL
+
+----------------------------------------------------------------------------------------------------
+  MODEL: cnn_attention
+----------------------------------------------------------------------------------------------------
+
+  Tercile    SNR range                 N  mean sep (deg)    vs null
+  ---------- -------------------- ------ --------------- ----------
+  Low        [7.0, 9.6]          1666         80.1503   +9.8497
+  Mid        [9.7, 12.3]          1666         77.9483  +12.0517
+  High       [12.3, 15.0]          1668         74.4672  +15.5328
+  ALL        —                      5000         77.5207  +12.4793
+
+  Monotonic improvement with SNR? YES
+  High-SNR Δ from null = +15.5328 deg  (CLEARS the 5.73 deg floor)
+  Verdict (mirrors preregistration_lam_retune.md's Step 3 logic): REAL-RECOVERY-CONSISTENT
+
+
+====================================================================================================
+SUMMARY: SNR-stratified sky_position angular separation, all models
+====================================================================================================
+Model                     ALL      Low      Mid     High   Monotonic?     High Δ                    Verdict
+-----------------------------------------------------------------------------------------------------------
+poc_a (baseline)        86.69    86.56    86.52    86.99           NO     +3.01                       NULL
+poc_b (PoC)             87.02    86.76    87.20    87.10           NO     +2.90                       NULL
+tcn                     87.11    86.12    87.74    87.47           NO     +2.53                       NULL
+cnn_attention           77.52    80.15    77.95    74.47          YES    +15.53   REAL-RECOVERY-CONSISTENT
+
+
+Markdown report: experiments/phic_psi_poc-redo/snr_output/snr_stratification_sky_position_20260918_153412.md
+Done.

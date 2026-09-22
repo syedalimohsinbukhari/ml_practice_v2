@@ -36,6 +36,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
+from gwml.evaluation.plot_style import SAVE_DPI
+
 # Ensure repo root and src/ are on the path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _EXPERIMENT_DIR = Path(__file__).resolve().parent
@@ -43,7 +45,6 @@ sys.path.insert(0, str(_REPO_ROOT))
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from experiments.plot_style import update_style
-from combo_labels import COMBO_LABELS
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +117,7 @@ def _check_sign_combination(
     harness_passes = bool(max_R_std < 1e-10 and max_delta_std < 1e-10)
 
     if not harness_passes:
-        print("  *** HARNESS CHECK FAILED: (R,δ) not constant at ι=0 along 2φc+2ψ=const")
+        print("  *** HARNESS CHECK FAILED: (R, δ) not constant at ι = 0 along 2 φc + 2ψ = const")
         print(f"      max within-group std(R) = {max_R_std:.2e}, max within-group std(δ) = {max_delta_std:.2e}")
         print("      DO NOT PROCEED — the analytical harness has a bug.")
         return {
@@ -303,11 +304,8 @@ def _check_sign_combination(
     _export_sweep_csv(sweep_results, results_by_sign, sweep_csv_path)
     print(f"\n  Sweep results exported to: {sweep_csv_path}")
 
-    # --- Plot ratio vs ι ---
-    try:
-        _plot_ratio_vs_iota(sweep_results, results_by_sign)
-    except Exception as e:
-        print(f"  (plot skipped: {e})")
+    # --- Plot ratio vs. ι ---
+    _plot_ratio_vs_iota(sweep_results)
 
     return {
         "harness_passes": harness_passes,
@@ -336,12 +334,8 @@ def _export_sweep_csv(sweep_results, results_by_sign, path):
                         f"{r['ratio']:.3f}", f"CI=[{ci[0]:.3f},{ci[1]:.3f}]", ""])
 
 
-def _plot_ratio_vs_iota(sweep_results, results_by_sign):
+def _plot_ratio_vs_iota(sweep_results):
     """Plot combo correlation ratio vs. the inclination angle ι."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
     iotas_pos = [s["iota"] for s in sweep_results if s["cos_iota_sign"] == "+"]
     ratios_pos = [s["ratio"] for s in sweep_results if s["cos_iota_sign"] == "+"]
     winners_pos = [s["winner"] for s in sweep_results if s["cos_iota_sign"] == "+"]
@@ -354,35 +348,16 @@ def _plot_ratio_vs_iota(sweep_results, results_by_sign):
 
     # Left: cos ι > 0
     colors_pos = ["C0" if w == "combo_A" else "C1" for w in winners_pos]
-    ax1.scatter(iotas_pos, ratios_pos, c=colors_pos, s=32, zorder=5)
-    ax1.axhline(y=1.0, color="k", linestyle="--", alpha=0.75, label="no preference (1.0)")
-    ax1.set_xlabel("ι [rad]")
-    ax1.set_ylabel("correlation ratio (well / poorly)")
-    ax1.set_title("cos ι > 0 \n(face-on ← ι=0,  ι=π/2 → edge-on)")
-    ax1.legend(loc="upper right")
-    ax1.set_ylim(0.9, None)
-    # Annotate the reference point
-    r45 = results_by_sign["cos_ι_>_0"]
-    ax1.axvline(x=np.pi / 4, color="k", linestyle=":", alpha=0.75)
-    ax1.annotate(f"ι=π/4: ({COMBO_LABELS[r45['well_constrained']]})",
-                 xy=(np.pi / 4, r45["ratio"]), xytext=(np.pi / 4 + 0.2, r45["ratio"] + 0.02),
-                 arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9, zorder=10)
+    ax1.scatter(iotas_pos, ratios_pos, c=colors_pos, s=32)
+    ax1.set_title(r"$\cos\iota > 0$")
 
     # Right: cos ι < 0
     colors_neg = ["C0" if w == "combo_A" else "C1" for w in winners_neg]
-    ax2.scatter(iotas_neg, ratios_neg, c=colors_neg, s=32, zorder=5)
-    ax2.axhline(y=1.0, color="k", linestyle="--", alpha=0.75, label="no preference (1.0)")
-    ax2.set_xlabel("ι [rad]")
-    # ax2.set_ylabel("correlation ratio (well / poorly)")
-    ax2.set_title("cos ι < 0 \n(edge-on ← ι=π/2,  ι=π → face-on)")
-    ax2.legend(loc="upper left")
-    ax2.set_ylim(0.9, None)
-    r135 = results_by_sign["cos_ι_<_0"]
-    ax2.axvline(x=3 * np.pi / 4, color="k", linestyle=":", alpha=0.75)
-    ax2.annotate(f"ι=3π/4: ({COMBO_LABELS[r135['well_constrained']]})",
-                 xy=(3 * np.pi / 4, r135["ratio"]),
-                 xytext=(3 * np.pi / 4 - 0.5, r135["ratio"] + 0.02),
-                 arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9)
+    ax2.scatter(iotas_neg, ratios_neg, c=colors_neg, s=32)
+    ax2.set_title(r"$\cos\iota < 0$")
+
+    ax1.set_ylabel("Correlation ratio")
+    [i.set_xlabel(r"$\iota$ [rad]") for i in [ax1, ax2]]
 
     save_fig(fig, _EXPERIMENT_DIR / "sweep_1_1_ratio_vs_iota")
 
@@ -391,7 +366,7 @@ def save_fig(fig: Figure, path, second: str = 'png'):
     fig.tight_layout()
     fmt = ['pdf'] + [second]
     for i in fmt:
-        fig.savefig(f'{path}.{i}', dpi=300)
+        fig.savefig(f'{path}.{i}', dpi=SAVE_DPI)
     plt.close(fig)
 
 

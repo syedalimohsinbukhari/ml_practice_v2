@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parents[2]
 import sys
 sys.path.insert(0, str(ROOT))
 from experiments.plot_style import SERIES_COLORS, update_style, LEGEND_FONT_SIZE, LINE_WIDTH, SAVE_DPI
+from combo_labels import COMBO_LABELS
 
 # Round-1 (λ=0.01) checkpoints for the redo's down-select-confirmed 4-model set.
 DEFAULT_RUNS = {
@@ -68,8 +69,8 @@ model_label_dict = {
 
 log_var_targets = {
     "coa_phase": r"$\phi_\text{c}$",
-    "combo_A": r"$2\phi_c+2\psi$",
-    "combo_B": r"$2\phi_c-2\psi$",
+    "combo_A": COMBO_LABELS["combo_A"],
+    "combo_B": COMBO_LABELS["combo_B"],
     "inclination": "Inclination",
     "mchirp": r"M$_\text{chirp}$",
     "merger_time": r"t$_\text{merge}$",

@@ -116,9 +116,8 @@ def project_to_R_delta(
 def _random_sky_coefficients(n: int, rng: np.random.Generator) -> np.ndarray:
     """Generate n random (a, b) sky-position coefficient pairs.
 
-    Each pair is a random unit 2D vector (the antenna-pattern mixing depends
-    only on the ratio a/b, not the absolute scale, but unit vectors give a
-    natural scale-free sampling).
+    Each pair is a random unit 2D vector (the antenna-pattern mixing depends only on the ratio a/b, not the absolute
+    scale, but unit vectors give a natural scale-free sampling).
     """
     angles = rng.uniform(0.0, 2.0 * np.pi, size=n)
     return np.column_stack([np.cos(angles), np.sin(angles)])  # (n, 2): (a, b)

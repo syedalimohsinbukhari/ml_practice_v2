@@ -1,10 +1,9 @@
-"""Prerequisite checks for the φc/ψ degeneracy PoC redo (Step 1 of redo_procedure.md).
+"""
+Prerequisite checks for the φc/ψ degeneracy PoC redo (Step 1 of redo_procedure.md).
 
-Copied from ``experiments/phic_psi_poc/prereq_checks.py`` with the combo↔
-(φc,ψ) conversion corrected for ``2φc±2ψ`` (formulae_reference.md A.2) —
-the original's ``φc±2ψ`` result is void, not reusable even for direction,
-so this rerun is a full redo, not a resumption. Run this BEFORE writing
-any further loss code — the results determine:
+Copied from ``experiments/phic_psi_poc/prereq_checks.py`` with the combo ↔ (φc, ψ) conversion corrected for ``2φc ± 2ψ``
+(formulae_reference.md A.2) — the original's ``φc±2ψ`` result is void, not reusable even for direction, so this rerun
+is a full redo, not a resumption. Run this BEFORE writing any further loss code — the results determine:
 
   - Which combo (2φc+2ψ or 2φc−2ψ) is well-constrained → ``well_constrained_combo``
   - The curriculum weight function w(ι) (via the redo's ``curriculum.py``)
@@ -44,6 +43,7 @@ sys.path.insert(0, str(_REPO_ROOT))
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from experiments.plot_style import update_style
+from combo_labels import COMBO_LABELS
 
 
 # ---------------------------------------------------------------------------
@@ -58,27 +58,22 @@ def _check_sign_combination(
     n_boot: int = 5000,
     seed: int = 42,
 ) -> dict:
-    """Using the toy antenna-response model (Appendix A.5):
+    r"""Using the toy antenna-response model (Appendix A.5):
 
     1. Generate random (a, b) sky-position coefficients.
-    2. At each sky position, sweep ψ across [0, π) and φc across [0, 2π).
-    3. Compute (R, δ) from the detector_signal model.
-    4. Confirm that at ι=0, (R, δ) is constant along 2φc+2ψ = const lines (harness correctness check).
-    5. At non-zero ι, compute which linear combination (2φc+2ψ or 2φc−2ψ) correlates more strongly with R, δ.
+    2. At each sky position, sweep :math:`\psi` across [0, :math:`\pi`) and φc across [0, :math:`2\pi`).
+    3. Compute (R, :math:`\delta`) from the detector_signal model.
+    4. Confirm that at :math:`\iota=0, (R, \delta`) is constant along :math:`2\varphi_c+2\psi` = const lines.
+    5. At non-zero :math:`\iota`, compute which linear combination
+       (:math:`2\varphi_c + 2\psi` or :math:`2\varphi_c − 2\psi`) correlates more strongly with R, :math:`\delta`.
 
     Args:
-        n_sky_samples: Number of random (a,b) sky-position pairs.
-        n_iota_sweep: ι points PER SIGN REGIME in the sweep (50 total).
-        n_sweep: Combo values swept per sky position per ι.
+        n_sky_samples: Number of random (a, b) sky-position pairs.
+        n_iota_sweep: :math:`\iota` points PER SIGN REGIME in the sweep (50 total).
+        n_sweep: Combo values swept per sky position per :math:`\iota`.
         n_boot: Bootstrap resamples for 95% CI.
         seed: Random seed for reproducibility.
     """
-    # Local unqualified import (not experiments.phic_psi_poc.curriculum,
-    # which would point at the original, wrong-formula module — and
-    # "phic_psi_poc-redo" isn't a valid dotted package name anyway, since
-    # Python identifiers can't contain hyphens). Resolves to this
-    # directory's own curriculum.py via the running script's own directory
-    # being on sys.path, same pattern trainer.py uses.
     from curriculum import (
         _random_sky_coefficients,
         detector_signal,
@@ -94,7 +89,7 @@ def _check_sign_combination(
     # --- Harness correctness check: ι=0 must be fully degenerate ---
     # For each (a,b) pair, fix one const_line = 2φc + 2ψ.
     # Sweep ψ (adjusting φc to stay on the line).
-    # At ι=0, (R,δ) must be constant within each group — the defining property of the degeneracy.
+    # At ι=0, (R, δ) must be constant within each group — the defining property of the degeneracy.
     iota_zero = 0.0
     max_R_std = 0.0
     max_delta_std = 0.0
@@ -149,9 +144,9 @@ def _check_sign_combination(
         for a, b in sky_coeffs:
             # Sweep combo_A while holding combo_B fixed.
             # combo_A = 2phic+2psi, combo_B = 2phic-2psi (corrected, A.2):
-            # combo_A+combo_B = 4*phic (was 2*phic for phic+2psi/phic-2psi),
-            # combo_A-combo_B = 4*psi (unchanged). Sweep range widened from
-            # [0,4pi) to [0,6pi) to match combo_A's own natural max range
+            # combo_A+combo_B = 4*phic,
+            # combo_A-combo_B = 4*psi.
+            # Sweep range widened from [0,4pi) to [0,6pi) to match combo_A's own natural max range
             # (2phic in [0,4pi) + 2psi in [0,2pi)).
             cB_fixed = rng_local.uniform(0.0, 6.0 * np.pi)
             cA_vals = np.linspace(0.0, 6.0 * np.pi, n_sweep)
@@ -355,36 +350,36 @@ def _plot_ratio_vs_iota(sweep_results, results_by_sign):
     ratios_neg = [s["ratio"] for s in sweep_results if s["cos_iota_sign"] == "−"]
     winners_neg = [s["winner"] for s in sweep_results if s["cos_iota_sign"] == "−"]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
 
     # Left: cos ι > 0
     colors_pos = ["C0" if w == "combo_A" else "C1" for w in winners_pos]
-    ax1.scatter(iotas_pos, ratios_pos, c=colors_pos, s=60, zorder=5)
-    ax1.axhline(y=1.0, color="gray", linestyle="--", alpha=0.5, label="no preference (1.0)")
+    ax1.scatter(iotas_pos, ratios_pos, c=colors_pos, s=32, zorder=5)
+    ax1.axhline(y=1.0, color="k", linestyle="--", alpha=0.75, label="no preference (1.0)")
     ax1.set_xlabel("ι [rad]")
     ax1.set_ylabel("correlation ratio (well / poorly)")
-    ax1.set_title("cos ι > 0  (face-on ← ι=0,  ι=π/2 → edge-on)")
+    ax1.set_title("cos ι > 0 \n(face-on ← ι=0,  ι=π/2 → edge-on)")
     ax1.legend(loc="upper right")
     ax1.set_ylim(0.9, None)
     # Annotate the reference point
     r45 = results_by_sign["cos_ι_>_0"]
-    ax1.axvline(x=np.pi / 4, color="gray", linestyle=":", alpha=0.3)
-    ax1.annotate(f"ι=π/4: {r45['ratio']:.2f}x\n({r45['well_constrained']})",
+    ax1.axvline(x=np.pi / 4, color="k", linestyle=":", alpha=0.75)
+    ax1.annotate(f"ι=π/4: ({COMBO_LABELS[r45['well_constrained']]})",
                  xy=(np.pi / 4, r45["ratio"]), xytext=(np.pi / 4 + 0.2, r45["ratio"] + 0.02),
-                 arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9)
+                 arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9, zorder=10)
 
     # Right: cos ι < 0
     colors_neg = ["C0" if w == "combo_A" else "C1" for w in winners_neg]
-    ax2.scatter(iotas_neg, ratios_neg, c=colors_neg, s=60, zorder=5)
-    ax2.axhline(y=1.0, color="gray", linestyle="--", alpha=0.5, label="no preference (1.0)")
+    ax2.scatter(iotas_neg, ratios_neg, c=colors_neg, s=32, zorder=5)
+    ax2.axhline(y=1.0, color="k", linestyle="--", alpha=0.75, label="no preference (1.0)")
     ax2.set_xlabel("ι [rad]")
-    ax2.set_ylabel("correlation ratio (well / poorly)")
-    ax2.set_title("cos ι < 0  (edge-on ← ι=π/2,  ι=π → face-on)")
+    # ax2.set_ylabel("correlation ratio (well / poorly)")
+    ax2.set_title("cos ι < 0 \n(edge-on ← ι=π/2,  ι=π → face-on)")
     ax2.legend(loc="upper left")
     ax2.set_ylim(0.9, None)
     r135 = results_by_sign["cos_ι_<_0"]
-    ax2.axvline(x=3 * np.pi / 4, color="gray", linestyle=":", alpha=0.3)
-    ax2.annotate(f"ι=3π/4: {r135['ratio']:.2f}x\n({r135['well_constrained']})",
+    ax2.axvline(x=3 * np.pi / 4, color="k", linestyle=":", alpha=0.75)
+    ax2.annotate(f"ι=3π/4: ({COMBO_LABELS[r135['well_constrained']]})",
                  xy=(3 * np.pi / 4, r135["ratio"]),
                  xytext=(3 * np.pi / 4 - 0.5, r135["ratio"] + 0.02),
                  arrowprops=dict(arrowstyle="->", color="gray"), fontsize=9)
@@ -487,7 +482,7 @@ def main():
         w_interp = result_1_2["w_interpolated"]
         print(f"  w(cos²ι=1) ≈ {w_interp[0]:.4f} (face-on, ι≈0)")
         print(f"  w(cos²ι=0) ≈ {w_interp[-1]:.4f} (edge-on, ι≈π/2)")
-        # Intermediate shape check: report 5 equally-spaced ι values
+        # Intermediate shape check: report 5 equally spaced ι values
         n = len(result_1_2["iota_grid"])
         indices = [0, n // 4, n // 2, 3 * n // 4, n - 1]
         print(f"  Intermediate shape (5 of {n} points):")

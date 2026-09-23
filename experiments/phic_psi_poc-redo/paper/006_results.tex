@@ -59,7 +59,7 @@ This study's own pre-registered interpretability gate (\S\ref{sec:phicpsi:prereg
 
 $\varphi_c$ and $\psi$: 0 of 8 tests significant, most worse than chance.
 $\iota$ reads significant in all four models at the uncorrected $\alpha=0.05$ level, but applying a 12-test Bonferroni correction ($0.05/12\approx0.00417$) leaves only \cnnAttn's $p=0.0003$ surviving; \pocA ($p=0.0223$), \pocB ($p=0.0052$), and \Tcn ($p=0.0059$) do not.
-Inclination therefore carries a statistically real signal in one model under correction, and a signal significant only uncorrected in the other three --- in every case with an effect size (\S\ref{sec:phicpsi:inclination}) well below this study's own materiality floor of 0.10~rad.
+Inclination therefore reads statistically distinguishable from the shuffled null in one model under correction, and distinguishable only uncorrected in the other three --- but \S\ref{sec:phicpsi:inclination} shows this reflects partial mode collapse, not a recoverable per-sample signal, in every case with an effect size well below this study's own materiality floor of 0.10~rad.
 
 \subsection{SNR stratification}
 \label{sec:phicpsi:snr}
@@ -77,11 +77,15 @@ The failure signature these checkpoints show is \stdratio\ settling low from ear
 This study's calibration stage for the multi-step perturbation trace failed on its own pre-declared terms for every one of the four models: the mchirp positive control never reads directional even under favorable fresh-init conditions, so the probe's verdicts on the heads under test cannot be trusted.
 No salvage was attempted; the probe is stated as parked, not closed, and carried forward as future work (\S\ref{sec:phicpsi:future}).
 
-\subsection{Inclination: a small, real, sub-floor signal --- not a clean noise floor}
+\subsection{Inclination: partial mode collapse, not a small real signal or a clean noise floor}
 \label{sec:phicpsi:inclination}
 
 Inclination was used throughout as a same-model noise-floor calibration for judging $\varphi_c/\psi$'s own band-to-band deviations, on the premise that its apparent failure was clean noise.
-That premise does not survive this study's bootstrap evidence: $\iota$ carries a small, real signal (\S\ref{sec:phicpsi:bootstrap}), with an effect size of roughly 0.02--0.04~rad, verified against the underlying scatter plots and not the $p$-value alone.
+That premise does not survive this study's bootstrap evidence (\S\ref{sec:phicpsi:bootstrap}): $\iota$ is not uninformative in the sense of pure random guessing.
+But neither is it a small, real, per-sample-recoverable signal, the reading originally given here.
+A predicted-vs-true inclination scatter (\texttt{inclination\_output/inclination\_scatter\_20260923\_132228.\{png,pdf\}}) shows no diagonal trend toward either the true value or the confirmed exact $\iota\leftrightarrow2\pi-\iota$ waveform-mirror value (verified directly against the real IMRPhenomD generator via \texttt{pycbc.waveform.get\_td\_waveform}, not assumed) in any of the four models.
+Instead, predictions cluster into a handful of preferred angles largely independent of the true value --- partial mode collapse, quantified by this head's own circular resultant ($\text{circ}_r=0.32$--$0.60$ across the four models), well short of the $\text{circ}_r>0.9$ full-collapse grade used elsewhere for $\varphi_c$/$\psi$, but far above the $\approx0$ that either clean noise or genuine recovery would give.
+Tellingly, the ranking tracks each model's own $\varphi_c$/$\psi$ collapse severity: \pocA/\pocB (COLLAPSE-graded on $\varphi_c$/$\psi$) show the highest inclination $\text{circ}_r$, \Tcn/\cnnAttn (not collapsed there) the lowest --- consistent with a shared training-dynamics origin across a model's periodic heads, not head-specific recoverable physics.
 No $\varphi_c/\psi$ deviation, face-on to edge-on, clears the 0.10~rad floor in either direction for any model; a companion check on a non-angular control (chirp mass, banded identically) shows small band-to-band spread, ruling out the banding scheme itself as an alternative explanation.
 
 \subsection{A new finding: \cnnAttn's partial sky-localization skill}

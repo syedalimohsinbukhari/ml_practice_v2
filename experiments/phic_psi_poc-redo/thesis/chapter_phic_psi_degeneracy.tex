@@ -113,7 +113,7 @@ Inclination, chirp mass, merger time, SNR, and sky position are retained as \emp
 The \textbf{degeneracy hypothesis} under test is: \emph{$\varphi_c$ and $\psi$ carry no strain-only recoverable signal for this population, in this architecture and loss family} --- a point-estimating network can do no better than the optimal constant prediction, because for most of the population the likelihood constrains only the combination $2\varphi_c \pm 2\psi$, and the remaining direction is unconstrained.
 The alternative hypothesis motivating the experimental design is that even if $\varphi_c$ and $\psi$ are individually unrecoverable, their \textbf{sum and difference combinations} may be well-conditioned: a network parameterized in $2\varphi_c \pm 2\psi$ combination space, with a curriculum that weights each combination according to how well the current inclination constrains it, might learn the recoverable structure that a naive per-angle parameterization misses.
 
-Conditioning on inclination $\iota$ --- tested as future work in \S\ref{sec:phicpsi:future} --- is treated throughout as a \emph{training-paradigm design choice}, motivated by the analytic structure of \S\ref{sec:phicpsi:prereq} showing that the well-constrained combination is recoverable given $\iota$, not as a forced move necessitated by a proof that $\iota$ itself is unrecoverable; \S\ref{sec:phicpsi:inclination} shows $\iota$ in fact carries a small, real signal, which sharpens rather than resolves this question.
+Conditioning on inclination $\iota$ --- tested as future work in \S\ref{sec:phicpsi:future} --- is treated throughout as a \emph{training-paradigm design choice}, motivated by the analytic structure of \S\ref{sec:phicpsi:prereq} showing that the well-constrained combination is recoverable given $\iota$, not as a forced move necessitated by a proof that $\iota$ itself is unrecoverable; \S\ref{sec:phicpsi:inclination} shows $\iota$'s own behavior is more complicated than clean noise --- partial mode collapse, not a real per-sample signal --- which still leaves this question open rather than resolving it.
 No model in this chapter takes $\iota$, or any function of it, as an input at any stage; it appears only as a control \emph{output} head.
 
 \subsection{Circular regression framework}
@@ -325,7 +325,7 @@ Whether a sub-null MAE reflects real signal is answered formally in \S\ref{sec:p
 Applying a 12-test Bonferroni correction (threshold $0.05/12 \approx 0.00417$) to these four inclination tests: only \texttt{cnn\_attention}'s $p=0.0003$ clears it.
 \texttt{poc\_a} ($p=0.0223$), \texttt{poc\_b} ($p=0.0052$), and \texttt{tcn} ($p=0.0059$) do \textbf{not} survive the correction.
 This chapter's own prior working record (\texttt{closing\_summary.md}) reported ``significant in all 4 models'' without stating or applying this threshold; that statement is corrected here.
-The honest summary is: inclination carries a statistically real signal in \texttt{cnn\_attention} under multiple-comparisons correction, and a signal significant only at the uncorrected level in the other three models --- in every case with an effect size (\S\ref{sec:phicpsi:inclination}) well below this chapter's own materiality floor, so the correction changes the \emph{rigor} of the claim, not the \emph{conclusion} drawn from it.
+The honest summary is: inclination reads statistically distinguishable from the shuffled null in \texttt{cnn\_attention} under multiple-comparisons correction, and distinguishable only at the uncorrected level in the other three models --- but \S\ref{sec:phicpsi:inclination} shows this reflects partial mode collapse, not a recoverable per-sample signal, in every case with an effect size well below this chapter's own materiality floor.
 
 \subsection{SNR stratification}
 \label{sec:phicpsi:snr}
@@ -361,16 +361,19 @@ This study's calibration stage for the multi-step perturbation trace failed on i
 No salvage was attempted: \texttt{final} was never run, because its output would be untrusted by this study's own rule regardless.
 The probe is stated here as \textbf{parked, not closed} --- an open instrument-calibration problem, not a resolved confound --- and is carried forward as future work (\S\ref{sec:phicpsi:future}) rather than presented with any closure language.
 
-\subsection{Inclination: a small, real, sub-floor signal --- not a clean noise floor}
+\subsection{Inclination: partial mode collapse, not a small real signal or a clean noise floor}
 \label{sec:phicpsi:inclination}
 
 Inclination was used throughout as a same-model noise-floor calibration for judging $\varphi_c/\psi$'s own band-to-band deviations, on the premise that its apparent failure was clean noise.
-That premise does not survive this study's bootstrap evidence (\S\ref{sec:phicpsi:bootstrap}): $\iota$ is not uninformative.
-It carries a small, real signal --- most clearly in \texttt{cnn\_attention} ($p=0.0003$, survives Bonferroni correction) and, at the uncorrected level only, in the other three models --- with an effect size of roughly $0.02$--$0.04$~rad, well below this chapter's $0.10$~rad materiality floor.
-Verified against the underlying scatter plots directly, not the $p$-value alone: all four models show a genuine, if noisy, diagonal trend in the $\iota$ panel, visibly different from $\varphi_c/\psi$'s flat or diffuse patterns in the same images --- ruling out a large-$N$ statistical artifact with no real per-sample structure behind it.
+That premise does not survive this study's bootstrap evidence (\S\ref{sec:phicpsi:bootstrap}): $\iota$ is not uninformative in the sense of pure random guessing.
+But neither is it a small, real, per-sample-recoverable signal, the reading originally given here --- most clearly in \texttt{cnn\_attention} ($p=0.0003$, survives Bonferroni correction) and, at the uncorrected level only, in the other three models, with an effect size of roughly $0.02$--$0.04$~rad, well below this chapter's $0.10$~rad materiality floor either way.
+A predicted-vs-true inclination scatter (\texttt{inclination\_output/inclination\_scatter\_20260923\_132228.\{png,pdf\}}) shows no diagonal trend toward either the true value or the confirmed exact $\iota\leftrightarrow2\pi-\iota$ waveform-mirror value (verified directly against the real IMRPhenomD generator via \texttt{pycbc.waveform.get\_td\_waveform}, not assumed) in any of the four models.
+Instead, predictions cluster into a handful of preferred angles largely independent of the true value --- partial mode collapse, quantified by this head's own circular resultant ($\text{circ}_r=0.32$--$0.60$ across the four models), well short of the $\text{circ}_r>0.9$ full-collapse grade used elsewhere for $\varphi_c$/$\psi$, but far above the $\approx0$ that either clean noise or genuine recovery would give.
+Tellingly, the ranking tracks each model's own $\varphi_c$/$\psi$ collapse severity: \texttt{poc\_a}/\texttt{poc\_b} (COLLAPSE-graded on $\varphi_c$/$\psi$) show the highest inclination $\text{circ}_r$, \texttt{tcn}/\texttt{cnn\_attention} (not collapsed there) the lowest --- consistent with a shared training-dynamics origin across a model's periodic heads, not head-specific recoverable physics.
+The earlier claim that this scatter showed ``a genuine, if noisy, diagonal trend'' was not backed by a saved, checkable artifact when originally written; this correction is grounded in the actual plot, generated for the first time during this pass.
 
 This changes how the face-on/mixed/edge-on stratification below must be read.
-It is no longer a clean noise-floor test; it is a descriptive comparison against a control that itself carries a small, real bias, and is presented on those terms rather than as a formal calibration.
+It is no longer a clean noise-floor test; it is a descriptive comparison against a control that is itself partially collapsed, not cleanly random, and is presented on those terms rather than as a formal calibration.
 
 \begin{table}[tbp]
     \centering
@@ -588,7 +591,7 @@ All paths relative to \texttt{experiments/phic\_psi\_poc-redo/}.
         Table~\ref{tab:phicpsi:redo:bootstrap}, Bonferroni correction (\S6.3) & \texttt{bootstrap\_output/bootstrap\_ang\_mae\_20260916\_113955.md} \\
         Table~\ref{tab:phicpsi:redo:snr} & \texttt{snr\_output/snr\_stratification\_20260916\_113730.md} \\
         \S6.6 (perturbation trace, parked) & \texttt{perturbation\_trace\_output/perturbation\_trace\_early\_20260916\_114129.md} \\
-        Table~\ref{tab:phicpsi:redo:inclination} & \texttt{inclination\_output/} \\
+        Table~\ref{tab:phicpsi:redo:inclination}; partial-collapse finding (\S\ref{sec:phicpsi:inclination}) & \texttt{inclination\_output/inclination\_stratification\_20260923\_132228.md}, scatter \texttt{inclination\_output/inclination\_scatter\_20260923\_132228.\{png,pdf\}} \\
         Table~\ref{tab:phicpsi:redo:sky} & \texttt{bootstrap\_output/bootstrap\_sky\_separation\_20260918\_151359.md}, \texttt{snr\_output/snr\_stratification\_sky\_position\_20260918\_153412.md} \\
         Table~\ref{tab:phicpsi:redo:gate}, false-positive story & \texttt{diagnostic\_output/diagnostic\_logvar\_gate\_20260916\_085902.md}; scatter PNGs \\
         Fig.~\ref{fig:phicpsi:redo:memorization} & \texttt{diagnostic\_output/redo\_models\_train\_val\_loss.\{png,pdf\}} \\

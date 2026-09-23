@@ -288,13 +288,53 @@ So whatever mechanism drives §6.7's small real signal, it is not "the network l
 The structural degeneracy is a genuine, previously-undocumented ceiling on how good the inclination head could ever score (nothing better than $\approx0.785\,\text{rad}$ MAE is achievable even in the idealized best case), and it reinforces *why* §6.7 already hedges inclination as "not a clean noise floor" rather than a fully clean positive control — but it is not, by itself, the explanation for the specific small magnitude already reported there.
 That magnitude remains whatever §6.7 already says it is: a small, real, sub-materiality-floor signal of separately-undetermined origin.
 
-**Not yet done, flagged for a decision:** none of this has been added to the paper itself (no changes beyond the table's support column) — whether the structural-degeneracy finding belongs as an additional caveat in `004_methods.tex` (near the inclination sentence) or `006_results.tex` §6.7 (near "not a clean noise floor") is an open call, not made unilaterally here.
-
 **Follow-up, 2026-09-23: prepared, not yet run, since this needs the GPU machine.**
 The quantitative Monte Carlo argument above is still an aggregate-statistic argument, and this repo's own house rule (`008_discussion.tex`: *"the corrective... is mechanism inspection — a scatter plot, not a summary statistic"*) applies here just as much as it did to `std_ratio`.
 `inclination_stratification.py` was extended to also save a per-model predicted-vs-true inclination scatter, `inclination_output/inclination_scatter_<timestamp>.{png,pdf}`, colored by face-on/mixed/edge-on band, with two reference lines drawn: $y=x$ (perfect recovery) and $y=2\pi-x$ (the exact waveform-degeneracy line confirmed above via direct `pycbc.waveform.get_td_waveform` comparison).
 If the small ang_MAE gap already on record is real partial $\cos\iota$ recovery, points should show *some* visible pull toward one or both lines rather than filling the square uniformly; if it's noise that happens to average out slightly below null, the scatter will look uniform regardless of what the aggregate number says.
 Not run locally (needs the trained checkpoints + GPU, per this repo's CPU-only rule) — queued for the lab GPU machine.
+
+### 4.3 The results are in: neither hypothesis survived — it's partial mode collapse
+
+**Status: resolved 2026-09-23; paper and thesis chapter both corrected.**
+The user ran `inclination_stratification.py` on the lab GPU machine (`inclination_output/inclination_scatter_20260923_132228.{png,pdf}`, `inclination_output/inclination_stratification_20260923_132228.{log,md}`) and eyeballed it independently of this write-up, per this repo's own scatter-over-summary-statistic rule.
+
+**What the scatter actually shows, for all four models:** no diagonal trend toward $y=x$ (perfect recovery) or $y=2\pi-x$ (the confirmed exact waveform-mirror line) — the two structured possibilities §4.2 had tested for.
+Instead, predictions cluster into a handful of horizontal bands that repeat across the entire range of true $\iota$: neither of the two hypotheses under test.
+
+**Quantified via `circ_r`** (this paper's own mode-collapse diagnostic, already computed by the script's pre-existing `circular_r()` call — not a new instrument, just not previously surfaced for this head):
+
+| Model | circ_r (inclination, ALL) |
+|---|---|
+| poc_a | 0.603 |
+| poc_b | 0.534 |
+| tcn | 0.432 |
+| cnn_attention | 0.317 |
+
+For reference: this paper grades $\varphi_c$/$\psi$ as COLLAPSE at $\text{circ}_r>0.9$; pure uniform-random guessing gives $\text{circ}_r\approx0$; the idealized-good-$\cos\iota$-recovery hypothesis from §4.2 would also give $\text{circ}_r\approx0$ (correctly-or-mirror-labeled predictions still span the full circle).
+None of the four models are near either extreme — this is **partial mode collapse into a handful of preferred angles**, a third, distinct failure mode from both hypotheses tested, and from full single-point collapse.
+
+**A striking, unplanned cross-check:** the `circ_r` ranking tracks each model's own $\varphi_c$/$\psi$ collapse severity exactly.
+`poc_a`/`poc_b` — the two models graded COLLAPSE on $\varphi_c$/$\psi$ elsewhere in this paper — have the *highest* inclination `circ_r`; `tcn`/`cnn_attention` — graded noisy-not-collapsed on $\varphi_c$/$\psi$ — have the *lowest*.
+That's evidence of a shared training-dynamics cause across a given model's periodic heads generally, not something specific to inclination's own physics or recoverability.
+
+**A second, independent finding: the paper's prior claim about this exact scatter was unsubstantiated.**
+`006_results.tex` §6.7 and the mirrored thesis-chapter section both stated, before this pass, that the finding was *"verified against the underlying scatter plots directly... all four models show a genuine, if noisy, diagonal trend."*
+No scatter-plot artifact for inclination existed anywhere in this repo before this session (confirmed by an explicit search, §4.2 above) — `inclination_stratification.py` computed and discarded predictions in memory, saving only aggregate `ang_MAE`/`circ_r` tables.
+So that claim wasn't traceable to any file, contrary to this project's own claim-to-artifact discipline, and the actual first-ever artifact shows the opposite of what was claimed (banding, not a diagonal trend).
+
+**Fix applied, 2026-09-23:** `004_methods.tex`'s population table (support column) was already fixed under §4.2.
+`006_results.tex` §6.7 (title + body), the parallel bootstrap-section sentence, `thesis/chapter_phic_psi_degeneracy.md` and `.tex` (the §8.1 cross-reference, §6.3-equivalent bootstrap summary, and §6.7 itself), and both claim-to-artifact appendices (paper `010_appendix1.tex`, thesis chapter's own table) were all updated: "small, real, sub-floor signal" → "partial mode collapse, not a small real signal or a clean noise floor," with the `circ_r` numbers, the cross-model collapse-severity correlation, and the corrected artifact pointer.
+The φ_c/ψ-facing conclusions in that section (no deviation clears the 0.10 rad floor; the mchirp banding-control check) were untouched — they were never about inclination's own recoverability, and remain correct on their own terms.
+
+**Does this threaten the paper's actual headline result?**
+No, and the reason is scope, not luck: the $\varphi_c$/$\psi$ null was never established *using* inclination as evidence.
+It rests on four methods measured directly on $\varphi_c$/$\psi$'s own predictions — collapse/histogram inspection (the COLLAPSE grade and the 99.9%-in-one-bin histogram, `006_results.tex` §Headline), the gradient-chain trace (`005_diagnostics.tex`), the label-permutation bootstrap on $\varphi_c$/$\psi$ directly (`006_results.tex` §Statistical significance), and the SNR/inclination-band stratification of $\varphi_c$/$\psi$ itself.
+None of those four touch inclination's own recoverability; inclination's only role was as a *secondary, interpretive* noise-floor calibration, explicitly flagged as such — and `008_discussion.tex`'s own threats-to-validity list already hedged this exact point ("ι's noise-floor comparison... a reason to read §6.7 as descriptive rather than as a formal statistical calibration") before this investigation even started, so this correction sharpens an already-acknowledged caution rather than exposing an unnoticed one.
+The pre-registered 0.10 rad materiality floor used to judge $\varphi_c$/$\psi$'s own band-to-band deviations is a fixed, independent threshold, not derived from inclination's performance, and is untouched.
+The positive controls (mchirp, merger_time, SNR, sky_position) are separate heads with separately-confirmed healthy metrics, also untouched.
+So: the mechanism and the headline write-up are safe.
+What changed is a secondary claim *about inclination itself* — correctly narrowed from "small real signal" to "partial mode collapse" — plus the discovery that the specific "verified against scatter plots" sentence backing the old version of that claim had no artifact behind it, which is the more important process lesson: a scatter-plot claim this project's own discipline treats as load-bearing evidence still needs the actual saved file, not just the assertion that one was looked at.
 
 ---
 

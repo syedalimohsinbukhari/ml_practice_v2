@@ -53,7 +53,7 @@ Inclination, chirp mass, merger time, SNR, and sky position are retained as *con
 The **degeneracy hypothesis** under test is: *φ_c and ψ carry no strain-only recoverable signal for this population, in this architecture and loss family* — a point-estimating network can do no better than the optimal constant prediction, because for most of the population the likelihood constrains only the combination `2φ_c ± 2ψ`, and the remaining direction is unconstrained.
 The alternative hypothesis motivating the experimental design is that even if φ_c and ψ are individually unrecoverable, their **sum and difference combinations** may be well-conditioned: a network parameterized in `2φ_c ± 2ψ` combination space, with a curriculum that weights each combination according to how well the current inclination constrains it, might learn the recoverable structure that a naive per-angle parameterization misses.
 
-Conditioning on inclination ι — tested as future work in §8.5 — is treated throughout as a *training-paradigm design choice*, motivated by the analytic structure of §3 showing that the well-constrained combination is recoverable given ι, not as a forced move necessitated by a proof that ι itself is unrecoverable; §6.7 shows ι in fact carries a small, real signal, which sharpens rather than resolves this question.
+Conditioning on inclination ι — tested as future work in §8.5 — is treated throughout as a *training-paradigm design choice*, motivated by the analytic structure of §3 showing that the well-constrained combination is recoverable given ι, not as a forced move necessitated by a proof that ι itself is unrecoverable; §6.7 shows ι's own behavior is more complicated than clean noise — partial mode collapse, not a real per-sample signal — which still leaves this question open rather than resolving it.
 No model in this chapter takes ι, or any function of it, as an input at any stage; it appears only as a control *output* head.
 
 ### 2.2 Circular regression framework
@@ -199,7 +199,7 @@ Source: `bootstrap_output/bootstrap_ang_mae_20260916_113955.md`.
 **ι: significant in all four models at the uncorrected α = 0.05 level — but this claim needs a correction this chapter's own record has not previously stated.** Applying a 12-test Bonferroni correction (threshold 0.05/12 ≈ 0.00417) to these four inclination tests: only `cnn_attention`'s p = 0.0003 clears it.
 `poc_a` (p = 0.0223), `poc_b` (p = 0.0052), and `tcn` (p = 0.0059) do **not** survive the correction.
 This chapter's own prior working record (`closing_summary.md`) reported "significant in all 4 models" without stating or applying this threshold; that statement is corrected here.
-The honest summary is: inclination carries a statistically real signal in `cnn_attention` under multiple-comparisons correction, and a signal significant only at the uncorrected level in the other three models — in every case with an effect size (§6.7) well below this chapter's own materiality floor, so the correction changes the *rigor* of the claim, not the *conclusion drawn from it*.
+The honest summary is: inclination reads statistically distinguishable from the shuffled null in `cnn_attention` under multiple-comparisons correction, and distinguishable only at the uncorrected level in the other three models — but §6.7 shows this reflects partial mode collapse, not a recoverable per-sample signal, in every case with an effect size well below this chapter's own materiality floor.
 
 ### 6.4 SNR stratification
 
@@ -224,15 +224,18 @@ This study's calibration stage for the multi-step perturbation trace failed on i
 No salvage was attempted: `final` was never run, because its output would be untrusted by this study's own rule regardless.
 The probe is stated here as **parked, not closed** — an open instrument-calibration problem, not a resolved confound — and is carried forward as future work (§8.5) rather than presented with any closure language.
 
-### 6.7 Inclination: a small, real, sub-floor signal — not a clean noise floor
+### 6.7 Inclination: partial mode collapse, not a small real signal or a clean noise floor
 
 Inclination was used throughout as a same-model noise-floor calibration for judging φ_c/ψ's own band-to-band deviations, on the premise that its apparent failure was clean noise.
-That premise does not survive this study's bootstrap evidence (§6.3): ι is not uninformative.
-It carries a small, real signal — most clearly in `cnn_attention` (p = 0.0003, survives Bonferroni correction) and, at the uncorrected level only, in the other three models — with an effect size of roughly 0.02–0.04 rad, well below this chapter's 0.10 rad materiality floor.
-Verified against the underlying scatter plots directly, not the p-value alone: all four models show a genuine, if noisy, diagonal trend in the ι panel, visibly different from φ_c/ψ's flat or diffuse patterns in the same images — ruling out a large-N statistical artifact with no real per-sample structure behind it.
+That premise does not survive this study's bootstrap evidence (§6.3): ι is not uninformative in the sense of pure random guessing.
+But neither is it a small, real, per-sample-recoverable signal, the reading originally given here — most clearly in `cnn_attention` (p = 0.0003, survives Bonferroni correction) and, at the uncorrected level only, in the other three models, with an effect size of roughly 0.02–0.04 rad, well below this chapter's 0.10 rad materiality floor either way.
+A predicted-vs-true inclination scatter (`inclination_output/inclination_scatter_20260923_132228.{png,pdf}`) shows no diagonal trend toward either the true value or the confirmed exact ι↔2π−ι waveform-mirror value (verified directly against the real IMRPhenomD generator via `pycbc.waveform.get_td_waveform`, not assumed) in any of the four models.
+Instead, predictions cluster into a handful of preferred angles largely independent of the true value — partial mode collapse, quantified by this head's own circular resultant (circ_r = 0.32–0.60 across the four models), well short of the circ_r > 0.9 full-collapse grade used elsewhere for φ_c/ψ, but far above the ≈0 that either clean noise or genuine recovery would give.
+Tellingly, the ranking tracks each model's own φ_c/ψ collapse severity: `poc_a`/`poc_b` (COLLAPSE-graded on φ_c/ψ) show the highest inclination circ_r, `tcn`/`cnn_attention` (not collapsed there) the lowest — consistent with a shared training-dynamics origin across a model's periodic heads, not head-specific recoverable physics.
+The earlier claim that this scatter showed "a genuine, if noisy, diagonal trend" was not backed by a saved, checkable artifact when originally written; this correction is grounded in the actual plot, generated for the first time during this pass.
 
 This changes how the face-on/mixed/edge-on stratification below must be read.
-It is no longer a clean noise-floor test; it is a descriptive comparison against a control that itself carries a small, real bias, and is presented on those terms rather than as a formal calibration.
+It is no longer a clean noise-floor test; it is a descriptive comparison against a control that is itself partially collapsed, not cleanly random, and is presented on those terms rather than as a formal calibration.
 
 **Table 6.7 — Edge-on Δ vs. null, φ_c/ψ (rad).** Source: `inclination_output/inclination_stratification_20260916_113601.md`.
 
@@ -395,7 +398,7 @@ All paths relative to `experiments/phic_psi_poc-redo/`.
 | Table 6.3, Bonferroni correction (§6.3) | `bootstrap_output/bootstrap_ang_mae_20260916_113955.md` |
 | Table 6.4 | `snr_output/snr_stratification_20260916_113730.md` |
 | §6.6 (perturbation trace, parked) | `perturbation_trace_output/perturbation_trace_early_20260916_114129.md`, `closing_summary.md` |
-| Table 6.7, inclination reframing (§6.7) | `inclination_output/inclination_stratification_20260916_113601.md`, `inclination_control_stratification_20260916_113639.md` |
+| Table 6.7, inclination reframing (§6.7) | `inclination_output/inclination_stratification_20260916_113601.md`, `inclination_control_stratification_20260916_113639.md`; partial-collapse finding: `inclination_output/inclination_stratification_20260923_132228.md`, scatter `inclination_output/inclination_scatter_20260923_132228.{png,pdf}` |
 | Table 6.8, sky-position finding (§6.8) | `bootstrap_output/bootstrap_sky_separation_20260918_151359.md`, `snr_output/snr_stratification_sky_position_20260918_153412.md` |
 | Table 7.2, std_ratio false-positive (§7.2) | `diagnostic_output/diagnostic_logvar_gate_20260916_085902.md`; scatter PNGs at `runs/phic_psi_lam010_retune_b/20260915_181803/scatter/epoch_{0005,0080}.png` |
 | Memorization-gap table (§8.2) | `diagnostic_output/redo_models_train_val_loss.{png,pdf}`; `NOTES.md` "Second batch ported" table |

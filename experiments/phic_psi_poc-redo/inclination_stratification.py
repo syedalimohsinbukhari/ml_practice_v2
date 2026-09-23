@@ -47,6 +47,7 @@ sys.path.insert(0, str(ROOT / "experiments" / "phic_psi_poc-redo"))
 # ---------------------------------------------------------------------------
 from datetime import datetime as _dt
 
+
 class _Tee:
     def __init__(self, file_path):
         self.stdout = sys.stdout
@@ -55,19 +56,24 @@ class _Tee:
         except OSError as e:
             print(f"WARNING: could not open log file {file_path}: {e}", file=self.stdout)
             self.file = None
+
     def write(self, data):
         self.stdout.write(data)
         if self.file:
             self.file.write(data)
+
     def flush(self):
         self.stdout.flush()
         if self.file:
             self.file.flush()
+
     def close(self):
         if self.file:
             self.file.close()
 
+
 _TEE = None
+
 
 def _setup_logging(out_dir):
     global _TEE
@@ -78,12 +84,14 @@ def _setup_logging(out_dir):
     sys.stdout = _TEE
     return ts
 
+
 def _teardown_logging():
     global _TEE
     if _TEE:
         sys.stdout = _TEE.stdout
         _TEE.close()
         _TEE = None
+
 
 # ---------------------------------------------------------------------------
 
@@ -92,21 +100,21 @@ from gwml.data.transforms import TargetTransforms
 from gwml.training.train import latest_run_dir, load_config
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from experiments.plot_style import SAVE_DPI
 
 CONFIGS = {
-    "poc_a (baseline)":  ROOT / "experiments/phic_psi_poc-redo/config_baseline.yaml",
-    "poc_b (PoC)":       ROOT / "experiments/phic_psi_poc-redo/config_poc.yaml",
-    "tcn":               ROOT / "experiments/phic_psi_poc-redo/config_tcn.yaml",
-    "cnn_attention":     ROOT / "experiments/phic_psi_poc-redo/config_cnn_attention.yaml",
+    "poc_a (baseline)": ROOT / "experiments/phic_psi_poc-redo/config_baseline.yaml",
+    "poc_b (PoC)": ROOT / "experiments/phic_psi_poc-redo/config_poc.yaml",
+    "tcn": ROOT / "experiments/phic_psi_poc-redo/config_tcn.yaml",
+    "cnn_attention": ROOT / "experiments/phic_psi_poc-redo/config_cnn_attention.yaml",
 }
 
 HEADS = [
-    ("coa_phase",           2 * np.pi, np.pi / 2),
-    ("polarization_angle",  np.pi,     np.pi / 4),
-    ("inclination",         2 * np.pi, np.pi / 2),
+    ("coa_phase", 2 * np.pi, np.pi / 2),
+    ("polarization_angle", np.pi, np.pi / 4),
+    ("inclination", 2 * np.pi, np.pi / 2),
 ]
 
 # Bands mirror the thesis chapter's Section 3 population-balance split.
@@ -125,15 +133,15 @@ def circular_r(angles_rad: np.ndarray, period: float = 2 * np.pi) -> float:
     theta = angles_rad * (2 * np.pi / period)
     s = np.sin(theta).mean()
     c = np.cos(theta).mean()
-    return float(np.sqrt(s**2 + c**2))
+    return float(np.sqrt(s ** 2 + c ** 2))
 
 
 def band_masks(inclination_rad: np.ndarray) -> dict:
     cos_iota = np.cos(inclination_rad)
     return {
-        "face-on":  np.abs(cos_iota) > FACE_ON_COS_IOTA,
-        "mixed":    (np.abs(cos_iota) <= FACE_ON_COS_IOTA) & (np.abs(cos_iota) >= EDGE_ON_COS_IOTA),
-        "edge-on":  np.abs(cos_iota) < EDGE_ON_COS_IOTA,
+        "face-on": np.abs(cos_iota) > FACE_ON_COS_IOTA,
+        "mixed": (np.abs(cos_iota) <= FACE_ON_COS_IOTA) & (np.abs(cos_iota) >= EDGE_ON_COS_IOTA),
+        "edge-on": np.abs(cos_iota) < EDGE_ON_COS_IOTA,
     }
 
 
@@ -202,7 +210,7 @@ def main():
                 print(f"\n  {head_name} (period={period:.4f}, null={null_expectation:.4f}):")
                 print(f"  {'Band':<10} {'|cos iota| range':<22} {'N':>6} {'ang_MAE':>10} "
                       f"{'circ_r':>8} {'vs null':>10}")
-                print(f"  {'─'*10} {'─'*22} {'─'*6} {'─'*10} {'─'*8} {'─'*10}")
+                print(f"  {'─' * 10} {'─' * 22} {'─' * 6} {'─' * 10} {'─' * 8} {'─' * 10}")
 
                 full_mae = angular_mae(true_vals, pred_vals, period)
                 full_circ_r = circular_r(pred_vals, period)
@@ -221,7 +229,7 @@ def main():
                     direction = "▼" if vs_null > 0 else "▲"
                     range_str = {
                         "face-on": f"[{FACE_ON_COS_IOTA:.1f}, 1.0]",
-                        "mixed":   f"[{EDGE_ON_COS_IOTA:.1f}, {FACE_ON_COS_IOTA:.1f}]",
+                        "mixed": f"[{EDGE_ON_COS_IOTA:.1f}, {FACE_ON_COS_IOTA:.1f}]",
                         "edge-on": f"[0.0, {EDGE_ON_COS_IOTA:.1f})",
                     }[band_name]
                     print(f"  {band_name:<10} {range_str:<22} {n_b:>6} {mae_b:>10.4f} "
@@ -305,7 +313,7 @@ def main():
     for head_name, period, null_expectation in HEADS:
         print(f"\n  {head_name} (null = {null_expectation:.4f} rad):")
         print(f"  {'Model':<22s} {'Edge-on MAE':>14s} {'Δ from null':>12s} {'verdict':>20s}")
-        print(f"  {'─'*22} {'─'*14} {'─'*12} {'─'*20}")
+        print(f"  {'─' * 22} {'─' * 14} {'─' * 12} {'─' * 20}")
         for label in CONFIGS:
             if label not in all_data or head_name not in all_data[label]:
                 continue
@@ -352,7 +360,7 @@ def main():
         ax.plot(x_ref, x_ref, "k-", lw=1, label="perfect (y=x)")
         ax.plot(x_ref, 2 * np.pi - x_ref, "k--", lw=1, label="mirror (y=2π-x)")
         full_mae = all_data[label]["inclination"]["full_mae"]
-        ax.set_title(f"{label}  (ang_MAE={full_mae:.4f}, null={np.pi/2:.4f})", fontsize=10)
+        ax.set_title(f"{label}  (ang_MAE={full_mae:.4f}, null={np.pi / 2:.4f})", fontsize=10)
         ax.set_xlabel(r"true $\iota$ [rad]")
         ax.set_ylabel(r"predicted $\iota$ [rad]")
         ax.set_xlim(0, 2 * np.pi)
@@ -362,7 +370,7 @@ def main():
     fig.tight_layout()
     scatter_png = out_dir / f"inclination_scatter_{ts}.png"
     scatter_pdf = out_dir / f"inclination_scatter_{ts}.pdf"
-    fig.savefig(scatter_png, dpi=SAVE_DPI)
+    fig.savefig(scatter_png, dpi=600)
     fig.savefig(scatter_pdf)
     plt.close(fig)
     print(f"\n\nScatter check (predicted vs. true inclination, all 4 models): {scatter_png}")

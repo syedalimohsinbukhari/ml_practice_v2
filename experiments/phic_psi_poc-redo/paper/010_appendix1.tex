@@ -1,0 +1,33 @@
+This appendix follows the traceability convention of the accompanying code repository: every quantitative claim above is backed by a versioned artifact, listed here with its repository-relative path.
+All paths relative to \texttt{experiments/phic\_psi\_poc-redo/}.
+
+\begin{table}[tbp]
+    \centering
+    \small
+    \resizebox{\columnwidth}{!}{
+    \begin{tabular}{@{}ll@{}}
+        \toprule
+        Claim / table / figure & Artifact \\
+        \midrule
+        Analytic sweep (\S3, Fig.~\ref{fig:sweep}) & \texttt{sweep\_1\_1\_ratio\_vs\_iota.\{csv,png\}} \\
+        Combination construction (\S4.3) & \texttt{formulae\_reference.md} \S A.1.5/A.2 \\
+        Gradient-chain numbers (\S5.2) & \texttt{diagnostic\_output/diagnostic\_checks\_20260916\_113913.log} \\
+        Table~\ref{tab:headline} & \texttt{analysis\_output/analysis\_report\_20260916\_113847.md} \\
+        Table~\ref{tab:bootstrap}, Bonferroni correction & \texttt{bootstrap\_output/bootstrap\_ang\_mae\_20260916\_113955.md} \\
+        SNR stratification (\S6.4) & \texttt{snr\_output/snr\_stratification\_20260916\_113730.md} \\
+        Inclination reframing (\S6.7) & \texttt{inclination\_output/inclination\_stratification\_20260916\_113601.md} \\
+        Table~\ref{tab:sky}, sky-position finding (\S6.8) & \texttt{bootstrap\_output/bootstrap\_sky\_separation\_20260918\_151359.md}, \texttt{snr\_output/snr\_stratification\_sky\_position\_20260918\_153412.md} \\
+        Table~\ref{tab:gate}, \stdratio\ false-positive & \texttt{diagnostic\_output/diagnostic\_logvar\_gate\_20260916\_085902.md}; scatter PNGs \\
+        Memorization-gap numbers (\S8.2) & \texttt{diagnostic\_output/redo\_models\_train\_val\_loss.\{png,pdf\}} \\
+        Undisclosed \pocB reconstruction property & \texttt{bootstrap\_ang\_mae.py}, \texttt{formulae\_reference.md} \S A.8 \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+One number in this paper is derived rather than printed in its source artifact: the Bonferroni threshold $0.00417$ in \S\ref{sec:phicpsi:bootstrap} is $0.05/12$, arithmetic on the twelve bootstrap tests, not a value stated in \texttt{bootstrap\_ang\_mae\_20260916\_113955.md} itself.
+
+\subsection*{Data and code availability}
+All training/evaluation code, configuration files, and analysis scripts are versioned in this repository.
+The dataset file (\texttt{combined\_repackaged.hdf}) is not itself version-controlled or regenerable from a tracked generator script; this gap is stated as an open item in \S\ref{sec:phicpsi:future}, not closed by this paper.
+This paper has not yet been through independent adversarial review; the evidentiary substitution of \S\ref{sec:phicpsi:reconcile} is the claim most in need of that scrutiny.

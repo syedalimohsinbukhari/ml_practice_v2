@@ -91,6 +91,11 @@ from gwml.data.loader import load_arrays
 from gwml.data.transforms import TargetTransforms
 from gwml.training.train import latest_run_dir, load_config
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from experiments.plot_style import SAVE_DPI
+
 CONFIGS = {
     "poc_a (baseline)":  ROOT / "experiments/phic_psi_poc-redo/config_baseline.yaml",
     "poc_b (PoC)":       ROOT / "experiments/phic_psi_poc-redo/config_poc.yaml",
@@ -241,6 +246,12 @@ def main():
                     "improves_edge_on": improves,
                     "null_expectation": null_expectation,
                 }
+                if head_name == "inclination":
+                    # Raw per-sample true/pred, for the scatter check below --
+                    # an aggregate ang_MAE gap can look "real" while the
+                    # scatter is just noise (UNDERSTANDING.md §4.2); kept
+                    # separate from model_data's aggregate-only entries above.
+                    model_data["inclination_raw"] = (true_vals.copy(), pred_vals.copy())
 
             all_data[label] = model_data
 
@@ -315,6 +326,48 @@ def main():
             print(f"  {label:<22s} {edge_mae:>14.4f} {delta:>+12.4f} {verdict:>20s}")
 
     # ==================================================================
+    # Scatter check: does the ang_MAE gap correspond to real structure, or
+    # is it scatter that happens to average out slightly below null?
+    # (UNDERSTANDING.md §4.2 -- a small ang_MAE improvement can't be trusted
+    # without eyeballing this, same house rule as std_ratio's scatter check.)
+    # Two reference lines: y=x (perfect recovery) and y=2*pi-x (the exact
+    # iota <-> 2*pi-iota waveform degeneracy confirmed via direct pycbc
+    # get_td_waveform comparison, UNDERSTANDING.md §4.2) -- if predictions
+    # cluster along the second line instead of scattering randomly, that is
+    # itself a real (if different) finding.
+    # ==================================================================
+    fig, axes = plt.subplots(2, 2, figsize=(11, 11))
+    axes = axes.ravel()
+    x_ref = np.linspace(0, 2 * np.pi, 200)
+    for ax, label in zip(axes, CONFIGS):
+        if label not in all_data or "inclination_raw" not in all_data[label]:
+            ax.set_title(f"{label} (no data)")
+            continue
+        true_vals, pred_vals = all_data[label]["inclination_raw"]
+        masks = band_masks(true_vals)
+        colors = {"face-on": "tab:red", "mixed": "tab:gray", "edge-on": "tab:blue"}
+        for band_name, mask in masks.items():
+            ax.scatter(true_vals[mask], pred_vals[mask] % (2 * np.pi), s=4, alpha=0.4,
+                       color=colors[band_name], label=band_name)
+        ax.plot(x_ref, x_ref, "k-", lw=1, label="perfect (y=x)")
+        ax.plot(x_ref, 2 * np.pi - x_ref, "k--", lw=1, label="mirror (y=2π-x)")
+        full_mae = all_data[label]["inclination"]["full_mae"]
+        ax.set_title(f"{label}  (ang_MAE={full_mae:.4f}, null={np.pi/2:.4f})", fontsize=10)
+        ax.set_xlabel(r"true $\iota$ [rad]")
+        ax.set_ylabel(r"predicted $\iota$ [rad]")
+        ax.set_xlim(0, 2 * np.pi)
+        ax.set_ylim(0, 2 * np.pi)
+        ax.legend(fontsize=7, loc="upper right")
+    fig.suptitle("Inclination: predicted vs. true (all 4 models, validation set)")
+    fig.tight_layout()
+    scatter_png = out_dir / f"inclination_scatter_{ts}.png"
+    scatter_pdf = out_dir / f"inclination_scatter_{ts}.pdf"
+    fig.savefig(scatter_png, dpi=SAVE_DPI)
+    fig.savefig(scatter_pdf)
+    plt.close(fig)
+    print(f"\n\nScatter check (predicted vs. true inclination, all 4 models): {scatter_png}")
+
+    # ==================================================================
     # Write markdown
     # ==================================================================
     md_path = out_dir / f"inclination_stratification_{ts}.md"
@@ -365,7 +418,16 @@ def main():
                 "face-on (thesis chapter Section 3).\n\n")
         f.write("Anything else — flat across bands, edge-on at or above null, no improvement "
                 "toward edge-on — is consistent with the degeneracy hypothesis holding across "
-                "the entire tested population, not just face-on.\n")
+                "the entire tested population, not just face-on.\n\n")
+        f.write("## Scatter check (predicted vs. true inclination)\n\n")
+        f.write(f"`{scatter_png.name}` / `{scatter_pdf.name}` (this directory) — per-model "
+                "true-vs-predicted inclination, colored by face-on/mixed/edge-on band, with "
+                "both the perfect-recovery line (y=x) and the exact iota <-> 2π-iota "
+                "waveform-degeneracy line (y=2π-x, confirmed via direct `pycbc.waveform."
+                "get_td_waveform` comparison, UNDERSTANDING.md §4.2) drawn for reference. "
+                "The ang_MAE gap above should not be read as evidence of real recovered "
+                "structure unless the scatter actually clusters near one of these lines rather "
+                "than filling the square uniformly.\n")
 
     print(f"\n\nMarkdown report: {md_path}")
     print("Done.")

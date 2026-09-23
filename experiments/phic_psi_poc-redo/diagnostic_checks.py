@@ -75,6 +75,7 @@ sys.path.insert(0, str(ROOT))
 
 from experiments.plot_style import (LEGEND_FONT_SIZE, GRID_ALPHA, GRID_LINESTYLE, TITLE_FONT_SIZE, LINE_WIDTH,
                                     LABEL_FONT_SIZE, SAVE_DPI, ANNOTATION_FONT_SIZE)
+from model_labels import MODEL_LABELS
 
 # ---------------------------------------------------------------------------
 # Logging: tee stdout to both console and a timestamped log file
@@ -460,16 +461,6 @@ def check_logvar_trajectory():
     return True
 
 
-model_label_dict = {
-    "poc_a": r"TCN [POC$_\text{A}$]",
-    "poc_b": r"TCN [POC$_\text{B}$]",
-    "tcn": "TCN",
-    "cnn_baseline": "CNN [baseline]",
-    "cnn_attention": "CNN [with attention]",
-    "inception_time": "Time-Inception model",
-    "resnet1d": "ResNet 1D"
-}
-
 log_var_targets = {
     "coa_phase": r"$\phi_\text{c}$",
     "combo_A": r"$\phi_c+2\psi$",
@@ -533,7 +524,7 @@ def _plot_logvar_trajectories(out_dir):
             for col, color in zip(weight_cols, colors):
                 if col in df.columns:
                     ax.plot(df.index, df[col], color=color, linewidth=LINE_WIDTH, alpha=0.8)
-            ax.set_title(model_label_dict[label], fontsize=TITLE_FONT_SIZE)
+            ax.set_title(MODEL_LABELS[label], fontsize=TITLE_FONT_SIZE)
             ax.grid(True, alpha=GRID_ALPHA, ls=GRID_LINESTYLE)
             for col in weight_cols:
                 if col in df.columns and len(df) > 10:
@@ -602,7 +593,7 @@ def _plot_logvar_trajectories(out_dir):
             for col, color in zip(loss_cols, colors):
                 if col in df.columns:
                     ax.plot(df.index, df[col], color=color, linewidth=LINE_WIDTH, label=col)
-            ax.set_title(model_label_dict[label], fontsize=TITLE_FONT_SIZE)
+            ax.set_title(MODEL_LABELS[label], fontsize=TITLE_FONT_SIZE)
             ax.grid(True, alpha=GRID_ALPHA, ls=GRID_LINESTYLE)
         empty_slots = list(range(n_models, n_rows * n_cols))
         legend_slot = empty_slots[0] if empty_slots else None

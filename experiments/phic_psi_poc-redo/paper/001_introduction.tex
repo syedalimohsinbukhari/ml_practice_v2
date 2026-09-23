@@ -1,0 +1,43 @@
+Since the first direct detection of gravitational waves from a binary black hole merger~\citep{abbott2016gw150914}, deep-learning approaches to gravitational-wave parameter estimation have matured rapidly, from early proof-of-concept classifiers~\citep{george2018deep} to amortized neural posterior estimators that approach the accuracy of stochastic-sampling pipelines~\citep{gabbard2022vitamin,dax2021dingo} at a fraction of their latency.
+Most of this progress has concentrated on parameters that imprint strongly on the observed strain, i.e., the chirp mass~\citep{cutler1994gw}, the merger time and signal-to-noise ratio~\citep{allen2012findchirp}, and the sky position~\citep{fairhurst2009triangulation,singer2016bayestar}.
+
+Two extrinsic parameters have received far less attention as direct regression targets: the orbital phase at coalescence, $\varphi_c$, and the polarization angle, $\psi$.
+There is a physical reason for this neglect.
+For the dominant quadrupole ($\ell=2$, $|m|=2$) mode of a quasi-circular compact binary, the two polarization states are~\citep{sathyaprakash2009physics}
+\begin{equation*}
+    \begin{aligned}
+    h_+ &\propto (1+\cos^2\iota)\cos\left(2\varphi(t)+2\varphi_c\right),\\
+    h_\times &\propto 2\cos\iota\sin\left(2\varphi(t)+2\varphi_c\right),
+    \end{aligned}
+\end{equation*}
+and the detector response mixes them through antenna patterns that depend on $2\psi$~\citep{cutler1994gw,sathyaprakash2009physics}.
+Both $\varphi_c$ and $\psi$ enter the strain doubled, so the analytically degenerate combination in the face-on limit ($\cos\iota \to \pm 1$) is $2\varphi_c \pm 2\psi$, with the sign set by the sign of $\cos\iota$.
+%The correction traces to how \texttt{coa\_phase} is injected for this population: it is the orbital reference phase in the convention used by the generator, and for a dominant-mode-only waveform that orbital phase enters the strain through $e^{i\cdot 2\cdot\text{coa\_phase}}$, exactly like $\psi$ already does.
+In the face-on limit the signal becomes circularly polarized and depends on $\varphi_c$ and $\psi$ only through this single, corrected combination, so the individual angles are exactly unidentifiable there, and only partially disentangled as the inclination moves toward edge-on.
+Bayesian samplers absorb this structure into broad, multimodal joint posteriors~\citep{veitch2010bayesian,aasi2013pe,veitch2015lalinference,ashton2019bilby}; a point-estimate regression network has no such refuge.
+
+This paper asks the question:
+\begin{quote}
+    \itshape Can $\varphi_c$ and $\psi$ be recovered from strain alone by a deep neural network, individually, through their sum/difference combinations, or is the degeneracy effectively exact for a realistic detection-scale population?
+\end{quote}
+
+The answer, is a \textbf{null result}: across the five trunk architectures, two head parameterizations, and three values of a magnitude-regularization coefficient.
+No model could perform measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and in some cases, sky position with high fidelity from the same shared features.
+
+A null result of this kind is only as strong as the effort spent trying to break it.
+The scientific contribution of this paper is therefore threefold.
+First, the null itself, tested against an explicit list of confounds: data-pipeline faults, loss-wiring faults, architecture-specific artifacts, statistical flukes, and population heterogeneity.
+Second, a methodological account of \emph{how} the null was established when the standard interpretability gate never cleared --- because unlike a gate failing for one model out of several, here it failed for every model at every regularization strength tried, forcing an explicit argument for why a broader, ungated battery of evidence should be trusted in its place, a response, at engineering-loop scale, to the same replication crisis that motivates pre-registration in quantitative science more broadly~\citep{ioannidis2005false,nosek2018preregistration}.
+Third, a methodological lesson demonstrated directly within this study: a checkpoint that cleared every numeric threshold of the pre-registered interpretability gate turned out, on scatter-plot verification, to be a literal two-point mode collapse --- a passing aggregate metric that is not, by itself, proof of the property it is meant to certify.
+
+%This null result carries a direct architectural implication, stated here rather than only in the Discussion.
+%Since strain alone does not recover $\varphi_c/\psi$ under point estimation, but \S\ref{sec:phicpsi:prereq}'s analytic study shows the well-constrained combination \emph{is} recoverable given inclination, the natural next step is to condition the network on $\iota$ directly --- scoped as future work in \S\ref{sec:phicpsi:future}.
+
+The research paper is organized as follows;
+Section~\ref{sec:phicpsi:problem} formalizes the problem and the circular-regression framework.
+Section~\ref{sec:phicpsi:prereq} presents the analytic prerequisite study, rerun under the corrected antenna-pattern model.
+Section~\ref{sec:phicpsi:methods} details the datasets, architectures, losses, and training protocol, including the corrected combination construction.
+Section~\ref{sec:phicpsi:arc} summarizes, briefly, two optimization pathologies in this training pipeline and how they were fixed prior to the main sweep.
+Section~\ref{sec:phicpsi:results} presents the defended null result, its verification battery, and findings.
+Section~\ref{sec:phicpsi:prereg} describes the pre-registered magnitude-penalty retune and its outcome.
+Section~\ref{sec:phicpsi:discussion} discusses interpretation, limitations, and future work; Section~\ref{sec:phicpsi:conclusion} concludes.

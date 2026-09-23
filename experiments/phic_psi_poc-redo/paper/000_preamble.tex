@@ -1,0 +1,58 @@
+%! Author = syedalimohsinbukhari
+%! Date = 9/20/26
+
+% Preamble
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{amsopn}
+\usepackage{amsmath}
+\usepackage{amstext}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[sort&compress, numbers]{natbib}
+\usepackage{siunitx}
+\usepackage{multirow}
+
+\DeclareSIUnit\solarmass{M_{\odot}}
+
+% Combination-space notation (the 2\varphi_c \pm 2\psi degeneracy) -- every reference to combo A/B
+% routes through these four macros so the paper can't drift into mixed notations across files again
+% (see experiments/phic_psi_poc-redo/UNDERSTANDING.md \S3.4).
+\newcommand{\combo}[1]{\ensuremath{\text{combo}_\text{#1}}}
+\newcommand{\comboA}{\combo{A}}
+\newcommand{\comboB}{\combo{B}}
+\newcommand{\comboAFull}{\ensuremath{\comboA\ (2\varphi_c+2\psi)}}
+\newcommand{\comboBFull}{\ensuremath{\comboB\ (2\varphi_c-2\psi)}}
+
+% Circular resultant (mode-collapse diagnostic, defined 002_problem-formulation.tex \S\ref{sec:phicpsi:circular}).
+\newcommand{\circr}{\ensuremath{\text{circ}_r}}
+
+% Raw-magnitude health diagnostic: defined as sigma_{head,target} (002_problem-formulation.tex
+% \S\ref{sec:phicpsi:circular}) but referred to everywhere it's actually checked against a gate
+% (006, 007, 008, 010) by its diagnostic-script/CSV column name, std_ratio -- canonicalized on that
+% name so the paper stays greppable against the artifacts it cites.
+\newcommand{\stdratio}{\ensuremath{\text{STD}_\text{ratio}}}
+
+% Wrap-aware angular MAE: canonicalized on the diagnostic-script/table column name, ang_MAE, typeset
+% like the paper's other code/config identifiers (\texttt{double\_angle}, ...) rather than as
+% a hand-built math symbol.
+\newcommand{\MAEang}{MAE$_\text{ang}$}
+
+% Loss terms (each currently defined and used once, but macroed for the same reason as everything
+% above: one place to fix if the notation ever needs to change).
+\newcommand{\Lcirc}{\ensuremath{L_\text{circ}}}
+\newcommand{\Lmag}{\ensuremath{L_\text{mag}}}
+
+% Model/trunk identifiers: rendered text is copied verbatim from ../model_labels.py's MODEL_LABELS
+% values, the same single source of truth the figures import from -- so a model named in prose or a
+% table cell and a model plotted in a figure title always read identically (down to the CNN_baseline/
+% CNN_attention subscript). Update both together if either changes.
+\newcommand{\pocA}{POC$_\text{A}$}
+\newcommand{\pocB}{POC$_\text{B}$}
+\newcommand{\Tcn}{TCN}
+\newcommand{\cnnAttn}{CNN$_\text{attention}$}
+\newcommand{\cnnBaseline}{CNN$_\text{baseline}$}
+\newcommand{\inceptionTime}{InceptionTime}
+\newcommand{\resnetOneD}{ResNet1D}

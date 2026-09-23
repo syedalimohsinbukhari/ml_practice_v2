@@ -1,0 +1,113 @@
+\subsection{Headline result}
+\label{sec:phicpsi:headline}
+
+At epoch 79 (last-10-epoch mean), \pocB's combination-space circular loss reads $\comboA=0.9999$, $\comboB=0.9895$ --- both essentially at the ceiling value of 1 expected under random guessing.
+Table~\ref{tab:headline} reports angular recovery for all four down-selected models at $\lambda=0.01$.
+
+\begin{table}[tbp]
+    \centering
+    \caption{Periodic-head recovery, four down-selected models, $\lambda=0.01$.}
+    \label{tab:headline}
+    \small
+    \begin{tabular}{@{}llccc@{}}
+        \toprule
+        Head & Model & $\circr$ & \MAEang & Grade \\
+        \midrule
+        $\varphi_c$ & \pocA & 0.542 & 1.586 & XX \\
+        $\varphi_c$ & \pocB & 0.975 & 1.535 & \textbf{COLLAPSE} \\
+        $\varphi_c$ & \Tcn & 0.840 & 1.590 & XX \\
+        $\varphi_c$ & \cnnAttn & 0.386 & 1.616 & XX \\
+        $\psi$ & \pocA & 0.972 & 0.801 & \textbf{COLLAPSE} \\
+        $\psi$ & \pocB & 1.000 & 0.801 & \textbf{COLLAPSE} \\
+        $\psi$ & \Tcn & 0.639 & 0.799 & $\sim$ \\
+        $\psi$ & \cnnAttn & 0.396 & 0.785 & $\sim$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\pocA and \pocB are, by a systematic COLLAPSE grade ($\circr>0.9$ \emph{and} \MAEang$>0.5$), genuinely mode-collapsed: \pocB's $\psi$ predictions place 99.9\% of 5{,}000 validation samples in one $10^\circ$-wide histogram bin.
+\Tcn and \cnnAttn fail differently --- noisy and uninformative rather than collapsed --- but \MAEang\ sits at the null for both.
+A direct forward-pass check makes the collapse concrete: three \comboA predictions from very different true angles ($-1.45,-2.22,+1.76$~rad) come back at $1.468,1.496,1.499$~rad regardless of input.
+
+\subsection{Confound elimination}
+\label{sec:phicpsi:confounds}
+
+Loss wiring is confirmed correct in both training modes by direct code trace, not by inspecting a misleadingly generic loss-dictionary listing.
+The gradient path is confirmed live end to end (\S\ref{sec:phicpsi:verification}).
+The collapse is confirmed genuine, not a metric artifact, by direct histogram inspection (\S\ref{sec:phicpsi:headline}).
+This study's own pre-registered interpretability gate (\S\ref{sec:phicpsi:prereg}) never clears at any $\lambda$ tried, so these confound checks are reported directly against the trained checkpoints rather than inferred from a passing gate --- an evidentiary substitution argued explicitly in \S\ref{sec:phicpsi:reconcile}.
+
+\subsection{Statistical significance}
+\label{sec:phicpsi:bootstrap}
+
+\begin{table}[tbp]
+    \centering
+    \caption{Label-permutation bootstrap ($N=10{,}000$, one-sided). $z>0$: better than shuffled-null.}
+    \label{tab:bootstrap}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Model & $\varphi_c$: $z,p$ & $\psi$: $z,p$ & $\iota$: $z,p$ \\
+        \midrule
+        \pocA & $-0.38$, .649 & $-0.82$, .793 & $+2.00$, .0223 \\
+        \pocB & $-0.39$, .649 & $-0.63$, .740 & $+2.58$, .0052 \\
+        \Tcn & $-1.18$, .879 & $-0.50$, .692 & $+2.58$, .0059 \\
+        \cnnAttn & $-1.97$, .976 & $+1.33$, .091 & $+3.58$, .0003 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+$\varphi_c$ and $\psi$: 0 of 8 tests significant, most worse than chance.
+$\iota$ reads significant in all four models at the uncorrected $\alpha=0.05$ level, but applying a 12-test Bonferroni correction ($0.05/12\approx0.00417$) leaves only \cnnAttn's $p=0.0003$ surviving; \pocA ($p=0.0223$), \pocB ($p=0.0052$), and \Tcn ($p=0.0059$) do not.
+Inclination therefore carries a statistically real signal in one model under correction, and a signal significant only uncorrected in the other three --- in every case with an effect size (\S\ref{sec:phicpsi:inclination}) well below this study's own materiality floor of 0.10~rad.
+
+\subsection{SNR stratification}
+\label{sec:phicpsi:snr}
+
+No head/model combination clears the 0.10~rad floor in the high-SNR tercile for $\varphi_c$ or $\psi$.
+\Tcn/$\varphi_c$ is the sole monotonic-with-SNR improver ($\Delta=+0.0209$~rad at high SNR), but it is the one model whose \stdratio\ never stabilizes at any $\lambda$ (\S\ref{sec:phicpsi:prereg}), so its trend is dismissed as doubly uninterpretable, not merely small.
+
+\subsection{Loss trajectory and failure signature}
+
+Across all 80 epochs, combination-space circular loss is flat within noise for every model.
+The failure signature these checkpoints show is \stdratio\ settling low from early training (\S\ref{sec:phicpsi:prereg}), not validation loss creeping upward late.
+
+\subsection{The perturbation-trace probe: parked, not closed}
+
+This study's calibration stage for the multi-step perturbation trace failed on its own pre-declared terms for every one of the four models: the mchirp positive control never reads directional even under favorable fresh-init conditions, so the probe's verdicts on the heads under test cannot be trusted.
+No salvage was attempted; the probe is stated as parked, not closed, and carried forward as future work (\S\ref{sec:phicpsi:future}).
+
+\subsection{Inclination: a small, real, sub-floor signal --- not a clean noise floor}
+\label{sec:phicpsi:inclination}
+
+Inclination was used throughout as a same-model noise-floor calibration for judging $\varphi_c/\psi$'s own band-to-band deviations, on the premise that its apparent failure was clean noise.
+That premise does not survive this study's bootstrap evidence: $\iota$ carries a small, real signal (\S\ref{sec:phicpsi:bootstrap}), with an effect size of roughly 0.02--0.04~rad, verified against the underlying scatter plots and not the $p$-value alone.
+No $\varphi_c/\psi$ deviation, face-on to edge-on, clears the 0.10~rad floor in either direction for any model; a companion check on a non-angular control (chirp mass, banded identically) shows small band-to-band spread, ruling out the banding scheme itself as an alternative explanation.
+
+\subsection{A new finding: \cnnAttn's partial sky-localization skill}
+\label{sec:phicpsi:sky}
+
+Sky position was carried throughout as a positive control; here it is tested for significance directly.
+
+\begin{table}[tbp]
+    \centering
+    \caption{Sky-position angular separation.}
+    \label{tab:sky}
+    \small
+    \begin{tabular}{@{}lccl@{}}
+        \toprule
+        Model & Bootstrap $\Delta$ (deg), $z$ & High-SNR $\Delta$ & Verdict \\
+        \midrule
+        \pocA & 3.43, $+6.54\sigma$ & $+3.01$ & sub-floor \\
+        \pocB & 3.03, $+5.51\sigma$ & $+2.90$ & sub-floor \\
+        \Tcn & 2.86, $+5.21\sigma$ & $+2.53$ & sub-floor \\
+        \cnnAttn & \textbf{12.58}, $\mathbf{+23.23\sigma}$ & \textbf{+15.53} & \textbf{real-recovery} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Three models show the same small-but-real, sub-floor pattern as inclination.
+\begin{sloppypar}
+\cnnAttn clears the materiality floor outright, and --- since this model is independently known to memorize $\varphi_c/\psi$ training-set structure without generalizing (\S\ref{sec:phicpsi:pool}) --- the SNR discriminator resolves in favor of genuine recovery, not memorization: a hypothetical population-mean predictor scores only $\approx89.4^\circ$ (essentially at the null), and the actual error shrinks monotonically with SNR ($80.15^\circ\to77.95^\circ\to74.47^\circ$).
+\end{sloppypar}
+The leading mechanism hypothesis is cross-detector H1/L1 amplitude-ratio information via the sky-dependent antenna pattern --- an envelope cue, not carrier phase --- so this finding is peripheral to, and does not affect, the $\varphi_c/\psi$ null.

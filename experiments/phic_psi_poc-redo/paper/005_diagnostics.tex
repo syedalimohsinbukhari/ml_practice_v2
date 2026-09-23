@@ -1,0 +1,22 @@
+\subsection{Two optimization pathologies and their fixes}
+\label{sec:phicpsi:inherited}
+
+Before any measurement of the degeneracy could be trusted, two genuine optimization pathologies in this training pipeline had to be found and fixed: tanh saturation at random initialization on the periodic head output layers, fixed by switching to a linear output activation since the unit-circle normalization already handles projection; and, once that was fixed, a second pathology in which the isotropic circular loss provides no restoring force on the raw output's magnitude, so the normalization layer's backward pass either crushes or explodes the angular gradient as the magnitude drifts, fixed by the explicit magnitude penalty of \S\ref{sec:phicpsi:penalty}.
+Both are established facts about this codebase's training mechanism, fixed before the main sweep in \S\ref{sec:phicpsi:results} began; that sweep does not re-narrate the bug hunt that found them.
+
+\subsection{Verification on trained checkpoints}
+\label{sec:phicpsi:verification}
+
+Confirming, on the Round-1 ($\lambda=0.01$) checkpoints, that the machinery above is healthy is a prerequisite to trusting anything it produces.
+True labels are clean (circular resultant $\leq 0.013$ for $\varphi_c/\psi/\iota$/right ascension).
+Gradients reach the periodic-head weights end to end through the corrected construction: $dL/d($\comboA$) = 0.4245$, dropping through the \texttt{double\_angle} stage ($dL/d(\mathbf{z}_{2\varphi_c,\text{norm}})=0.375$) to $dL/d(\mathbf{z}_{\varphi_c,\text{raw}})=0.570$ and $dL/d(\mathbf{z}_{\psi,\text{raw}})=0.514$ --- comparable in order of magnitude to the healthy inclination-head baseline, 0.728.
+Positive controls recover well (Fig.~\ref{fig:controls}): chirp mass $R^2=0.920$--$0.960$, merger time $R^2=0.906$--$0.928$, SNR $R^2=0.741$--$0.789$, sky position $4.4^\circ$--$10.3^\circ$ mean angular error.
+
+\begin{figure}[tbp]
+    \centering
+    \includegraphics[width=\columnwidth]{scatter_mchirp_20260916_113847.png}
+    \caption{Positive-control recovery (chirp mass) for the four down-selected models.}
+    \label{fig:controls}
+\end{figure}
+
+The machinery this study depends on is verifiably healthy; what it produces on the question of interest is presented next.

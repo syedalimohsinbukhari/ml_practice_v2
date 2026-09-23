@@ -1,0 +1,27 @@
+Before any training, the combination-space hypothesis was tested analytically, using a toy detector-response model in which $h_+$/$h_\times$ add $2\varphi_c$ to the orbital-phase term $2\Phi$.
+A required self-check --- sweeping $\psi$ at fixed $2\varphi_c+2\psi$, confirming $(R,\delta)$ stays exactly constant at $\iota=0$ --- passed to machine precision ($\max\,\text{std}(R)=1.16\times10^{-14}$, $\max\,\text{std}(\delta)=5.87\times10^{-16}$), gating trust in everything that follows.
+
+The 100-point inclination sweep (50 points per sign of $\cos\iota$, 200 sky positions, 5{,}000-draw bootstrap) confirms the expected combination structure:
+\begin{itemize}
+    \item for $\cos\iota>0$, \comboBFull\ is the better-constrained combination throughout; for $\cos\iota<0$, \comboAFull\ wins --- a clean sign flip driven by the sign of $\cos\iota$;
+    \item the preference ratio is strongest face-on, $\approx1.62$--$1.65\times$, decaying monotonically to $\approx1.04$--$1.07\times$ at edge-on, never crossing 1.0;
+    \item population-bootstrapped mean ratios are $1.17\times$ (95\% CI $[1.11,1.24]$) for $\cos\iota>0$ and $1.19\times$ (95\% CI $[1.12,1.26]$) for $\cos\iota<0$, with the simple two-point reference check clearing significance directly.
+\end{itemize}
+
+The sign flip described above and the monotonic decay in the preference ratio share one mechanical cause.
+The toy model's two antenna-weighted amplitude coefficients respond asymmetrically to inclination: $k_1(\iota)=(1+\cos^2\iota)/2$ for $h_+$ stays strictly positive across $[0,\pi]$, while $k_2(\iota)=\cos\iota$ for $h_\times$ crosses zero at $\iota=\pi/2$ and changes sign on either side.
+Since the detector strain is $F_+h_++F_\times h_\times$, that sign change in $h_\times$'s own amplitude is what flips which of \comboA/\comboB\ the strain constrains more tightly, and the same vanishing of $k_2$ at edge-on is why the preference ratio closes toward $1.0\times$ there: with $h_\times$'s contribution suppressed, the two combinations become comparably constrained rather than either one standing out.
+The ratio peaks at face-on instead, where $k_1$ and $k_2$ are both near their maximum magnitude and the signal is closest to circularly polarized.
+
+Which combination wins for a given sign of $\cos\iota$ is read off empirically from the correlation sweep itself, not assumed in advance from the coefficient asymmetry alone.
+That distinction is not academic: this redo's \comboA/\comboB\ use the corrected construction of \S\ref{sec:phicpsi:heads} (angle $2\varphi_c\pm2\psi$, via an explicit doubling of the $\varphi_c$ head before combination), and an earlier, uncorrected version of this experiment found \comboB\ well-constrained for a differently-defined pair (\texttt{formulae\_reference.md} \S A.2) --- a finding this redo deliberately did not carry forward, re-deriving the sign assignment empirically under the corrected formula instead.
+
+\begin{figure}[tbp]
+    \centering
+    \includegraphics[width=\columnwidth]{sweep_1_1_ratio_vs_iota.png}
+    \caption[Analytic check of the corrected degeneracy structure]{Analytic check of the corrected $2\varphi_c$--$2\psi$ degeneracy structure: ratio of the strain correlation with the well-constrained combination to the poorly-constrained one, as a function of inclination.}
+    \label{fig:sweep}
+\end{figure}
+
+The curriculum weight derivation gives $w(\text{face-on})=0.0000$ and $w(\text{edge-on})=0.1416$, with an intermediate-peak shape; training uses the analytically motivated fallback $w(\iota)=1-\cos^2\iota=\sin^2\iota$ rather than the fitted empirical curve.
+Population balance: 28.7\% of samples are near-face-on ($|\cos\iota|>0.9$), 32.7\% near-edge-on ($|\cos\iota|<0.5$).

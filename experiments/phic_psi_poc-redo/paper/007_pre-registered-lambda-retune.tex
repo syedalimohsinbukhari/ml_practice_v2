@@ -1,0 +1,40 @@
+\subsection{Why pre-register}
+
+This study adopted a strict pre-registration discipline from the outset, after a small cautionary episode of its own: on one same-day instance, an uncertainty-weight trajectory was misread by eye and had to be corrected with a mechanical check before any retune began.
+The criterion was written down --- a Step~0 \stdratio\ gate, a Bonferroni-corrected bootstrap on the combination angles, a 0.10~rad effect-size floor, and an SNR-monotonicity check --- before any $\lambda=0.05/0.10$ result existed.
+Because the combination construction depends on both source vectors jointly, the gate requires all four readings (both heads, poc-mode and baseline-mode) to pass; a single failing reading keeps the whole round uninterpretable.
+
+\subsection{Outcome across three $\lambda$ values}
+
+\begin{table}[tbp]
+    \centering
+    \caption{Step~0 gate, all three $\lambda$ rounds, all four readings.}
+    \label{tab:gate}
+    \small
+    \begin{tabular}{@{}llcc@{}}
+        \toprule
+        $\lambda$ & Reading & final $\stdratio$ & Gate \\
+        \midrule
+        0.01 & \pocB / $\varphi_c$ & 0.583 & FAIL \\
+        0.01 & \pocB / $\psi$ & 0.251 & FAIL \\
+        0.01 & \pocA / $\varphi_c$ & 0.407 & FAIL \\
+        0.01 & \pocA / $\psi$ & 0.374 & FAIL \\
+        0.05 & \pocB / $\varphi_c$ & 0.315 & FAIL \\
+        0.05 & \pocB / $\psi$ & 0.531 & FAIL \\
+        0.05 & \pocA / $\varphi_c$ & 0.522 & FAIL \\
+        0.05 & \pocA / $\psi$ & 0.572 & FAIL \\
+        0.10 & \pocB / $\varphi_c$ & 0.930 & PASS* \\
+        0.10 & \pocB / $\psi$ & 0.421 & FAIL \\
+        0.10 & \pocA / $\varphi_c$ & 0.546 & FAIL \\
+        0.10 & \pocA / $\psi$ & 0.559 & FAIL \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+*The one nominal PASS does not survive inspection.
+\pocB's $\varphi_c$ at $\lambda=0.10$ clears every numeric gate threshold, but its own training-time scatter plot shows two completely flat horizontal bands at the same angle modulo $2\pi$ --- a literal two-point mode collapse present from epoch~5 through epoch~80, not real per-sample learning.
+\stdratio\ certifies raw-vector norm health, not angular diversity, and the two are not interchangeable: nothing about clearing the numeric threshold guarantees the scatter plot will look healthy.
+
+With every reading at $\lambda=0.10$ either failing outright or failing on inspection, the round closes: $\lambda$ alone is insufficient to stabilize this pipeline's $\|v\|$-space for these heads.
+Steps beyond the gate never ran, because the gate never cleared at any $\lambda$, for any of the twelve readings.
+Per the pre-registered decision table, this is filed as \textbf{uninterpretable}, not as a null result and not as counter-evidence, on its own narrow terms --- a negative result about the retune mechanism, not the basis for this paper's headline conclusion (\S\ref{sec:phicpsi:results}); \S\ref{sec:phicpsi:reconcile} reconciles the two.

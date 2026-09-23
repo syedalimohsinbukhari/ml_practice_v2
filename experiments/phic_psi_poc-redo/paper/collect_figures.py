@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Flatten the figures listed in figures_registry.yaml into paper/paper1/ for an arXiv-style submission tree.
+"""Flatten the figures listed in figures_registry.yaml into paper/ for an arXiv-style submission tree.
 
-paper/paper1/ is the Overleaf-linked nested git repo that holds the actual arXiv submission source
-(see paper/paper1/main.tex); arXiv compiles from a flat, self-contained source directory, so
-every file \\includegraphics'd from main.tex (and its \\input sections) must sit alongside the
-.tex sources, not one level up in the experiment's *_output/ directories where they are actually produced.
+This redo's paper/ is not (yet) a separate Overleaf-linked nested repo -- it stays flat inside this experiment directory
+per explicit instruction.
+arXiv compiles from a flat, self-contained source directory, so every file \\includegraphics'd from main.tex
+(and its \\input sections) must sit alongside the .tex sources, not one level up in the experiment's *_output/
+directories where they are actually produced.
 
-This script itself stays in paper/ (with figures_registry.yaml) so its relative path resolution into the
-experiment root is unaffected by where the copies land.
+This script and figures_registry.yaml both live in paper/ itself; copies land in this same directory, next to main.tex,
+not in a subdirectory.
 
 Usage:
-    python3 collect_figures.py # copy PNG only
-    python3 collect_figures.py --formats png,pdf # copy PNGs and PDFs
-    python3 collect_figures.py --dry-run # print what would be copied
+    python3 collect_figures.py                    # copy PNG only
+    python3 collect_figures.py --formats png,pdf  # copy PNGs and PDFs
+    python3 collect_figures.py --dry-run          # print what would be copied
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ import yaml
 
 PAPER_DIR = Path(__file__).resolve().parent
 EXPERIMENT_ROOT = PAPER_DIR.parent
-DEST_DIR = PAPER_DIR / "paper1"
+DEST_DIR = PAPER_DIR
 REGISTRY_PATH = PAPER_DIR / "figures_registry.yaml"
 
 
@@ -51,11 +52,14 @@ def copy_figures(entries: list[dict], formats: set[str], dry_run: bool) -> int:
                 print(f"MISSING: {src_path.relative_to(EXPERIMENT_ROOT)} (id={entry['id']})", file=sys.stderr)
                 missing += 1
                 continue
+            if src_path.resolve() == dest_path.resolve():
+                print(f"skip (already in place): {dest_path.name}")
+                continue
             if dry_run:
-                print(f"{src_path.relative_to(EXPERIMENT_ROOT)} -> paper1/{dest_path.name}")
+                print(f"{src_path.relative_to(EXPERIMENT_ROOT)} -> paper/{dest_path.name}")
                 continue
             shutil.copy2(src_path, dest_path)
-            print(f"copied paper1/{dest_path.name}")
+            print(f"copied paper/{dest_path.name}")
     return missing
 
 

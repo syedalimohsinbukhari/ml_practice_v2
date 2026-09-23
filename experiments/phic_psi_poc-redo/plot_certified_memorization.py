@@ -46,6 +46,7 @@ import sys
 sys.path.insert(0, str(ROOT))
 from experiments.plot_style import SERIES_COLORS, update_style, LEGEND_FONT_SIZE, LINE_WIDTH, SAVE_DPI
 from combo_labels import COMBO_LABELS
+from model_labels import MODEL_LABELS
 
 # Round-1 (λ=0.01) checkpoints for the redo's down-select-confirmed 4-model set.
 DEFAULT_RUNS = {
@@ -56,16 +57,6 @@ DEFAULT_RUNS = {
 }
 
 MODEL_ORDER = ["poc_a", "poc_b", "tcn", "cnn_attention"]
-
-model_label_dict = {
-    "poc_a": r"TCN [POC$_\text{A}$]",
-    "poc_b": r"TCN [POC$_\text{B}$]",
-    "tcn": "TCN",
-    "cnn_baseline": "CNN [baseline]",
-    "cnn_attention": "CNN [with attention]",
-    "inception_time": "Time-Inception model",
-    "resnet1d": "ResNet 1D",
-}
 
 log_var_targets = {
     "coa_phase": r"$\phi_\text{c}$",
@@ -141,7 +132,7 @@ def main() -> None:
             ax.plot(df["epoch"], df[val_col], color=args.val_color, label="Validation", linewidth=LINE_WIDTH)
             ax.axhline(1.0, color=args.null_color, linestyle="--", linewidth=LINE_WIDTH, label=r"NULL ($\approx$ 1.0)")
             if row == 0:
-                ax.set_title(f"{model_label_dict[model]}")
+                ax.set_title(f"{MODEL_LABELS[model]}")
             if row == len(HEAD_COLUMNS[model]) - 1:
                 ax.set_xlabel("Epoch")
             if col == 0:

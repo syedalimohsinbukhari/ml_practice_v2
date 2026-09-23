@@ -1,0 +1,33 @@
+# Registry of every figure referenced (via \includegraphics) from
+# paper/main.tex and its \input sections.
+#
+# Unlike experiments/phic_psi_poc/paper/, this redo's paper/ is NOT (yet) a
+# separate Overleaf-linked nested repo -- it stays flat inside this
+# experiment directory per explicit instruction. collect_figures.py therefore
+# copies figures into paper/ itself (this same directory), not into a paper1/
+# subdirectory, so the .tex sources and their images sit side by side the way
+# arXiv's flat submission tree requires.
+#
+# `source` is relative to the experiment root (experiments/phic_psi_poc-redo/).
+# `dest_name` is the flat filename \includegraphics actually calls in the .tex
+# sources -- collect_figures.py copies `source` to paper/<dest_name>.
+#
+# Regenerate by hand when a figure is added, renamed, or removed; keep this
+# file and the \includegraphics calls in sync in the same change.
+
+figures:
+    -   id: sweep_ratio_vs_iota
+        label: fig:sweep
+        referenced_in:
+            - 003_prereq_study.tex
+        dest_name: sweep_1_1_ratio_vs_iota.png
+        source: sweep_1_1_ratio_vs_iota.png
+        formats: [ png, pdf ]
+
+    -   id: scatter_mchirp
+        label: fig:controls
+        referenced_in:
+            - 005_diagnostics.tex
+        dest_name: scatter_mchirp_20260916_113847.png
+        source: analysis_output/scatter_mchirp_20260916_113847.png
+        formats: [ png, pdf ]

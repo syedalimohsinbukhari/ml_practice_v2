@@ -1,0 +1,31 @@
+\subsection{Targets and the degeneracy hypothesis}
+\label{sec:phicpsi:targets}
+
+We consider a ten-parameter description of a compact binary coalescence signal injected into two-detector noise: chirp mass $\mathcal{M}$, mass ratio $q$, inclination $\iota$, coalescence phase $\varphi_c$, polarization angle $\psi$, declination, right ascension, injection time, merger time within the analysis window, and network signal-to-noise ratio.
+Seven of these are used as supervised regression targets (mass ratio and injection time are excluded; \S\ref{sec:phicpsi:dataset}).
+The scientific targets are $\varphi_c \in [0, 2\pi)$, period $2\pi$, and $\psi \in [0, \pi)$, period $\pi$.
+Inclination, chirp mass, merger time, SNR, and sky position are retained as \emph{control heads}: parameters trained through the identical pipeline whose success or failure calibrates what the network can extract from strain when information is present.
+
+The degeneracy hypothesis under test is: \emph{$\varphi_c$ and $\psi$ carry no strain-only recoverable signal for this population, in this architecture and loss family}.
+A point-estimating network can do no better than the optimal constant prediction.
+For most of the population the likelihood constrains only the combination $2\varphi_c \pm 2\psi$, and the remaining direction is unconstrained.
+The alternative hypothesis motivating the experimental design is that even if $\varphi_c$ and $\psi$ are individually unrecoverable, their sum and difference combinations may be well-conditioned.
+Face-on systems constrain $2\varphi_c \pm 2\psi$ (sign by $\cos\iota$), so a network parameterized in combination space, with a curriculum that weights each combination according to how well the current inclination constrains it, might learn the recoverable structure that a naive per-angle parameterization misses.
+
+%Conditioning on inclination $\iota$ --- tested as future work in \S\ref{sec:phicpsi:future} --- is treated throughout as a \emph{training-paradigm design choice}, motivated by the analytic structure of \S\ref{sec:phicpsi:prereq} showing that the well-constrained combination is recoverable given $\iota$, not as a forced move necessitated by a proof that $\iota$ itself is unrecoverable; \S\ref{sec:phicpsi:inclination} shows $\iota$ in fact carries a small, real signal, which sharpens rather than resolves this question.
+%No model in this paper takes $\iota$, or any function of it, as an input at any stage; $\iota$ appears here only as a control \emph{output} head trained on raw strain, exactly like $\varphi_c$ and $\psi$ (\S\ref{sec:phicpsi:circular}).
+
+\subsection{Circular regression framework}
+\label{sec:phicpsi:circular}
+
+Periodic targets are regressed on the unit circle~\citep{mardia2000circular}.
+An angle $\theta$ with period $T$ is encoded as the two-vector $\mathbf{u}(\theta) = (\sin(2\pi\theta/T), \cos(2\pi\theta/T))$, so the $\psi$ head, with $T=\pi$, physically encodes $2\psi$.
+Each periodic head outputs a raw two-vector $\mathbf{v}\in\mathbb{R}^2$, projected onto the unit circle by a normalization layer, $\hat{\mathbf{u}} = \mathbf{v}/\sqrt{\max(\|\mathbf{v}\|^2,\varepsilon)}$, $\varepsilon=10^{-8}$ --- a clamp on the squared norm, for a stable gradient at $\mathbf{v}=\mathbf{0}$, rather than a floor on $\|\mathbf{v}\|$ itself --- and trained with the cosine (circular) loss $\Lcirc = 1 - \hat{\mathbf{u}}_{\text{pred}}\cdot\mathbf{u}_{\text{true}} = 1-\cos\Delta\theta$.
+
+For uniformly distributed targets and any fixed prediction, the expected circular loss is exactly 1; the expected wrap-aware angular mean absolute error (\MAEang) is $T/4$, i.e., $\pi/2 \approx 1.5708$~rad for $\varphi_c$ and $\iota$, $\pi/4 \approx 0.7854$~rad for $\psi$.
+These values are the null baselines against which every result in this paper is judged.
+
+Two further diagnostic statistics recur throughout: the circular resultant $\circr = \|\text{mean}(\hat{\mathbf{u}})\|$, which measures mode collapse ($\circr \to 1$ means all predictions concentrate at one angle), and $\sigma_\text{head, target}$, the ratio of the standard deviation of a head's raw outputs to that of the encoded targets, a monitor of raw-magnitude health with a healthy band of $[0.5, 2.0]$ --- called \stdratio\ in the diagnostic chapters from \S\ref{sec:phicpsi:prereg} onward.
+Non-periodic heads use a Huber loss on transformed targets, and the sky-position head uses a closed-form von~Mises--Fisher negative log-likelihood on the unit sphere~\citep{fisher1953dispersion}.
+One head cuts across this taxonomy: the inclination head keeps the periodic two-vector encoding but its loss is Huber on the raw output vector, with no normalization and no circular loss anywhere in its path.
+All heads share a single trunk and are combined by learned homoscedastic uncertainty weighting~\citep{kendall2018multi}.

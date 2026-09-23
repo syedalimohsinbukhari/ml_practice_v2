@@ -1,0 +1,80 @@
+\subsection{Dataset}
+\label{sec:phicpsi:dataset}
+
+All experiments use a single pre-generated HDF5 dataset of simulated two-detector observations: \num{25000} training and \num{5000} validation samples, each a pair of \num{4096} sample noisy strain series for the H1 and L1 detectors --- a 2\,s window at \SI{2048}{\hertz} --- stacked as a $(4096,2)$ input tensor.
+All injections use the dominant quadrupole ($\ell=2$, $|m|=2$) mode only (IMRPhenomD), with no higher-order modes.
+%This detail, and the injection convention behind the combination formula of \S\ref{sec:phicpsi:intro}, is traced directly through the dataset's generator source code rather than recorded from recollection; the dataset itself was not regenerated from a version-controlled generator, so a reproducibility gap remains open (\S\ref{sec:phicpsi:future}).
+Table~\ref{tab:population} gives the marginal parameter distributions.
+
+\newcommand{\mrows}[2]{\multirow{#1}{*}{#2}}
+
+\begin{table}[tbp]
+    \centering
+    \caption{Marginal parameter distributions for the injected population.}
+    \label{tab:population}
+    \small
+    \begin{tabular}{@{}ccl@{}}
+        \toprule
+        Parameter & Support & Distribution \\
+        \midrule
+        $m_1$ & $10$--$50\,M_\odot$ & Uniform pair\\
+        $m_2$ & $10$--$50\,M_\odot$ & Uniform pair\\
+        $q=m_2/m_1$ & \mrows{2}{$0.20$--$1.00$} & \mrows{2}{Derived} \\
+        $m_1\geq m_2$ & & \\
+        $\mathcal{M}$ & $8.84$--$43.45\,M_\odot$ & Derived \\
+        SNR & $[7,15]$ & Uniform \\
+        $\varphi_c$ & $[0,2\pi)$ & Uniform \\
+        $\psi$ & $[0,\pi)$ & Uniform \\
+        $\iota$ & $[0,2\pi)$ & Uniform in $\iota$ \\
+        Right ascension & $[0,2\pi)$ & Uniform \\
+        Declination & $[-\pi/2,\pi/2]$ & $\cos$ weighted \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Component masses are drawn via two independent $\mathrm{Uniform}(10,50)\,M_\odot$ values, sorted so $m_1\geq m_2$.
+These drawn values were than used to derive both mass ratio and chirp mass.
+
+The important parameter here is the inclination angle ($\iota$).
+The parameter distribution is uniform in itself, over-representing face-on systems and under-representing edge-on systems relative to a truly isotropic population.
+Because face-on is where the $\varphi_c/\psi$ degeneracy is strongest, this skew could in principle bias a \emph{pooled} statistic --- one averaged across the whole population, such as \S\ref{sec:phicpsi:results}'s headline circular-loss numbers --- mildly toward looking like a null, simply by weighting more hard-to-recover cases into the average.
+That possibility cannot explain the null result itself: the inclination-band stratification of \S\ref{sec:phicpsi:inclination} measures recovery within each band separately, so the population mix has no opportunity to act on it, and even the edge-on band, checked in isolation, clears no recovery above the materiality floor either.
+The strain is than fed to the model already whitened; targets are transformed per \S\ref{sec:phicpsi:circular} on training-split statistics.
+
+\subsection{Trunk architectures}
+\label{sec:phicpsi:trunks}
+
+\begin{sloppypar}
+Five one-dimensional trunk architectures were evaluated, all mapping the $(4096,2)$ input to a pooled feature vector shared by every head: a temporal convolutional network (\Tcn, primary, dilated residual blocks, receptive field $\approx$ full window~\citep{bai2018tcn}), a plain hierarchical CNN (\cnnBaseline), a strided-conv-plus-transformer network with learned attention pooling (\cnnAttn~\citep{vaswani2017attention}), a multi-scale-kernel network (\inceptionTime~\citep{fawaz2019inceptiontime}), and a residual network (\resnetOneD~\citep{he2016resnet}).
+\end{sloppypar}
+These five were chosen as five distinct inductive-bias families, not five samples from one family, so that each represents a different hypothesis about how phase information might be encoded in the strain.
+Each head is a two-layer MLP (64 hidden units, ReLU) on the shared features, with a linear 2-unit output for periodic heads.
+
+\subsection{Head parameterizations under the corrected formula}
+\label{sec:phicpsi:heads}
+
+\textbf{Baseline mode} uses independent circular-loss heads directly on $\varphi_c$ and $\psi$, each with its own uncertainty weight; the named configuration \pocA is baseline mode on the \Tcn trunk.
+\textbf{PoC mode} (named configuration \pocB, also on \Tcn) constructs the two combination heads explicitly rather than treating $\varphi_c$ and $\psi$ as independent outputs.
+The $\varphi_c$ head's unit vector, $\mathbf{z}_{\varphi_c}$, is first passed through a \texttt{double\_angle} operation, $\mathbf{z}_{2\varphi_c} = \mathbf{z}_{\varphi_c} \otimes \mathbf{z}_{\varphi_c}$ (complex multiplication of the vector with itself), which turns a unit vector at angle $\varphi_c$ into one at angle $2\varphi_c$; the $\psi$ head's own encoding already stores $2\psi$ internally (\S\ref{sec:phicpsi:circular}).
+The two combination vectors are $\mathbf{z}_A = \mathbf{z}_{2\varphi_c}\otimes\mathbf{z}_\psi$ (angle $2\varphi_c+2\psi$) and $\mathbf{z}_B = \mathbf{z}_{2\varphi_c}\otimes\overline{\mathbf{z}_\psi}$ (angle $2\varphi_c-2\psi$).
+The isotropic circular loss, sign-dependent per-sample curriculum weighting, and uncertainty-weighting scheme are fixed pipeline components, applied identically to every head.
+The well-constrained combination assignment (\comboB\ for $\cos\iota\geq0$) is derived from this study's own prerequisite analysis (\S\ref{sec:phicpsi:prereq}).
+
+\subsection{Magnitude penalty}
+\label{sec:phicpsi:penalty}
+
+Following the diagnosis in \S\ref{sec:phicpsi:arc}, all configurations add an explicit radial regularizer on the raw, pre-normalization periodic outputs, $\Lmag = \lambda \cdot \sum \text{mean}[(\|\mathbf{v}\|-1)^2]$, present in every configuration from the first training run.
+$\lambda=0.01$ for the main sweep (\S\ref{sec:phicpsi:results}), retuned to 0.05 and 0.10 in \S\ref{sec:phicpsi:prereg}.
+
+\subsection{Training protocol}
+\label{sec:phicpsi:protocol}
+
+Adam, initial learning rate $10^{-3}$, \texttt{ReduceLROnPlateau} (factor 0.5, patience 5), batch size 128, 80 epochs, seed 42, uncertainty weighting with log-variance clamp $\pm3$, Huber $\delta=1$.
+Periodic epoch-10 checkpoints were saved throughout, not only best/final weights.
+
+\subsection{Evaluation}
+\label{sec:phicpsi:evaluation}
+
+Point predictions are scored by wrap-aware angular MAE, $\circr$, and, for scalar heads, MAE/$R^2$.
+Statistical significance is assessed by a label-permutation bootstrap ($N=10{,}000$ shuffles), and population heterogeneity is probed by SNR-tercile and inclination-band stratification.
+Two additional checks were added in response to a genuine new finding for one architecture (\S\ref{sec:phicpsi:sky}) rather than planned in advance: a formal shuffle-null bootstrap and SNR-tercile stratification for the sky-position head's own angular separation.

@@ -1,0 +1,45 @@
+\subsection{Reconciling two lines of evidence that do not collapse into one}
+\label{sec:phicpsi:reconcile}
+
+This study's own two lines of evidence do not collapse into one, and the tension between them is argued here rather than asserted away.
+A pre-registered metric-health gate (\S\ref{sec:phicpsi:prereg}) was meant to license a clean, certified test of the degeneracy: no model, at any $\lambda$, ever passed it --- there is no certified subset of any size to build that argument on.
+
+The null in \S\ref{sec:phicpsi:results} instead rests on four independent methods --- collapse/histogram inspection, a gradient-health trace, a formal bootstrap, and population stratification --- run uniformly across all four down-selected models, without excluding any on interpretability grounds.
+This substitution answers a different, and in some ways more direct, question than the gate does: not whether a specific combination vector's raw magnitude is well behaved, but whether these checkpoints' actual predictions carry recoverable signal --- and the collapse and gradient-chain evidence rule out an implementation bug as the cause by a more direct method than gate-passage ever provided.
+It is also, we state plainly, a novel evidentiary structure that has not previously been scrutinized in this form.
+A skeptical reader is entitled to ask whether an ungated battery, assembled after the pre-registered path proved terminal, is a second attempt dressed as independent confirmation.
+It is a different, not a repeated, attempt: several of its components (the gradient-chain trace, the raw histogram inspection) are not calibrated against any threshold chosen after seeing data and simply report what is there --- but the reactive order of construction is a real, stated limitation on how much independent confirmatory weight it should carry relative to a fully pre-registered test.
+
+\subsection{Sufficiency of the architecture pool}
+\label{sec:phicpsi:pool}
+
+The five trunk families were chosen as five distinct inductive-bias hypotheses, not five samples from one family, and capacity is not the binding constraint: the memorization-gap check, run uniformly across all four down-selected models, shows \cnnAttn's training-split circular loss falling to 0.54--0.56 by epoch~80 while validation stays flat at $\approx1.0$ (train--val gap $+0.44$ to $+0.47$), against gaps an order of magnitude smaller for the other three models ($+0.003$ to $+0.05$).
+\cnnAttn demonstrably has, and uses, spare capacity to fit sample-specific noise on $\varphi_c/\psi$ and generalizes none of it --- while simultaneously showing genuine, generalizing skill on sky position (\S\ref{sec:phicpsi:sky}), illustrating that this model's capacity is head-specific, not uniformly wasted or informative.
+
+\subsection{Relation to full-posterior methods}
+\label{sec:phicpsi:npe}
+
+This null does not reopen a settled question.
+Neural posterior estimation --- conditional variational autoencoders~\citep{gabbard2022vitamin}, direct neural posterior-density approximations~\citep{chua2020learning,green2020complete}, and conditional normalizing flows trained by simulation-based inference~\citep{papamakarios2021normalizing,cranmer2020frontier,dax2021dingo,dax2023dingois} --- does not attempt a single value for a parameter the likelihood only partially constrains; it learns an amortized approximation to the full posterior and reproduces multimodal, disconnected structure directly, exactly as a stochastic sampler does~\citep{veitch2015lalinference,ashton2019bilby}.
+For a genuinely degenerate target such as $\varphi_c/\psi$ at low inclination, a posterior-estimating network faces no obstacle in principle.
+What this paper tests is narrower: whether a point-estimating regression head --- still found in fast detection-and-characterization pipelines not designed as full posterior samplers~\citep{george2018deep} --- fails safely or silently on a target of this kind.
+It fails silently, for a long stretch of this study's own diagnostic arc (\S\ref{sec:phicpsi:arc}), and in a second, more subtle way: a pre-registered interpretability gate can itself fail silently, passing a checkpoint that scatter-plot inspection reveals to be collapsed.
+The contribution is a documented account of both failure modes, and the diagnostic discipline a practitioner can reuse against either.
+
+\subsection{Threats to validity}
+
+In descending order of concern: no model here cleared the pre-registered gate at any $\lambda$, so the broader battery's trustworthiness rests on the argument of \S\ref{sec:phicpsi:reconcile} rather than gate certification; \pocB's individual-head bootstrap numbers rest on ground-truth-assisted branch reconstruction, disclosed here explicitly; the inclination noise-floor comparison mixes two non-identically-distributed loss paths, a reason to read it descriptively; the perturbation-trace probe is open, not closed, with no salvage attempted; and the waveform-provenance and inclination-prior gaps remain unresolved (\S\ref{sec:phicpsi:future}).
+
+\subsection{Methodological lessons}
+\label{subsec:methodological-lessons}
+
+Aggregate metrics are not evidence until their mechanism is verified; controls must be validated at the code level; pre-registration belongs inside engineering loops --- confirmed here, sharply enough to add a fourth: \textbf{a passing interpretability gate is not proof that its subject matter is what the gate measures.}
+The $\lambda=0.10$ false positive (\S\ref{sec:phicpsi:prereg}) demonstrated this directly: a checkpoint that cleared every numeric gate threshold was, on scatter-plot inspection, a literal two-point mode collapse.
+\stdratio\ measures raw-vector norm health, not angular diversity; the corrective, as with every lesson in this arc, is mechanism inspection --- a scatter plot, not a summary statistic.
+
+\subsection{Future work}
+\label{sec:phicpsi:future}
+
+Inclination conditioning remains the natural next step given \S\ref{sec:phicpsi:prereq}'s analytic structure, strengthened rather than undermined by $\iota$'s newly-confirmed small real signal.
+Four items remain open, explicitly: a synthetic-data ablation disentangling \pocB's curriculum design from the physical degeneracy, a high-SNR (25--30) validation set or Fisher-matrix bound to separate degeneracy from a sensitivity floor, dataset regeneration from a version-controlled generator, and a 2D joint-scatter ``ridge test'' of predicted $(\hat\varphi_c,\hat\psi)$ pairs, none of which this study ran.
+Two further items: confirming \cnnAttn's sky-position mechanism directly, and recording a full software/environment manifest for this training campaign to support future reproducibility checks.

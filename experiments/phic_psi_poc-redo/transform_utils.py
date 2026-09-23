@@ -28,12 +28,20 @@ import numpy as np
 def normalize_unit(z: np.ndarray, eps: float = 1e-8) -> np.ndarray:
     """Project (..., 2) vectors to unit modulus.
 
-    Reuses the same epsilon convention as the vMF head's ``mu_raw``
-    normalisation (``losses.py:52-55``).
+    Uses an additive epsilon on the denominator (``norm = ||z|| + eps``),
+    not a floor/clamp on the norm itself. This differs from both the vMF
+    head's ``mu_raw`` normalisation (``max(||v||, eps)``, losses.py:52-55)
+    and this codebase's own TF training-path periodic-head normalisation
+    (``tf_normalize_unit`` below, which floors ``||v||^2`` rather than
+    ``||v||`` -- an effective floor on ``||v||`` of ``sqrt(eps)``, not
+    ``eps``). This NumPy function is used by validation/self-consistency
+    scripts only, not by training. See UNDERSTANDING.md Topic 2 for the
+    full three-way comparison and why the discrepancy doesn't affect any
+    result in this study.
 
     Args:
         z: (..., 2) array where ``[..., 0]`` = sin, ``[..., 1]`` = cos.
-        eps: Floor on the denominator magnitude to prevent division by zero.
+        eps: Additive floor on the denominator to prevent division by zero.
 
     Returns:
         (..., 2) unit-norm vectors.

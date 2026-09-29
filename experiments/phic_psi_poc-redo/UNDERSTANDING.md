@@ -1,6 +1,8 @@
 # Understanding — working notes on the $\varphi_c/\psi$ redo
 
 This is a growing reference doc, not a narrative log: a running collection of the intricacies, code mechanics, and "wait, why is it built that way" questions that come up while walking through the paper and thesis, written down once so they don't get re-derived from scratch each time.
+Its prime concept is the paper's *understanding* — what's currently true about a mechanism and why — not the investigative trail of getting there: open questions, hypotheses tried, dated status updates, and "fix applied" narration belong in `NOTES.md` (or another appropriately-scoped file) as they're worked through, and only the settled result gets written here, once, in reference-document voice.
+When a topic's own investigation is worth preserving in detail, cross-reference it from here rather than reproducing it (see §4's closing pointer to `NOTES.md` for the pattern).
 It has three tracks, each with its own numbering so none has to be renumbered when the others grow:
 
 - **Active** topics, numbered `N.M` — things currently live in the paper/thesis/code as written. `N` matches the paper's own section-file number in `paper/` (e.g. §2 ↔ `002_problem-formulation.tex`, §3 ↔ `003_prereq_study.tex`), so the doc section a topic sits under tells you which paper file it documents; `M` is just that topic's own sub-numbering.
@@ -15,7 +17,7 @@ Tag any such in-place change note with a `date: time` stamp (`YYYY-MM-DD HH:MM`,
 **Active**
 2. The circular (cosine) loss and unit-circle normalization (`transform_utils.py`, `trainer.py`, `002_problem-formulation.tex`)
 3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot (`prereq_checks.py`, `curriculum.py`, `003_prereq_study.tex`)
-4. The dataset's inclination prior: face-on/edge-on over-representation direction, and $\iota$'s true $[0,2\pi)$ support plus the resulting inclination-head degeneracy (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
+4. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
 
 **Deferred**
 - P.1. $\pi/4$ / $3\pi/4$ reference-point plot annotations (removed from the figure 2026-09-22 11:20)
@@ -207,134 +209,53 @@ As of §P.1/§P.2, the figure is deliberately minimal: a bare two-panel scatter,
 - **The empty box in each panel's top-left corner:** an unstyled artifact — a legend frame with no handles/labels rendered inside it (no `.legend()` call remains in `_plot_ratio_vs_iota`, so this is most likely a leftover default from `update_style()`'s global rcParams, not something the function draws on purpose). Cosmetic only; doesn't carry information.
 - **If you want the $\pi/4$/$3\pi/4$ numbers, or the removed annotations/line, alongside the figure:** the numbers are in the console log and the CSV's trailer rows (§3.6); what the annotations/line used to look like is in §P.1/§P.2.
 
-## 4. The dataset's inclination prior and the face-on/edge-on over-representation direction
+### 3.8 The curriculum weight $w(\iota)$: a measured Jacobian-condition-number curve exists, but training uses the simpler analytic fallback
 
-### 4.1 $\iota\sim\mathrm{Uniform}[0,\pi]$ over-represents face-on, not edge-on, relative to an isotropic population
+`curriculum.py`'s `derive_w_iota` computes $w(\iota)$ empirically, not by guessing.
+At a fixed reference $(\varphi_c,\psi)$, for 50 random sky-position $(a,b)$ draws, it sweeps $\iota$ across $[0,\pi/2]$ and at each point computes the **Jacobian condition number** of the map $(\varphi_c,\psi)\to(R,\delta)$ (`_jacobian_condition_number`: central finite differences, then the ratio of largest to smallest singular value of the resulting $2\times2$ Jacobian).
+A high condition number means that map is nearly singular — two input directions are collapsing onto barely-distinguishable observables, i.e. genuinely degenerate at that $\iota$.
+Weight is set $\propto1/\text{cond}(J)$, averaged across the 50 sky draws, normalized to max $1$, then smoothed by linear interpolation on $\cos^2\iota$ — chosen specifically because an earlier unconstrained polynomial fit produced negative weights and residuals larger than the function's own range, an already-fixed, unrelated problem.
+Result: $w(\text{face-on})=0.0000$, rising to a peak $\approx0.9956$ near $\iota\approx0.789$, then *falling back down* to only $w(\text{edge-on})=0.1416$ — an intermediate-peak shape, not a monotonic one.
 
-**Status: resolved 2026-09-23.**
-Flagged to the user, then fixed the same day in `004_methods.tex:37` and mirrored into `thesis/chapter_phic_psi_degeneracy.md` and `.tex` (§8.3's "Threats to validity" bullet, which stated the identical backwards claim independently of §4/§8.3 in the paper).
+Training instead uses `w_iota_default`, the simple closed-form $w(\iota)=1-\cos^2\iota=\sin^2\iota$: zero at face-on (matching the measured curve there), but monotonically increasing all the way to $1$ at edge-on, unlike the measured curve's dip.
+Reason for the choice: the measured curve's edge-on dip is ambiguous — it could be real physics (this quasi-linear map genuinely re-degrading near edge-on, for a reason the simple face-on/edge-on story doesn't capture), or a harness artifact (the fixed reference $(\varphi_c,\psi)$ point, the specific sky-position sampling, or the interpolation smoothing itself), and nobody had independently verified which.
+Baking an unverified dip directly into the training signal risks telling the network to under-weight edge-on samples — exactly the regime §3.5's own analytic sweep says is *least* degenerate — for no confirmed reason.
+The fallback is the conservative choice for a first training pass: it encodes only the one certain fact (exact degeneracy at face-on) and adds no unverified assumption beyond that.
+`build_w_iota_from_fit` exists to swap in the measured curve later, if its edge-on behavior is ever independently confirmed as real rather than artifact — not done as of this writing.
 
-For a truly isotropic 3D orbital orientation, $\cos\iota$ is uniform on $[-1,1]$, so $\iota$'s own density is $p(\iota)=\tfrac{1}{2}\sin\iota$.
-That density is zero at the poles ($\iota=0,\pi$, face-on) and peaks at $\iota=\pi/2$ (edge-on).
-This dataset instead draws $\iota\sim\mathrm{Uniform}[0,\pi]$ directly (`004_methods.tex`'s population table, "Uniform in $\iota$") — flat, with no $\sin\iota$ weighting at all.
+## 4. The dataset's inclination prior, and the inclination control head's behavior
 
-Checking the direction against numbers already stated elsewhere in this same paper (`003_prereq_study.tex:27`, "Population balance: 28.7% ... near-face-on ($|\cos\iota|>0.9$), 32.7% near-edge-on ($|\cos\iota|<0.5$)") against what a true isotropic population gives in the identical bins (both computed directly from $\cos\iota$ being uniform on $[-1,1]$):
+### 4.1 $\iota$ is drawn uniform over $[0,2\pi)$; only $\cos\iota$ ever matters physically
 
-| Bin | This dataset | True isotropic |
-|---|---|---|
-| Face-on, $\|\cos\iota\|>0.9$ | 28.7% | 10% |
-| Edge-on, $\|\cos\iota\|<0.5$ | 32.7% | 50% |
+$\iota$ is drawn $\mathrm{Uniform}(0,2\pi)$ in this dataset (`004_methods.tex`'s population table; generator `ml-gw-search/mlgwsc-1/gen.py:201`, `angles = np_gen.uniform(0., 2*np.pi, 3)` for `coa_phase`/`inclination`/`polarization_angle` together, matching `heads_spec.py:99-100`'s `PERIODIC, period=2π` declaration).
+Every piece of machinery that trains on $\iota$ — the curriculum weight $w(\iota)=\sin^2\iota$, the analytic $k_1(\iota)=(1+\cos^2\iota)/2$/$k_2(\iota)=\cos\iota$ coefficients (§3.2/§3.3), the prereq sweep, the combo_A/combo_B construction — depends on $\iota$ only through $\cos\iota$, never on $\iota$ itself: $\cos(\cdot)$ is $2\pi$-periodic and even, so $\mathrm{Uniform}(0,2\pi)$ and $\mathrm{Uniform}(0,\pi)$ push forward to the identical $\cos\iota$ distribution.
 
-The dataset has roughly 3× the isotropic-predicted face-on fraction and well under two-thirds of the isotropic-predicted edge-on fraction.
-Flat-$\iota$ over-represents face-on and under-represents edge-on, relative to isotropic truth — the direction is unambiguous from the paper's own already-published numbers, no external reference population needed.
+Confirmed directly against the real generator, not the toy model: `pycbc.waveform.get_td_waveform(approximant='IMRPhenomD', ...)` gives bit-identical $h_+$/$h_\times$ at $\iota$ and $2\pi-\iota$ (`ml-gw-search`'s own `pycbc==2.9.0` venv, max difference $\approx10^{-34}$ against a signal scale of $\approx10^{-19}$) — the exact $\iota\leftrightarrow2\pi-\iota$ waveform degeneracy, universal for a non-precessing, dominant-$(2,2)$-mode-only signal (this dataset's generation, `004_methods.tex:5`), not a toy-model artifact.
 
-`004_methods.tex:37` currently states the opposite: "over-representing edge-on systems relative to a real population."
+### 4.2 This population over-represents face-on, not edge-on, relative to a truly isotropic one
 
-Why the direction matters, not just the label: face-on is where the $\varphi_c/\psi$ degeneracy is strongest (§3.5's preference ratio peaks $\approx1.6\times$ there); edge-on is where it's weakest (ratio $\to1.0\times$).
-If the dataset over-represents face-on — the hardest-to-recover regime — as the numbers above show, that pads the population with genuinely-degenerate cases, which makes a null (non-recovery) result *easier* to obtain, not harder.
-That is the opposite of `004_methods.tex:37`'s own stated conclusion, that this "does not bias the null toward a self-serving conclusion."
-As currently worded, the sentence's own stated direction would argue the reverse of what it concludes.
+For a truly isotropic 3D orbital orientation, $\cos\iota$ is uniform on $[-1,1]$, giving $\iota$'s own density $p(\iota)=\tfrac{1}{2}\sin\iota$ — zero at the poles (face-on), peaked at $\iota=\pi/2$ (edge-on).
+This dataset's flat draw gives the opposite skew: `003_prereq_study.tex:27`'s population-balance numbers (28.7% face-on at $|\cos\iota|>0.9$, 32.7% edge-on at $|\cos\iota|<0.5$) compare to 10%/50% under true isotropy — roughly 3× the isotropic face-on fraction, under two-thirds the isotropic edge-on fraction.
+`004_methods.tex` states this directly.
 
-One live caveat, unresolved: this compares against the pure geometric isotropic prior.
-If "a real population" was meant to reference a detection-selected (SNR-weighted) population instead — face-on binaries are intrinsically louder, so *detected* populations skew more face-on than the geometric prior even before this dataset's own flat-$\iota$ choice is layered on top — the comparison could shift, but that would be a different, so-far-unstated claim needing its own justification and citation, not something derivable from what's currently in the paper.
+Face-on is where the $\varphi_c/\psi$ degeneracy is strongest (§3.5's preference ratio peaks $\approx1.6\times$ there); edge-on is where it's weakest.
+So this skew could in principle nudge a *pooled* statistic — one averaged across the whole population, e.g. `006_results.tex`'s headline circular-loss numbers ($\comboA=0.9999$, $\comboB=0.9895$) — mildly toward looking like a null, by weighting more hard-to-recover cases into the average.
+It cannot explain the null result itself: the inclination-band stratification (`\S\ref{sec:phicpsi:inclination}`) measures recovery *within* each band separately, so the population mix has no channel through which to act on it, and the edge-on band shows no recovery in isolation either.
+This is a real limit on astrophysical realism (external validity), not evidence the null is a sampling artifact.
 
-**Does the corrected direction mean the dataset is biased in a way that threatens the null?**
-No — this is a real limit on astrophysical realism (external validity: this population doesn't match how inclinations are actually distributed in nature), not evidence the null itself is an artifact of a skewed sample.
+### 4.3 The inclination control head shows partial mode collapse, not a small real signal or a clean noise floor
 
-**"Mildly favors a null result" and "the stratification shows this isn't the case" are not in tension — they answer two different questions, about two different kinds of statistic, not the same one.**
-"Mildly favors" is a claim about a *pooled* statistic: one averaged across the whole (skewed) population, like `006_results.tex`'s headline circular-loss numbers ($\comboA=0.9999$, $\comboB=0.9895$).
-For a pooled average, sample composition genuinely can matter in principle — mix in more hard-to-recover (face-on) cases and the average tilts a little toward "looks unrecoverable," purely as a compositional artifact, independent of whether recovery is actually possible.
-That's a real, honest concession about the pooled number, not something to wave away.
+Inclination is used as a same-model noise-floor calibration for judging $\varphi_c/\psi$'s own band-to-band deviations.
+It is neither a clean noise floor nor a genuinely recoverable signal.
+A predicted-vs-true scatter (`inclination_output/inclination_scatter_20260923_132228.{png,pdf}`) shows no diagonal trend toward either the true value or the exact $\iota\leftrightarrow2\pi-\iota$ mirror value (§4.1) in any of the four models.
+Instead, predictions cluster into a handful of preferred angles largely independent of the true value — partial mode collapse, quantified by this head's own circular resultant ($\text{circ}_r=0.32$–$0.60$ across models: `poc_a` 0.603, `poc_b` 0.534, `tcn` 0.432, `cnn_attention` 0.317), well short of the $\text{circ}_r>0.9$ full-collapse grade used for $\varphi_c$/$\psi$ elsewhere, but far above the $\approx0$ that either clean noise or genuine recovery would give.
+The ranking tracks each model's own $\varphi_c$/$\psi$ collapse severity exactly: `poc_a`/`poc_b` (COLLAPSE-graded on $\varphi_c$/$\psi$) show the highest inclination $\text{circ}_r$, `tcn`/`cnn_attention` (not collapsed there) the lowest — consistent with a shared training-dynamics cause across a model's periodic heads, not head-specific recoverable physics.
 
-The inclination-band stratification (`\S\ref{sec:phicpsi:inclination}`) is a structurally different check: it does not pool.
-It measures recovery *within* each inclination band separately (face-on against face-on, edge-on against edge-on), so the population *mix* — how many face-on vs. edge-on samples exist overall — has no channel through which to act on a within-band result.
-Finding no recovery in the edge-on band, examined in isolation, isn't "proof the skew doesn't exist"; the skew is exactly as described.
-It's proof that whatever the skew's compositional effect might be doing to the *pooled* headline number, the actual finding doesn't depend on it, since the same null appears even in the one subpopulation where that compositional effect had zero opportunity to contribute.
-Belt-and-suspenders: a theoretical concession about what a pooled metric *could* be sensitive to, plus the empirical check that shows it isn't actually the explanation — not a contradiction between "biased" and "unbiased."
+This does not threaten the paper's headline $\varphi_c$/$\psi$ null.
+That result rests on four methods measured directly on $\varphi_c$/$\psi$'s own predictions — collapse/histogram inspection, the gradient-chain trace, the label-permutation bootstrap, and the SNR/inclination-band stratification — none of which consume inclination's own recoverability.
+Inclination's role is always secondary/interpretive, and `008_discussion.tex`'s threats-to-validity list already reads §6.7 as descriptive rather than a formal calibration, independent of this finding.
 
-**Fix applied, 2026-09-23 (two passes).**
-First pass corrected the direction: `004_methods.tex:37` moved from the backwards "over-representing edge-on... does not bias the null toward a self-serving conclusion" to "over-representing face-on... this skew mildly favors a null result."
-Second pass made the pooled-vs-stratified distinction explicit, since the first pass's "mildly favors... however, the null itself does not depend on this" reads as a flat contradiction without it: `004_methods.tex` now names the headline numbers of `\S\ref{sec:phicpsi:results}` explicitly as the *pooled* statistic the skew could in principle nudge, and states that population mix "has no opportunity to act" on the *band-separated* stratification check, rather than asserting the two facts side by side with no mechanism connecting them.
-The same two-pass fix was mirrored into `thesis/chapter_phic_psi_degeneracy.md` and `.tex` §8.3, which had independently stated the identical backwards claim (not copied from the paper — restated separately, so it needed its own fix).
-Repo-wide sweep for the same claim (`grep -rl "over-representing edge-on"`) found two more hits, both correctly left alone: `review_inheritance_map.md:86` only reports the raw 28.7%/32.7% numbers without asserting a direction, so it was never wrong; `experiments/phic_psi_poc/thesis/reviews/kimi_ai_adversarial_review_v2.md:69` is a frozen adversarial-review record quoting the *original* (pre-redo) chapter's identical claim back at it — a dated historical snapshot per this repo's frozen-vs-living-docs convention, never rewritten after the fact regardless of whether the claim it quotes was right.
-
-### 4.2 The population table's $\iota$ support was also wrong ($[0,\pi]$ vs. the actual $[0,2\pi)$) — and the deeper question it raised
-
-**Status: table fixed 2026-09-23; structural finding confirmed, does not change any reported number.**
-
-While building the §4.1 illustration, the histogram of the real `inclination` column (`combined_repackaged.hdf`, `params[:, 2]`) turned out to span the full $[0,2\pi)$ — min $\approx0$, max $\approx2\pi$, exactly half the 30,000 samples $>\pi$ — not $[0,\pi]$ as `004_methods.tex`'s population table stated and as §3.1 above assumed ("$\iota$'s range is $[0,\pi]$ because that is what 'angle between two vectors' means").
-Traced to the actual generator: `ml-gw-search/mlgwsc-1/gen.py:201`, `angles = np_gen.uniform(0., 2*np.pi, 3)`, draws `coa_phase`, `inclination`, and `polarization_angle` identically, all as period-$2\pi$ quantities — matching `src/gwml/heads_spec.py:99-100`'s `TransformKind.PERIODIC, period=_TWO_PI` for the inclination head.
-**Fixed:** `004_methods.tex`'s table now reads `$\iota$ | $[0,2\pi)$ | Uniform in $\iota$`.
-
-**Does this affect the φ_c/ψ null, or anything else load-bearing?**
-No, and this is provable, not just plausible.
-Every piece of machinery that trains on $\iota$ — the curriculum weight $w(\iota)=\sin^2\iota$, the analytic $k_1(\iota)=(1+\cos^2\iota)/2$/$k_2(\iota)=\cos\iota$ coefficients (§3.2/§3.3), the prereq sweep, the combo_A/combo_B construction — depends on $\iota$ *only* through $\cos\iota$, never on $\iota$ itself.
-$\cos(\cdot)$ is $2\pi$-periodic and even, so $\mathrm{Uniform}(0,2\pi)$ and $\mathrm{Uniform}(0,\pi)$ push forward to the *identical* distribution of $\cos\iota$ — not approximately, exactly — which is exactly why §4.1's 28.7%/32.7% cross-check matched the paper's own numbers to the decimal regardless of which range was assumed.
-
-**A real hypothesis this raised, investigated and only partly confirmed: does the inclination *control head* have its own structural degeneracy?**
-The inclination head regresses the raw $(\sin\iota,\cos\iota)$ two-vector from the true stored $\iota$ (`heads_spec.py`'s `PERIODIC` transform is literally "angle $\to$ (sin, cos) of $2\pi\cdot\text{value}/\text{period}$", no folding).
-`inclination_stratification.py:99-114`'s `angular_mae` confirms the evaluation side doesn't special-case this either — `("inclination", 2*np.pi, np.pi/2)`, full-period wrap-aware error, same treatment as `coa_phase`.
-So if the strain only ever carries information about $\cos\iota$, the sign of $\sin\iota$ (i.e. which of the two $\iota\leftrightarrow2\pi-\iota$ labels was recorded) should be exactly as unrecoverable as $\varphi_c$/$\psi$ are — a second, independent instance of the same class of problem, hiding in what the paper treats as a clean positive control.
-
-This is standard, well-established GW physics for a non-precessing, dominant-$(2,2)$-mode-only signal (exactly this dataset's generation, `004_methods.tex:5`) — the $(2,\pm2)$ spherical-harmonic angular dependence gives $h_+\propto(1+\cos^2\iota)/2$, $h_\times\propto\cos\iota$ and nothing else, universally, not a toy-model approximation.
-But rather than trust that from memory, it was checked directly against the *real* generator: `ml-gw-search`'s own `.venv` (confirmed present, `pycbc==2.9.0`) was used to call `pycbc.waveform.get_td_waveform` with `approximant='IMRPhenomD'`, identical `mass1/mass2/coa_phase/delta_t/f_lower` to `gen.py`'s own call, once at `inclination=1.0` and once at `inclination=2π-1.0`.
-Result: `max|h_plus_1 - h_plus_2| ≈ 1.4e-34`, `max|h_cross_1 - h_cross_2| ≈ 1.9e-34`, against a signal scale of `≈4.2e-19` — floating-point-identical, 15 orders of magnitude below the signal itself, on the actual production waveform generator, not the toy model.
-The structural degeneracy is real and exact, confirmed empirically, not merely argued analytically.
-
-**But it does not explain the inclination effect size already reported in `006_results.tex`/§6.7 — checked quantitatively, and it doesn't fit.**
-A Monte Carlo idealization (true $\iota\sim\mathrm{Uniform}(0,2\pi)$, a predictor that recovers $\cos\iota$ perfectly but guesses $\sin\iota$'s sign at random) gives an expected wrap-aware angular MAE of $\approx0.785\,\text{rad}$ ($=\pi/4$ exactly, i.e. half the $\pi/2$ null) — a large, easily-detected improvement over the null.
-The paper's own reported inclination effect is $\approx0.02$–$0.04\,\text{rad}$ *above* the null, roughly 20–40$\times$ smaller than what "good $\cos\iota$ recovery, random sign" would produce.
-So whatever mechanism drives §6.7's small real signal, it is not "the network learned $\cos\iota$ well and is merely capped by the unrecoverable sign" — that story predicts an effect far larger than what's observed.
-The structural degeneracy is a genuine, previously-undocumented ceiling on how good the inclination head could ever score (nothing better than $\approx0.785\,\text{rad}$ MAE is achievable even in the idealized best case), and it reinforces *why* §6.7 already hedges inclination as "not a clean noise floor" rather than a fully clean positive control — but it is not, by itself, the explanation for the specific small magnitude already reported there.
-That magnitude remains whatever §6.7 already says it is: a small, real, sub-materiality-floor signal of separately-undetermined origin.
-
-**Follow-up, 2026-09-23: prepared, not yet run, since this needs the GPU machine.**
-The quantitative Monte Carlo argument above is still an aggregate-statistic argument, and this repo's own house rule (`008_discussion.tex`: *"the corrective... is mechanism inspection — a scatter plot, not a summary statistic"*) applies here just as much as it did to `std_ratio`.
-`inclination_stratification.py` was extended to also save a per-model predicted-vs-true inclination scatter, `inclination_output/inclination_scatter_<timestamp>.{png,pdf}`, colored by face-on/mixed/edge-on band, with two reference lines drawn: $y=x$ (perfect recovery) and $y=2\pi-x$ (the exact waveform-degeneracy line confirmed above via direct `pycbc.waveform.get_td_waveform` comparison).
-If the small ang_MAE gap already on record is real partial $\cos\iota$ recovery, points should show *some* visible pull toward one or both lines rather than filling the square uniformly; if it's noise that happens to average out slightly below null, the scatter will look uniform regardless of what the aggregate number says.
-Not run locally (needs the trained checkpoints + GPU, per this repo's CPU-only rule) — queued for the lab GPU machine.
-
-### 4.3 The results are in: neither hypothesis survived — it's partial mode collapse
-
-**Status: resolved 2026-09-23; paper and thesis chapter both corrected.**
-The user ran `inclination_stratification.py` on the lab GPU machine (`inclination_output/inclination_scatter_20260923_132228.{png,pdf}`, `inclination_output/inclination_stratification_20260923_132228.{log,md}`) and eyeballed it independently of this write-up, per this repo's own scatter-over-summary-statistic rule.
-
-**What the scatter actually shows, for all four models:** no diagonal trend toward $y=x$ (perfect recovery) or $y=2\pi-x$ (the confirmed exact waveform-mirror line) — the two structured possibilities §4.2 had tested for.
-Instead, predictions cluster into a handful of horizontal bands that repeat across the entire range of true $\iota$: neither of the two hypotheses under test.
-
-**Quantified via `circ_r`** (this paper's own mode-collapse diagnostic, already computed by the script's pre-existing `circular_r()` call — not a new instrument, just not previously surfaced for this head):
-
-| Model | circ_r (inclination, ALL) |
-|---|---|
-| poc_a | 0.603 |
-| poc_b | 0.534 |
-| tcn | 0.432 |
-| cnn_attention | 0.317 |
-
-For reference: this paper grades $\varphi_c$/$\psi$ as COLLAPSE at $\text{circ}_r>0.9$; pure uniform-random guessing gives $\text{circ}_r\approx0$; the idealized-good-$\cos\iota$-recovery hypothesis from §4.2 would also give $\text{circ}_r\approx0$ (correctly-or-mirror-labeled predictions still span the full circle).
-None of the four models are near either extreme — this is **partial mode collapse into a handful of preferred angles**, a third, distinct failure mode from both hypotheses tested, and from full single-point collapse.
-
-**A striking, unplanned cross-check:** the `circ_r` ranking tracks each model's own $\varphi_c$/$\psi$ collapse severity exactly.
-`poc_a`/`poc_b` — the two models graded COLLAPSE on $\varphi_c$/$\psi$ elsewhere in this paper — have the *highest* inclination `circ_r`; `tcn`/`cnn_attention` — graded noisy-not-collapsed on $\varphi_c$/$\psi$ — have the *lowest*.
-That's evidence of a shared training-dynamics cause across a given model's periodic heads generally, not something specific to inclination's own physics or recoverability.
-
-**A second, independent finding: the paper's prior claim about this exact scatter was unsubstantiated.**
-`006_results.tex` §6.7 and the mirrored thesis-chapter section both stated, before this pass, that the finding was *"verified against the underlying scatter plots directly... all four models show a genuine, if noisy, diagonal trend."*
-No scatter-plot artifact for inclination existed anywhere in this repo before this session (confirmed by an explicit search, §4.2 above) — `inclination_stratification.py` computed and discarded predictions in memory, saving only aggregate `ang_MAE`/`circ_r` tables.
-So that claim wasn't traceable to any file, contrary to this project's own claim-to-artifact discipline, and the actual first-ever artifact shows the opposite of what was claimed (banding, not a diagonal trend).
-
-**Fix applied, 2026-09-23:** `004_methods.tex`'s population table (support column) was already fixed under §4.2.
-`006_results.tex` §6.7 (title + body), the parallel bootstrap-section sentence, `thesis/chapter_phic_psi_degeneracy.md` and `.tex` (the §8.1 cross-reference, §6.3-equivalent bootstrap summary, and §6.7 itself), and both claim-to-artifact appendices (paper `010_appendix1.tex`, thesis chapter's own table) were all updated: "small, real, sub-floor signal" → "partial mode collapse, not a small real signal or a clean noise floor," with the `circ_r` numbers, the cross-model collapse-severity correlation, and the corrected artifact pointer.
-The φ_c/ψ-facing conclusions in that section (no deviation clears the 0.10 rad floor; the mchirp banding-control check) were untouched — they were never about inclination's own recoverability, and remain correct on their own terms.
-
-**Does this threaten the paper's actual headline result?**
-No, and the reason is scope, not luck: the $\varphi_c$/$\psi$ null was never established *using* inclination as evidence.
-It rests on four methods measured directly on $\varphi_c$/$\psi$'s own predictions — collapse/histogram inspection (the COLLAPSE grade and the 99.9%-in-one-bin histogram, `006_results.tex` §Headline), the gradient-chain trace (`005_diagnostics.tex`), the label-permutation bootstrap on $\varphi_c$/$\psi$ directly (`006_results.tex` §Statistical significance), and the SNR/inclination-band stratification of $\varphi_c$/$\psi$ itself.
-None of those four touch inclination's own recoverability; inclination's only role was as a *secondary, interpretive* noise-floor calibration, explicitly flagged as such — and `008_discussion.tex`'s own threats-to-validity list already hedged this exact point ("ι's noise-floor comparison... a reason to read §6.7 as descriptive rather than as a formal statistical calibration") before this investigation even started, so this correction sharpens an already-acknowledged caution rather than exposing an unnoticed one.
-The pre-registered 0.10 rad materiality floor used to judge $\varphi_c$/$\psi$'s own band-to-band deviations is a fixed, independent threshold, not derived from inclination's performance, and is untouched.
-The positive controls (mchirp, merger_time, SNR, sky_position) are separate heads with separately-confirmed healthy metrics, also untouched.
-So: the mechanism and the headline write-up are safe.
-What changed is a secondary claim *about inclination itself* — correctly narrowed from "small real signal" to "partial mode collapse" — plus the discovery that the specific "verified against scatter plots" sentence backing the old version of that claim had no artifact behind it, which is the more important process lesson: a scatter-plot claim this project's own discipline treats as load-bearing evidence still needs the actual saved file, not just the assertion that one was looked at.
+The investigative trail behind §4.1–4.3 (the backwards over-representation claim, the wrong-support table, the pycbc verification steps, the Monte Carlo hypothesis that didn't survive contact with the actual scatter, and the discovery that the paper's prior "verified against scatter plots" claim had no artifact behind it) is recorded in `NOTES.md`'s 2026-09-23 "Paper-review correction pass" entry, not here — this section states what's currently true and why, not how it was found.
 
 ---
 
@@ -383,26 +304,11 @@ Two of these decisions are worth recording because they reversed mid-stream, not
 - **`std_ratio` vs. `\sigma_\text{head,target}`:** `002_problem-formulation.tex` formally defines `\sigma_\text{head,target}`, but `006`/`007`/`008`/`010` (6 occurrences) call the same diagnostic `std_ratio` and never use the `\sigma` symbol. Canonicalized on `std_ratio`, since that's the literal diagnostic-script/CSV column name (traceability to the artifact wins over the formal symbol); `002` keeps its `\sigma_\text{head,target}` definition but now notes it's "called `std_ratio` from §prereg onward."
 - **Model-identifier rendering:** `\pocA`/`\Tcn`/etc. were first defined as `\texttt{poc\_a}` etc. — the literal lowercase code identifier, for direct grep-traceability to the actual config name. Later switched, on request, to render `model_labels.py`'s pretty display string instead (`POC_A`, `CNN$_\text{baseline}$`, `InceptionTime`, ...), so prose/tables read identically to figure titles/legends — at the direct cost of that `\texttt{poc\_a}` traceability. Both were reasonable; the paper currently uses the second.
 
-### T.1.1 The two `\ensuremath` bugs
+### T.1.1 Two `\ensuremath` rules
 
-Found while hand-editing `\combo`/`\comboA`/`\comboB`/`\comboAFull`/`\comboBFull` (`000_preamble.tex:22-26`) to learn `\ensuremath`, both in the same edit:
+1. **`\ensuremath` must be the only thing that ever inserts a `$`.** Hand-writing a literal `$...$` inside an `\ensuremath{...}` argument breaks math-mode tracking — the hand-written `$` toggles whatever mode `\ensuremath` already opened rather than adding "more math," which can silently corrupt otherwise-correct LaTeX into a cascading `! Missing $ inserted.` failure several tokens later. Wrap the whole expression in one `\ensuremath` call instead of nesting a raw `$...$` inside it.
+2. **A bare multi-letter word inside math mode renders as italicized, implicitly-multiplied single letters, not the word** — `combo` without `\text{}` becomes five separate math-italic variables, *c·o·m·b·o*, silently, with no compile error to flag it. Same root cause as the original combo-A/B typography inconsistency that motivated this whole macro effort (§3.4) — exactly why `\circr`, `\stdratio`, `\Lcirc`, `\Lmag` all wrap their word parts in `\text{}`.
 
-1. **A hand-written `$...$` inside an `\ensuremath{...}` argument breaks math-mode tracking.**
-   Broken: `\newcommand{\comboAFull}{\ensuremath{\comboA\ $(2\varphi_c+2\psi)$}}`.
-   `\ensuremath{#1}` checks `\ifmmode`: if not already in math mode, it wraps `#1` in `$...$` itself.
-   If `#1` also contains a hand-written `$`, that `$` doesn't add "more math" — it toggles whatever mode is currently active.
-   Trace: `\ensuremath` opens math with its own `$`; `\comboA` is processed fine (already in math mode, no new `$` needed); the body's own `$` then **closes** that math, since a `$` while already in math mode closes rather than opens; `(2\varphi_c+2\psi)` is then typeset in plain text mode, where `\varphi_c` isn't a valid command; the body's second `$` reopens math; `\ensuremath`'s own closing `$` closes it again.
-   Actual compile result: `! Missing $ inserted.` at every `\comboAFull`/`\comboBFull` call site, cascading errors through the rest of the document (verified — `pdflatex` exits 1).
-   Rule: `\ensuremath` must be the *only* thing that ever inserts a `$`; never hand-write `$` inside its argument — wrap the whole expression in one `\ensuremath` instead.
-   Fixed: `\newcommand{\comboAFull}{\ensuremath{\comboA\ (2\varphi_c+2\psi)}}`.
+Minor, not a bug: nesting `\ensuremath` inside another macro that already calls `\ensuremath` is harmless (it checks `\ifmmode` and no-ops when already in math mode) but pointless, since that's the one thing `\ensuremath` already exists to decide.
 
-2. **A bare multi-letter word inside math mode renders as italicized, implicitly-multiplied single letters, not the word.**
-   Broken: `\newcommand{\combo}[1]{\ensuremath{combo_\text{#1}}}` — `\text{}` wraps `#1` (e.g. "A") but not `combo` itself.
-   A bare `combo` inside math mode is parsed as five separate one-letter variables (c, o, m, b, o), each set in math italic and implicitly multiplied — renders as *c o m b o*, not the upright word "combo."
-   Silent, not a compile error, which makes it easy to miss.
-   This is the same root cause as the original combo-A/B typography inconsistency that motivated this whole macro effort in the first place (§3.4) — exactly why `\circr`, `\stdratio`, `\Lcirc`, `\Lmag` all wrap their word parts in `\text{}`.
-   Fixed: `\newcommand{\combo}[1]{\ensuremath{\text{combo}_\text{#1}}}`.
-
-Minor, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, double-wrapping since `\combo` already calls `\ensuremath` itself.
-Harmless — `\ensuremath` checks `\ifmmode` and no-ops (just emits its argument) when already inside math mode, so the inner call passes through — but pointless: `\ensuremath`'s entire purpose is to be the one place that decides whether a `$` is needed, so anything that already routes through it doesn't need wrapping again.
-Simplified to `\newcommand{\comboA}{\combo{A}}`.
+The two bugs that taught these rules (the exact broken macro definitions, the token-by-token trace of why each one failed, and the actual `pdflatex` error output) are recorded in `NOTES.md`'s 2026-09-23 tooling entry, not here.

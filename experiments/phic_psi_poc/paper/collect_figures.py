@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Flatten the figures listed in figures_registry.yaml into paper/paper1/ for an arXiv-style submission tree.
+"""HISTORICAL: flattened the figures listed in figures_registry.yaml into paper/paper1/ for the original paper.
 
-paper/paper1/ is the Overleaf-linked nested git repo that holds the actual arXiv submission source
-(see paper/paper1/main.tex); arXiv compiles from a flat, self-contained source directory, so
-every file \\includegraphics'd from main.tex (and its \\input sections) must sit alongside the
-.tex sources, not one level up in the experiment's *_output/ directories where they are actually produced.
-
-This script itself stays in paper/ (with figures_registry.yaml) so its relative path resolution into the
-experiment root is unaffected by where the copies land.
+The original paper moved out of this repository into the Overleaf-linked sibling repo ../gw_research_paper
+(formerly paper/paper1/), and that repo now holds the redo paper, so this script no longer has a destination.
+Use experiments/phic_psi_poc-redo/paper/collect_figures.py for the current paper.
+The original paper survives only in ../gw_research_paper's git history (up to commit d83db4b).
 
 Usage:
     python3 collect_figures.py # copy PNG only
@@ -68,6 +65,12 @@ def main() -> None:
     )
     parser.add_argument("--dry-run", action="store_true", help="print actions without copying")
     args = parser.parse_args()
+
+    if not DEST_DIR.is_dir():
+        sys.exit(
+            "paper/paper1/ no longer exists: the original paper moved to ../gw_research_paper, "
+            "which now holds the redo paper. Use experiments/phic_psi_poc-redo/paper/collect_figures.py instead."
+        )
 
     formats = {fmt.strip().lower() for fmt in args.formats.split(",") if fmt.strip()}
     entries = load_registry(REGISTRY_PATH)

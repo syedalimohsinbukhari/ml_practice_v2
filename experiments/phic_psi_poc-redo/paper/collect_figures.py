@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Flatten the figures listed in figures_registry.yaml into paper/ for an arXiv-style submission tree.
 
-This redo's paper/ is not (yet) a separate Overleaf-linked nested repo -- it stays flat inside this experiment directory
-per explicit instruction.
+This redo's paper/ stays flat inside this experiment directory.
+The Overleaf-linked sibling repo ../gw_research_paper (next to this repository) holds the same paper, replacing the original there as of 2026-09-29.
+Figures are therefore copied into both paper/ and ../gw_research_paper; the .tex sources are still synced by hand.
 arXiv compiles from a flat, self-contained source directory, so every file \\includegraphics'd from main.tex
 (and its \\input sections) must sit alongside the .tex sources, not one level up in the experiment's *_output/
 directories where they are actually produced.
@@ -27,7 +28,8 @@ import yaml
 
 PAPER_DIR = Path(__file__).resolve().parent
 EXPERIMENT_ROOT = PAPER_DIR.parent
-DEST_DIR = PAPER_DIR
+OVERLEAF_DIR = PAPER_DIR.parents[3] / "gw_research_paper"
+DEST_DIRS = [PAPER_DIR, OVERLEAF_DIR]
 REGISTRY_PATH = PAPER_DIR / "figures_registry.yaml"
 
 
@@ -47,19 +49,21 @@ def copy_figures(entries: list[dict], formats: set[str], dry_run: bool) -> int:
             continue
         for fmt in sorted(entry_formats):
             src_path = source.with_suffix(f".{fmt}")
-            dest_path = DEST_DIR / Path(dest_name).with_suffix(f".{fmt}")
             if not src_path.exists():
                 print(f"MISSING: {src_path.relative_to(EXPERIMENT_ROOT)} (id={entry['id']})", file=sys.stderr)
                 missing += 1
                 continue
-            if src_path.resolve() == dest_path.resolve():
-                print(f"skip (already in place): {dest_path.name}")
-                continue
-            if dry_run:
-                print(f"{src_path.relative_to(EXPERIMENT_ROOT)} -> paper/{dest_path.name}")
-                continue
-            shutil.copy2(src_path, dest_path)
-            print(f"copied paper/{dest_path.name}")
+            for dest_dir in DEST_DIRS:
+                dest_path = dest_dir / Path(dest_name).with_suffix(f".{fmt}")
+                label = f"{dest_dir.name}/{dest_path.name}"
+                if src_path.resolve() == dest_path.resolve():
+                    print(f"skip (already in place): {label}")
+                    continue
+                if dry_run:
+                    print(f"{src_path.relative_to(EXPERIMENT_ROOT)} -> {label}")
+                    continue
+                shutil.copy2(src_path, dest_path)
+                print(f"copied {label}")
     return missing
 
 
@@ -74,6 +78,8 @@ def main() -> None:
     args = parser.parse_args()
 
     formats = {fmt.strip().lower() for fmt in args.formats.split(",") if fmt.strip()}
+    if not OVERLEAF_DIR.is_dir():
+        sys.exit(f"Overleaf repo not found at {OVERLEAF_DIR}")
     entries = load_registry(REGISTRY_PATH)
     missing = copy_figures(entries, formats, args.dry_run)
 

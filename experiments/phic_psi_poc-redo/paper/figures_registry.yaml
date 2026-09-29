@@ -1,12 +1,13 @@
 # Registry of every figure referenced (via \includegraphics) from
 # paper/main.tex and its \input sections.
 #
-# Unlike experiments/phic_psi_poc/paper/, this redo's paper/ is NOT (yet) a
-# separate Overleaf-linked nested repo -- it stays flat inside this
-# experiment directory per explicit instruction. collect_figures.py therefore
-# copies figures into paper/ itself (this same directory), not into a paper1/
-# subdirectory, so the .tex sources and their images sit side by side the way
-# arXiv's flat submission tree requires.
+# This paper/ stays flat inside this experiment directory; the Overleaf-linked
+# sibling repo ../gw_research_paper (next to this repository) holds the same
+# paper, replacing the original there as of 2026-09-29. collect_figures.py
+# therefore copies figures into both paper/ (this same directory) and
+# ../gw_research_paper, so the .tex sources and their images sit side by side
+# the way arXiv's flat submission tree requires. The .tex sources are still
+# synced to the sibling repo by hand.
 #
 # `source` is relative to the experiment root (experiments/phic_psi_poc-redo/).
 # `dest_name` is the flat filename \includegraphics actually calls in the .tex

@@ -1,9 +1,13 @@
 # Registry of every figure referenced (via \includegraphics) from
-# paper/paper1/main.tex and its \input sections.
+# the original paper's main.tex and its \input sections.
 #
-# paper/paper1/ is the Overleaf-linked nested git repo holding the actual arXiv
-# submission source; this registry and collect_figures.py stay in paper/ (the
-# main repo) and only the copied figures land in paper1/.
+# HISTORICAL: the original paper moved out of this repository into the
+# Overleaf-linked sibling repo ../gw_research_paper (formerly paper/paper1/),
+# and that repo now holds the redo paper (experiments/phic_psi_poc-redo/paper/).
+# The original paper survives only in that repo's git history (up to commit
+# d83db4b, [main-major-1]). This registry is kept as a record of which figures
+# the original paper used; collect_figures.py no longer has a destination and
+# exits with a message.
 #
 # `source` is relative to the experiment root (experiments/phic_psi_poc/).
 # `dest_name` is the flat filename \includegraphics actually calls in the .tex

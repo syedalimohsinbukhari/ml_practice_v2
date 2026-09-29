@@ -1,9 +1,3 @@
-\subsection{Two optimization pathologies and their fixes}
-\label{sec:phicpsi:inherited}
-
-Before any measurement of the degeneracy could be trusted, two genuine optimization pathologies in this training pipeline had to be found and fixed: tanh saturation at random initialization on the periodic head output layers, fixed by switching to a linear output activation since the unit-circle normalization already handles projection; and, once that was fixed, a second pathology in which the isotropic circular loss provides no restoring force on the raw output's magnitude, so the normalization layer's backward pass either crushes or explodes the angular gradient as the magnitude drifts, fixed by the explicit magnitude penalty of \S\ref{sec:phicpsi:penalty}.
-Both are established facts about this codebase's training mechanism, fixed before the main sweep in \S\ref{sec:phicpsi:results} began; that sweep does not re-narrate the bug hunt that found them.
-
 \subsection{Verification on trained checkpoints}
 \label{sec:phicpsi:verification}
 

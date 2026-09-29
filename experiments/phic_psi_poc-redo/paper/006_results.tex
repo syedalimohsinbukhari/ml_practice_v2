@@ -8,7 +8,7 @@ Table~\ref{tab:headline} reports angular recovery for all four down-selected mod
     \centering
     \caption{Periodic-head recovery, four down-selected models, $\lambda=0.01$.}
     \label{tab:headline}
-    \small
+    \resizebox{\columnwidth}{!}{
     \begin{tabular}{@{}llccc@{}}
         \toprule
         Head & Model & $\circr$ & \MAEang & Grade \\
@@ -23,6 +23,7 @@ Table~\ref{tab:headline} reports angular recovery for all four down-selected mod
         $\psi$ & \cnnAttn & 0.396 & 0.785 & $\sim$ \\
         \bottomrule
     \end{tabular}
+}
 \end{table}
 
 \pocA and \pocB are, by a systematic COLLAPSE grade ($\circr>0.9$ \emph{and} \MAEang$>0.5$), genuinely mode-collapsed: \pocB's $\psi$ predictions place 99.9\% of 5{,}000 validation samples in one $10^\circ$-wide histogram bin.
@@ -44,7 +45,7 @@ This study's own pre-registered interpretability gate (\S\ref{sec:phicpsi:prereg
     \centering
     \caption{Label-permutation bootstrap ($N=10{,}000$, one-sided). $z>0$: better than shuffled-null.}
     \label{tab:bootstrap}
-    \small
+    \resizebox{\columnwidth}{!}{
     \begin{tabular}{@{}lccc@{}}
         \toprule
         Model & $\varphi_c$: $z,p$ & $\psi$: $z,p$ & $\iota$: $z,p$ \\
@@ -55,6 +56,7 @@ This study's own pre-registered interpretability gate (\S\ref{sec:phicpsi:prereg
         \cnnAttn & $-1.97$, .976 & $+1.33$, .091 & $+3.58$, .0003 \\
         \bottomrule
     \end{tabular}
+}
 \end{table}
 
 $\varphi_c$ and $\psi$: 0 of 8 tests significant, most worse than chance.
@@ -83,7 +85,7 @@ No salvage was attempted; the probe is stated as parked, not closed, and carried
 Inclination was used throughout as a same-model noise-floor calibration for judging $\varphi_c/\psi$'s own band-to-band deviations, on the premise that its apparent failure was clean noise.
 That premise does not survive this study's bootstrap evidence (\S\ref{sec:phicpsi:bootstrap}): $\iota$ is not uninformative in the sense of pure random guessing.
 But neither is it a small, real, per-sample-recoverable signal, the reading originally given here.
-A predicted-vs-true inclination scatter (\texttt{inclination\_output/inclination\_scatter\_20260923\_132228.\{png,pdf\}}) shows no diagonal trend toward either the true value or the confirmed exact $\iota\leftrightarrow2\pi-\iota$ waveform-mirror value (verified directly against the real IMRPhenomD generator via \texttt{pycbc.waveform.get\_td\_waveform}, not assumed) in any of the four models.
+%A predicted-vs-true inclination scatter (\texttt{inclination\_output/inclination\_scatter\_20260923\_132228.\{png,pdf\}}) shows no diagonal trend toward either the true value or the confirmed exact $\iota\leftrightarrow2\pi-\iota$ waveform-mirror value (verified directly against the real IMRPhenomD generator via \texttt{pycbc.waveform.get\_td\_waveform}, not assumed) in any of the four models.
 Instead, predictions cluster into a handful of preferred angles largely independent of the true value --- partial mode collapse, quantified by this head's own circular resultant ($\text{circ}_r=0.32$--$0.60$ across the four models), well short of the $\text{circ}_r>0.9$ full-collapse grade used elsewhere for $\varphi_c$/$\psi$, but far above the $\approx0$ that either clean noise or genuine recovery would give.
 Tellingly, the ranking tracks each model's own $\varphi_c$/$\psi$ collapse severity: \pocA/\pocB (COLLAPSE-graded on $\varphi_c$/$\psi$) show the highest inclination $\text{circ}_r$, \Tcn/\cnnAttn (not collapsed there) the lowest --- consistent with a shared training-dynamics origin across a model's periodic heads, not head-specific recoverable physics.
 No $\varphi_c/\psi$ deviation, face-on to edge-on, clears the 0.10~rad floor in either direction for any model; a companion check on a non-angular control (chirp mass, banded identically) shows small band-to-band spread, ruling out the banding scheme itself as an alternative explanation.
@@ -97,7 +99,7 @@ Sky position was carried throughout as a positive control; here it is tested for
     \centering
     \caption{Sky-position angular separation.}
     \label{tab:sky}
-    \small
+    \resizebox{\columnwidth}{!}{
     \begin{tabular}{@{}lccl@{}}
         \toprule
         Model & Bootstrap $\Delta$ (deg), $z$ & High-SNR $\Delta$ & Verdict \\
@@ -105,13 +107,14 @@ Sky position was carried throughout as a positive control; here it is tested for
         \pocA & 3.43, $+6.54\sigma$ & $+3.01$ & sub-floor \\
         \pocB & 3.03, $+5.51\sigma$ & $+2.90$ & sub-floor \\
         \Tcn & 2.86, $+5.21\sigma$ & $+2.53$ & sub-floor \\
-        \cnnAttn & \textbf{12.58}, $\mathbf{+23.23\sigma}$ & \textbf{+15.53} & \textbf{real-recovery} \\
+        \cnnAttn & \textbf{12.58}, $\mathbf{+23.23\sigma}$ & \textbf{+15.53} & \textbf{Recovery} \\
         \bottomrule
     \end{tabular}
+}
 \end{table}
 
 Three models show the same small-but-real, sub-floor pattern as inclination.
-\begin{sloppypar}
+%\begin{sloppypar}
 \cnnAttn clears the materiality floor outright, and --- since this model is independently known to memorize $\varphi_c/\psi$ training-set structure without generalizing (\S\ref{sec:phicpsi:pool}) --- the SNR discriminator resolves in favor of genuine recovery, not memorization: a hypothetical population-mean predictor scores only $\approx89.4^\circ$ (essentially at the null), and the actual error shrinks monotonically with SNR ($80.15^\circ\to77.95^\circ\to74.47^\circ$).
-\end{sloppypar}
+%\end{sloppypar}
 The leading mechanism hypothesis is cross-detector H1/L1 amplitude-ratio information via the sky-dependent antenna pattern --- an envelope cue, not carrier phase --- so this finding is peripheral to, and does not affect, the $\varphi_c/\psi$ null.

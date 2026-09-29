@@ -36,8 +36,8 @@ Third, a methodological lesson demonstrated directly within this study: a checkp
 The research paper is organized as follows;
 Section~\ref{sec:phicpsi:problem} formalizes the problem and the circular-regression framework.
 Section~\ref{sec:phicpsi:prereq} presents the analytic prerequisite study, rerun under the corrected antenna-pattern model.
-Section~\ref{sec:phicpsi:methods} details the datasets, architectures, losses, and training protocol, including the corrected combination construction.
-Section~\ref{sec:phicpsi:arc} summarizes, briefly, two optimization pathologies in this training pipeline and how they were fixed prior to the main sweep.
+Section~\ref{sec:phicpsi:methods} details the datasets, architectures, losses, and training protocol, including the corrected combination construction and two training-stability fixes established before the main sweep (a linear periodic-head activation, an explicit magnitude penalty).
+Section~\ref{sec:phicpsi:arc} verifies, on trained checkpoints, that this machinery is healthy before trusting what it produces.
 Section~\ref{sec:phicpsi:results} presents the defended null result, its verification battery, and findings.
 Section~\ref{sec:phicpsi:prereg} describes the pre-registered magnitude-penalty retune and its outcome.
 Section~\ref{sec:phicpsi:discussion} discusses interpretation, limitations, and future work; Section~\ref{sec:phicpsi:conclusion} concludes.

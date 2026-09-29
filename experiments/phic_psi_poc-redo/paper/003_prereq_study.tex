@@ -13,15 +13,17 @@ The toy model's two antenna-weighted amplitude coefficients respond asymmetrical
 Since the detector strain is $F_+h_++F_\times h_\times$, that sign change in $h_\times$'s own amplitude is what flips which of \comboA/\comboB\ the strain constrains more tightly, and the same vanishing of $k_2$ at edge-on is why the preference ratio closes toward $1.0\times$ there: with $h_\times$'s contribution suppressed, the two combinations become comparably constrained rather than either one standing out.
 The ratio peaks at face-on instead, where $k_1$ and $k_2$ are both near their maximum magnitude and the signal is closest to circularly polarized.
 
-Which combination wins for a given sign of $\cos\iota$ is read off empirically from the correlation sweep itself, not assumed in advance from the coefficient asymmetry alone.
-That distinction is not academic: this redo's \comboA/\comboB\ use the corrected construction of \S\ref{sec:phicpsi:heads} (angle $2\varphi_c\pm2\psi$, via an explicit doubling of the $\varphi_c$ head before combination), and an earlier, uncorrected version of this experiment found \comboB\ well-constrained for a differently-defined pair (\texttt{formulae\_reference.md} \S A.2) --- a finding this redo deliberately did not carry forward, re-deriving the sign assignment empirically under the corrected formula instead.
+%Which combination wins for a given sign of $\cos\iota$ is read off empirically from the correlation sweep itself, not assumed in advance from the coefficient asymmetry alone.
+%That distinction is not academic: this redo's \comboA/\comboB\ use the corrected construction of \S\ref{sec:phicpsi:heads} (angle $2\varphi_c\pm2\psi$, via an explicit doubling of the $\varphi_c$ head before combination), and an earlier, uncorrected version of this experiment found \comboB\ well-constrained for a differently-defined pair (\texttt{formulae\_reference.md} \S A.2) --- a finding this redo deliberately did not carry forward, re-deriving the sign assignment empirically under the corrected formula instead.
 
-\begin{figure}[tbp]
+\begin{figure*}[!ht]
     \centering
-    \includegraphics[width=\columnwidth]{sweep_1_1_ratio_vs_iota.png}
+    \includegraphics[width=\textwidth]{sweep_1_1_ratio_vs_iota.png}
     \caption[Analytic check of the corrected degeneracy structure]{Analytic check of the corrected $2\varphi_c$--$2\psi$ degeneracy structure: ratio of the strain correlation with the well-constrained combination to the poorly-constrained one, as a function of inclination.}
     \label{fig:sweep}
-\end{figure}
+\end{figure*}
 
 The curriculum weight derivation gives $w(\text{face-on})=0.0000$ and $w(\text{edge-on})=0.1416$, with an intermediate-peak shape; training uses the analytically motivated fallback $w(\iota)=1-\cos^2\iota=\sin^2\iota$ rather than the fitted empirical curve.
-Population balance: 28.7\% of samples are near-face-on ($|\cos\iota|>0.9$), 32.7\% near-edge-on ($|\cos\iota|<0.5$).
+The fitted curve's edge-on value is not required by the physics above, which only guarantees the map is well short of singular there, not that its condition number should sit near this particular figure --- so $0.1416$ is as plausibly an artifact of the fixed-reference-point finite-difference procedure used to measure it as it is a genuine physical feature.
+Encoding that unconfirmed dip directly into the training signal would risk under-weighting exactly the edge-on regime where the degeneracy above is weakest; the fallback instead commits only to the one fact that is exact --- zero weight at face-on, where the degeneracy is total --- and rises monotonically from there.
+%Population balance: 28.7\% of samples are near-face-on ($|\cos\iota|>0.9$), 32.7\% near-edge-on ($|\cos\iota|<0.5$).

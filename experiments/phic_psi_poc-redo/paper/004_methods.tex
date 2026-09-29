@@ -8,7 +8,7 @@ Table~\ref{tab:population} gives the marginal parameter distributions.
 
 \newcommand{\mrows}[2]{\multirow{#1}{*}{#2}}
 
-\begin{table}[tbp]
+\begin{table}[!hb]
     \centering
     \caption{Marginal parameter distributions for the injected population.}
     \label{tab:population}
@@ -17,11 +17,11 @@ Table~\ref{tab:population} gives the marginal parameter distributions.
         \toprule
         Parameter & Support & Distribution \\
         \midrule
-        $m_1$ & $10$--$50\,M_\odot$ & Uniform pair\\
-        $m_2$ & $10$--$50\,M_\odot$ & Uniform pair\\
-        $q=m_2/m_1$ & \mrows{2}{$0.20$--$1.00$} & \mrows{2}{Derived} \\
+        $m_1$ & [10, 50]$\,M_\odot$ & Uniform pair\\
+        $m_2$ & [10, 50]$\,M_\odot$ & Uniform pair\\
+        $q=m_2/m_1$ & \mrows{2}{[0.20, 1.00)} & \mrows{2}{Derived} \\
         $m_1\geq m_2$ & & \\
-        $\mathcal{M}$ & $8.84$--$43.45\,M_\odot$ & Derived \\
+        $\mathcal{M}$ & [8.84, 43.45]$\,M_\odot$ & Derived \\
         SNR & $[7,15]$ & Uniform \\
         $\varphi_c$ & $[0,2\pi)$ & Uniform \\
         $\psi$ & $[0,\pi)$ & Uniform \\
@@ -44,18 +44,21 @@ The strain is than fed to the model already whitened; targets are transformed pe
 \subsection{Trunk architectures}
 \label{sec:phicpsi:trunks}
 
-\begin{sloppypar}
-Five one-dimensional trunk architectures were evaluated, all mapping the $(4096,2)$ input to a pooled feature vector shared by every head: a temporal convolutional network (\Tcn, primary, dilated residual blocks, receptive field $\approx$ full window~\citep{bai2018tcn}), a plain hierarchical CNN (\cnnBaseline), a strided-conv-plus-transformer network with learned attention pooling (\cnnAttn~\citep{vaswani2017attention}), a multi-scale-kernel network (\inceptionTime~\citep{fawaz2019inceptiontime}), and a residual network (\resnetOneD~\citep{he2016resnet}).
-\end{sloppypar}
-These five were chosen as five distinct inductive-bias families, not five samples from one family, so that each represents a different hypothesis about how phase information might be encoded in the strain.
-Each head is a two-layer MLP (64 hidden units, ReLU) on the shared features, with a linear 2-unit output for periodic heads.
+Five one-dimensional trunk architectures were evaluated, all mapping the $(4096,2)$ input to a pooled feature vector shared by every head: a temporal convolutional network (\Tcn) with dilated residual blocks and receptive field~\citep{bai2018tcn}, a plain hierarchical CNN (\cnnBaseline), a strided Convolution-Transformer network with learned attention pooling (\cnnAttn~\citep{vaswani2017attention}), a multi-scale-kernel network (\inceptionTime~\citep{fawaz2019inceptiontime}), and a residual network (\resnetOneD~\citep{he2016resnet}).
 
-\subsection{Head parameterizations under the corrected formula}
+These five were chosen as five distinct inductive-bias families, so that each represents a different hypothesis about how phase information might be encoded in the strain.
+Each head is a two-layer MLP (64 hidden units, ReLU) on the shared features, with a linear 2-unit output for periodic heads.
+Periodic heads use this linear activation rather than the more common bounded (tanh) one: tanh saturates at random initialization on this architecture, and the unit-circle normalization layer (\S\ref{sec:phicpsi:circular}) already projects the raw output onto the circle, so a bounded activation is unnecessary and actively harmful here.
+
+\subsection{Head parametrization}
 \label{sec:phicpsi:heads}
 
-\textbf{Baseline mode} uses independent circular-loss heads directly on $\varphi_c$ and $\psi$, each with its own uncertainty weight; the named configuration \pocA is baseline mode on the \Tcn trunk.
-\textbf{PoC mode} (named configuration \pocB, also on \Tcn) constructs the two combination heads explicitly rather than treating $\varphi_c$ and $\psi$ as independent outputs.
-The $\varphi_c$ head's unit vector, $\mathbf{z}_{\varphi_c}$, is first passed through a \texttt{double\_angle} operation, $\mathbf{z}_{2\varphi_c} = \mathbf{z}_{\varphi_c} \otimes \mathbf{z}_{\varphi_c}$ (complex multiplication of the vector with itself), which turns a unit vector at angle $\varphi_c$ into one at angle $2\varphi_c$; the $\psi$ head's own encoding already stores $2\psi$ internally (\S\ref{sec:phicpsi:circular}).
+The baseline mode uses an independent circular-loss heads directly on $\varphi_c$ and $\psi$, each with its own uncertainty weight.
+The named configuration proof-of-concept A (\pocA)\ is baseline mode on the \Tcn\ trunk.
+\pocB\ (also on \Tcn) constructs the two combination heads explicitly rather than treating $\varphi_c$ and $\psi$ as independent outputs.
+The $\varphi_c$ head's unit vector, $\mathbf{z}_{\varphi_c}$, is first passed through a \texttt{double\_angle} operation, $\mathbf{z}_{2\varphi_c} = \mathbf{z}_{\varphi_c} \otimes \mathbf{z}_{\varphi_c}$
+%(complex multiplication of the vector with itself),
+which turns a unit vector at angle $\varphi_c$ into one at angle $2\varphi_c$; the $\psi$ head's own encoding already stores $2\psi$ internally (\S\ref{sec:phicpsi:circular}).
 The two combination vectors are $\mathbf{z}_A = \mathbf{z}_{2\varphi_c}\otimes\mathbf{z}_\psi$ (angle $2\varphi_c+2\psi$) and $\mathbf{z}_B = \mathbf{z}_{2\varphi_c}\otimes\overline{\mathbf{z}_\psi}$ (angle $2\varphi_c-2\psi$).
 The isotropic circular loss, sign-dependent per-sample curriculum weighting, and uncertainty-weighting scheme are fixed pipeline components, applied identically to every head.
 The well-constrained combination assignment (\comboB\ for $\cos\iota\geq0$) is derived from this study's own prerequisite analysis (\S\ref{sec:phicpsi:prereq}).
@@ -63,7 +66,8 @@ The well-constrained combination assignment (\comboB\ for $\cos\iota\geq0$) is d
 \subsection{Magnitude penalty}
 \label{sec:phicpsi:penalty}
 
-Following the diagnosis in \S\ref{sec:phicpsi:arc}, all configurations add an explicit radial regularizer on the raw, pre-normalization periodic outputs, $\Lmag = \lambda \cdot \sum \text{mean}[(\|\mathbf{v}\|-1)^2]$, present in every configuration from the first training run.
+The isotropic circular loss (\S\ref{sec:phicpsi:circular}) provides no restoring force on a periodic head's raw output magnitude $\|\mathbf{v}\|$: as $\|\mathbf{v}\|$ drifts during training, the unit-circle normalization layer's backward pass (division by $\|\mathbf{v}\|$) either crushes or explodes the angular gradient.
+All configurations therefore add an explicit radial regularizer on the raw, pre-normalization periodic outputs, $\Lmag = \lambda \cdot \sum \text{mean}[(\|\mathbf{v}\|-1)^2]$, present in every configuration from the first training run.
 $\lambda=0.01$ for the main sweep (\S\ref{sec:phicpsi:results}), retuned to 0.05 and 0.10 in \S\ref{sec:phicpsi:prereg}.
 
 \subsection{Training protocol}

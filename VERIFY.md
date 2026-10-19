@@ -6,7 +6,7 @@ Each entry has three parts (what changed, what to check, why it matters), plus w
 Training runs and full test output are deferred here so they are not pulled into the conversation.
 Format rules are in `CLAUDE.md` and `WORKING_CONVENTIONS.md` §4.
 
-All entries below were opened on 2026-10-19T11:37Z.
+The first seven entries were opened on 2026-10-19T11:37Z; later entries carry their own date.
 Triage: an entry untouched after three sessions goes to the top of the next handoff.
 
 | ID | Check | Closer | Status |
@@ -18,6 +18,7 @@ Triage: an entry untouched after three sessions goes to the top of the next hand
 | BUG-002 | `resnet1d` follow-up run with q-head regularization and `q: 1.0` clamp | user, lab GPU machine (config change first) | PENDING |
 | OBS-001 | `cnn_attention` clamp-only ablation | user, lab GPU machine | PENDING |
 | OBS-009 | `sky_position` with/without test across seeds | user, lab GPU machine | PENDING |
+| BUG-008 | `columns` attribute of a generated file equals the first nine `heads_spec` names | user or agent, on the first generated file, off `thinkpad-t530` | PENDING |
 
 ## Entries
 
@@ -90,3 +91,13 @@ Status: `PENDING`. Closer: user, on the lab GPU machine.
 - **What to check:** train with and without `sky_position` on several seeds (the number is open under OBS-008) and compare the three positive controls (`mchirp`, `merger_time`, `snr`).
 - **Falsified by:** a control difference larger than the seed-to-seed spread.
 - **Why:** it answers whether a weak head harms the shared trunk, and also the carryover's open question about pruned head sets.
+
+### BUG-008 — `columns` attribute of a generated file
+
+Status: `PENDING`. Opened 2026-10-19T21:36Z. Closer: the first generated file, produced on a machine other than `thinkpad-t530` with the user's go-ahead.
+
+- **What changed:** the `PARAM_COLUMNS` list in the sibling's `mlgwsc-1/train.py` (uncommitted in the sibling).
+- **What to check:** in a file written by `Dataset.save` (or by the shard driver), `f['training']['waveform_params'].attrs['columns']` equals `mchirp, q, inclination, coa_phase, polarization_angle, declination, ra, injection_time, merger_time`, in that order, and matches the first nine keys of `heads_spec.PARAM_COLUMNS`.
+- **Falsified by:** a missing attribute, a different name, or a different order.
+- **Why:** the comparison so far read the source of the list, not a written file; the list is only metadata, so a mismatch would go unnoticed until someone relies on the label.
+- **Lighter check already done (2026-10-19T21:36Z):** the list compared with `heads_spec.py` by an AST read; the old list does not match, the new one does.

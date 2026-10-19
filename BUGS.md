@@ -10,34 +10,39 @@ BUG-001 to BUG-006 and OBS-001 to OBS-013 were opened on 2026-10-19T11:37Z from 
 BUG-007 onward and OBS-014 onward carry their own dates; they come from the 2026-10-19 read of the sibling generator repo `ml-gw-search` (paths in `CLAUDE.md`, "Related repositories").
 Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 
-| ID | Description | Status |
-|----|-------------|--------|
-| BUG-001 | InceptionTime `merger_time` head is dead (R² ≈ 0) in every recorded run | OPEN |
-| BUG-002 | `resnet1d` overfits q after the dead-sigmoid revival (train 0.999, val 0.100) | OPEN |
-| BUG-003 | `StdRatio` pools both components of two-component heads, so a collapsed `coa_phase` can read healthy | OPEN |
-| BUG-004 | Stale code comments: `heads.py` docstring says tanh; `run_full.py` docstring is a copy of `run_all.py`'s | OPEN |
-| BUG-005 | `structure.md` is referenced by docs, tests, and `heads_spec.py`, but is not in the repo | OPEN |
-| BUG-006 | `PeriodicCheckpoint` has no test, and `configs/smoke.yaml` (2 epochs, default every 10) never triggers it | OPEN |
-| OBS-001 | Gain on `cnn_attention` q (−0.09 → +0.204) is clamp and q-head regularization combined; the clamp-only ablation was never run | OPEN |
-| OBS-002 | `q_recovery` open item 4 ("combined re-run not done") conflicts with `phase2_5_3_run_results.md` | OPEN |
-| OBS-003 | Input-level augmentation for the `q_high × mchirp_low` regime was never attempted | DEFERRED |
-| OBS-004 | Ensemble / auxiliary classifier for q (Phase 3.3) | DEFERRED |
-| OBS-005 | Clamp-value sweep (1.5 / 2.0) on `tcn` and `cnn_baseline` | DEFERRED |
-| OBS-006 | All q numbers predate the current code and the carryover findings; none has been reproduced | OPEN |
-| OBS-007 | `coa_phase` is in every default config; the carryover recommends dropping it | OPEN |
-| OBS-008 | The head-inclusion rule's N, M, K and per-head floor are unset | OPEN |
-| OBS-009 | Whether keeping `sky_position` helps or hurts the other heads is untested | DEFERRED |
-| OBS-010 | The action plan's "OLD" rows are the attempt-1 runs | VERIFIED |
-| OBS-011 | `CLAUDE.md` lacks the periodic-checkpoint rule that `f50dfae` cites | OPEN |
-| OBS-012 | "ThinkPad T530, CPU-only" statements may not match the machine(s) in use | CLOSED: T530 confirmed in use; machines now tracked in `CLAUDE.md` |
-| OBS-013 | The test suite has no recorded run (`pytest -m "not slow"`, then full) | OPEN |
-| BUG-007 | `ml-gw-search` data generation is unseeded, so the dataset cannot be regenerated bit-for-bit | OPEN |
-| BUG-008 | `PARAM_COLUMNS` in `ml-gw-search` `train.py` mislabels the columns `gen.py` writes (`mass1`/`mass2` versus `mchirp`/`q`) | OPEN |
-| BUG-009 | `injection_time` is stored as float32, which resolves only 128 s at GPS ≈ 1.2e9 | OPEN |
-| OBS-014 | The repackaged dataset drops the noise-only samples and carries no column labels or file attributes | OPEN |
-| OBS-015 | With `--real-noise-file`, `gen.py` pairs whitened waveforms with unwhitened real noise | OPEN |
-| OBS-016 | The generation arguments and the step that produced `combined_repackaged.hdf` are not recorded anywhere | OPEN |
-| OBS-017 | Two diverging copies of `gen_py_data_pipeline.md` (sibling 90 lines, `src/gwml/` 58 lines) | OPEN |
+| ID      | Description                                                                                                                   | Status                                                             |
+|---------|-------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| BUG-001 | InceptionTime `merger_time` head is dead (R² ≈ 0) in every recorded run                                                       | OPEN                                                               |
+| BUG-002 | `resnet1d` overfits q after the dead-sigmoid revival (train 0.999, val 0.100)                                                 | OPEN                                                               |
+| BUG-003 | `StdRatio` pools both components of two-component heads, so a collapsed `coa_phase` can read healthy                          | OPEN                                                               |
+| BUG-004 | Stale code comments: `heads.py` docstring says tanh; `run_full.py` docstring is a copy of `run_all.py`'s                      | OPEN                                                               |
+| BUG-005 | `structure.md` is referenced by docs, tests, and `heads_spec.py`, but is not in the repo                                      | OPEN                                                               |
+| BUG-006 | `PeriodicCheckpoint` has no test, and `configs/smoke.yaml` (2 epochs, default every 10) never triggers it                     | OPEN                                                               |
+| OBS-001 | Gain on `cnn_attention` q (−0.09 → +0.204) is clamp and q-head regularization combined; the clamp-only ablation was never run | OPEN                                                               |
+| OBS-002 | `q_recovery` open item 4 ("combined re-run not done") conflicts with `phase2_5_3_run_results.md`                              | OPEN                                                               |
+| OBS-003 | Input-level augmentation for the `q_high × mchirp_low` regime was never attempted                                             | DEFERRED                                                           |
+| OBS-004 | Ensemble / auxiliary classifier for q (Phase 3.3)                                                                             | DEFERRED                                                           |
+| OBS-005 | Clamp-value sweep (1.5 / 2.0) on `tcn` and `cnn_baseline`                                                                     | DEFERRED                                                           |
+| OBS-006 | All q numbers predate the current code and the carryover findings; none has been reproduced                                   | OPEN                                                               |
+| OBS-007 | `coa_phase` is in every default config; the carryover recommends dropping it                                                  | OPEN                                                               |
+| OBS-008 | The head-inclusion rule's N, M, K and per-head floor are unset                                                                | OPEN                                                               |
+| OBS-009 | Whether keeping `sky_position` helps or hurts the other heads is untested                                                     | DEFERRED                                                           |
+| OBS-010 | The action plan's "OLD" rows are the attempt-1 runs                                                                           | VERIFIED                                                           |
+| OBS-011 | `CLAUDE.md` lacks the periodic-checkpoint rule that `f50dfae` cites                                                           | OPEN                                                               |
+| OBS-012 | "ThinkPad T530, CPU-only" statements may not match the machine(s) in use                                                      | CLOSED: T530 confirmed in use; machines now tracked in `CLAUDE.md` |
+| OBS-013 | The test suite has no recorded run (`pytest -m "not slow"`, then full)                                                        | OPEN                                                               |
+| BUG-007 | `ml-gw-search` data generation is unseeded, so the dataset cannot be regenerated bit-for-bit                                  | OPEN                                                               |
+| BUG-008 | `PARAM_COLUMNS` in `ml-gw-search` `train.py` mislabels the columns `gen.py` writes (`mass1`/`mass2` versus `mchirp`/`q`)      | FIXED |
+| BUG-009 | `injection_time` is stored as float32, which resolves only 128 s at GPS ≈ 1.2e9                                               | OPEN                                                               |
+| OBS-014 | The repackaged dataset drops the noise-only samples and carries no column labels or file attributes                           | OPEN                                                               |
+| OBS-015 | With `--real-noise-file`, `gen.py` pairs whitened waveforms with unwhitened real noise                                        | OPEN                                                               |
+| OBS-016 | The generation arguments and the step that produced `combined_repackaged.hdf` are not recorded anywhere                       | OPEN                                                               |
+| OBS-017 | Two diverging copies of `gen_py_data_pipeline.md` (sibling 90 lines, `src/gwml/` 58 lines)                                    | OPEN                                                               |
+| OBS-018 | The generator output omits parameters that shaped the data (spins for XPHM, approximant, per-sample PSD index, whitening constants) | OPEN                                                         |
+| OBS-019 | `gen.py` can leave a readable file with no `validation` group and no completion marker; all samples are held in memory, with no resume | OPEN                                                    |
+| OBS-020 | `gen.py` imports `Dataset` from `train.py`, so generating data needs torch and the network code; the sibling has no tests | OPEN                                                                 |
+| OBS-021 | Legacy priors and window to settle: skewed `q`, angles on [0, 2π], merger time fixed in [1.6, 1.8] s with a stale comment | OPEN                                                                 |
+| OBS-022 | The generator writes no held-out test split, and how the q_value test set is formed is unknown                                | OPEN                                                               |
 
 ## Entries
 
@@ -233,9 +238,15 @@ Origin: read of `ml-gw-search/mlgwsc-1/gen.py`.
 
 ### BUG-008 — `PARAM_COLUMNS` mislabels the written columns
 
-Opened 2026-10-19T20:40Z. Status: `OPEN`.
+Opened 2026-10-19T20:40Z. Status: `FIXED` (2026-10-19T21:36Z); not yet verified in a written file.
 Origin: read of `ml-gw-search/mlgwsc-1/train.py` and `gen.py`.
 
+- **Resolution (2026-10-19T21:36Z, user's decision):** the list in the sibling's `mlgwsc-1/train.py` was edited (uncommitted in the sibling) to `mchirp, q, inclination, coa_phase, polarization_angle, declination, ra, injection_time, merger_time`, the first nine keys of `heads_spec.PARAM_COLUMNS`.
+  Checked by an AST comparison with a known-bad control: the old list does not match `heads_spec.py`, the new list does.
+  Behavior is unaffected: `PARAM_COLUMNS` is used only for log messages, the `columns` attribute written by `Dataset.save`, and `NUM_PARAMS = len(...)` (verified, grep).
+  The docstring and help text in `train.py` that still describe the regressed columns (for example "3 → mass1, mass2, merger_time_in_window") were already inconsistent with the column order and were left untouched.
+  The sibling has no test suite, so this is covered only by the ad-hoc comparison; the attribute in a written file is queued in `VERIFY.md`.
+- **Original diagnosis:**
 - **Evidence (verified, code read):**
   - `train.py:24-34` defines `PARAM_COLUMNS = ['mass1', 'mass2', 'inclination', 'coa_phase', 'pol_angle', 'declination', 'right_ascension', 'merger_time_gps', 'merger_time_in_window']`, and `Dataset.save()` writes it as the `columns` attribute of `waveform_params`.
   - `gen.py:258-268` writes `[mchirp, q, inclination, coa_phase, pol_angle, declination, right_ascension, injection_time, merger_time_in_window]`, with `q = m2/m1`.
@@ -243,8 +254,9 @@ Origin: read of `ml-gw-search/mlgwsc-1/train.py` and `gen.py`.
   - Column 7 is called `merger_time_gps` but holds the injection time (GPS seconds, provenance only).
 - **Impact:** any `gen.py` output carries a `columns` attribute that contradicts its contents.
   The repackaged file has no labels at all (OBS-014), so the real meaning lives only in `gen.py` and in this repo's `heads_spec.py`.
-- **Unknown:** whether `src/gwml/heads_spec.py` assigns the same meaning to the ten columns as `gen.py` does; not compared here.
-- **Next:** fix the labels in `ml-gw-search` and compare against `heads_spec.py`; no code change made.
+- **Update 2026-10-19T21:03Z (verified, code read):** `src/gwml/heads_spec.py` (`PARAM_COLUMNS`) assigns `mchirp, q, inclination, coa_phase, polarization_angle, declination, ra, injection_time, merger_time, snr` to columns 0 to 9, which agrees with `gen.py`.
+  The defect is confined to the sibling's own `PARAM_COLUMNS` and the `columns` attribute it writes; this repository's schema is correct.
+- **Next:** confirm the attribute in the first generated file (`VERIFY.md` BUG-008).
 
 ### BUG-009 — `injection_time` quantized to 128 s
 
@@ -256,7 +268,12 @@ Opened 2026-10-19T20:40Z. Status: `OPEN`.
   - `combined_repackaged.hdf` stores `params` as float64, but the values were rounded to float32 first (inferred from the generation path).
 - **Impact:** the column is documented as provenance only, so training is probably unaffected.
   Any use that needs better than 128 s, such as matching an injection to an O3a data segment, cannot rely on it.
-- **Next:** store it as float64, or drop it from the parameter row; no code change made.
+- **Update 2026-10-19T21:03Z:** every `injection_time` in `combined_repackaged.hdf` is exactly float32-representable (verified, computed).
+  Verified 2026-10-19T21:16Z (pycbc source read): `project_wave` defaults to `method='lal'` and applies time-varying antenna patterns and Doppler shifts from the waveform epoch, so the GPS time influences the data and the stored time can differ by up to 64 s from the time actually used; "provenance only" understates it.
+  `heads_spec.py` already excludes `injection_time` as a head.
+- **Decision 2026-10-19T21:31Z (user):** the cast is inside the generator code, which is not to be changed, so it stays; the 128 s quantization is documented in the output contract instead.
+  Because `project_wave` uses the epoch (verified above), the contract must not describe the column as provenance only.
+- **Next:** write that note into the contract; no code change.
 
 ### OBS-014 — Repackaged dataset: no noise class, no labels
 
@@ -270,7 +287,9 @@ Origin: read of `ml-gw-search/re_package_hdf.py` and the structure of `combined_
   - The `snr` column is appended as the tenth, drawn uniformly in [7, 15] with seed 132354, whereas `train.py` defaults to (5, 15) and redraws every epoch.
 - **Impact:** a consumer needing a noise class has to take it from elsewhere, and column meaning has to be known from outside the file (BUG-008).
   Whether this is intended for the current model work is the user's call.
-- **Next:** decide at regeneration time whether to keep noise-only samples and whether to write labels and `sample_rate` as attributes.
+- **Decision 2026-10-19T21:10Z (user):** the regenerated dataset keeps a noise-only class, half of every split, written by a new `re_package_hdf_with_noise.py`; the original `re_package_hdf.py` stays unchanged.
+  The layout of the noise-only rows (separate datasets or interleaved with a label) is open (`GENERATOR_OVERHAUL.md` D-12).
+- **Next:** settle D-12, then implement; labels and `sample_rate` go in as attributes (`GENERATOR_OVERHAUL.md` section 4).
 
 ### OBS-015 — Real-noise path pairs whitened and unwhitened data
 
@@ -303,3 +322,58 @@ Opened 2026-10-19T20:40Z. Status: `OPEN`.
 - `ml-gw-search/mlgwsc-1/gen_py_data_pipeline.md` (90 lines) adds a `re_package_hdf.py` section after line 58; `src/gwml/gen_py_data_pipeline.md` (58 lines) is otherwise the same and predates it (verified, `diff`).
 - `CLAUDE.md` leaves the `src/gwml/` copy ungoverned until triaged.
 - Next: decide which copy is the source of truth, or point one at the other.
+
+### OBS-018 — Parameters that shaped the data are not saved
+
+Opened 2026-10-19T21:03Z. Status: `OPEN`.
+Origin: `GENERATOR_OVERHAUL.md` G-04.
+
+- **Evidence (verified, code read):**
+  - For `IMRPhenomXPHM`, `gen.py` draws and uses both spin vectors but the parameter row has no spin columns, and the approximant is not stored.
+  - The noise getter returns the PSD and whitening PSD for each sample, and `generate_dataset` drops them, so the PSD index per sample is lost with `--psd-file` or real noise.
+  - The whitening constants (`segment_duration`, `max_filter_length`, `low_frequency_cutoff`) are module constants and are not recorded.
+- **Impact:** the file cannot be described from its contents, and spin effects cannot be studied.
+- **Next:** decide with the user what to record (`GENERATOR_OVERHAUL.md` D-01); no code change made.
+
+### OBS-019 — Incomplete files look complete
+
+Opened 2026-10-19T21:03Z. Status: `OPEN`.
+Origin: `GENERATOR_OVERHAUL.md` G-12.
+
+- **Evidence (verified, code read, `gen.py:341-355`):** the training group is saved, then the validation group is generated and appended.
+  Every sample is accumulated in lists and stacked before saving, so there is no incremental write and no resume.
+- **Impact:** a failure during the validation step leaves a readable file without a `validation` group and with nothing marking it incomplete.
+- **Next:** write under a temporary name, rename on success, and set a `complete` attribute last; no code change made.
+
+### OBS-020 — Generation is coupled to the training stack; no tests
+
+Opened 2026-10-19T21:03Z. Status: `OPEN`.
+Origin: `GENERATOR_OVERHAUL.md` G-18 and G-19.
+
+- **Evidence (verified, imports read and listing):** `gen.py` imports `Dataset` from `train.py`, which imports `torch` and the network code from `apply.py`, only to write an HDF.
+  Scripts import each other as top-level modules, and the sibling repository has no tests.
+- **Impact:** data generation needs the whole training environment, and the determinism check in `SEEDING.md` can only be an ad-hoc check unless a test is added.
+- **Next:** decide where the generator code lives (`GENERATOR_OVERHAUL.md` D-11); no code change made.
+
+### OBS-021 — Legacy priors and window to settle
+
+Opened 2026-10-19T21:03Z. Status: `OPEN`.
+Origin: `GENERATOR_OVERHAUL.md` G-13 to G-15.
+
+- **Evidence (verified from code and from the 30,000 stored rows):**
+  - Component masses are uniform on [10, 50] with `m1 = max`; observed `q` runs 0.2027 to 0.99998 with mean 0.650, and 7.6% of training samples have `q ≥ 0.95`.
+  - `inclination`, `coa_phase`, and `pol_angle` are uniform on [0, 2π]; observed inclination maximum is 6.283.
+  - The merger time lies in [1.6, 1.8] s of a 2 s window (observed min 1.6, max 1.8), and the code comment says "between 0.5 s and 0.7 s", which does not match the arithmetic.
+- **Inferred:** the physically isotropic inclination prior is `cos ι` uniform on `ι` in [0, π].
+- **Impact:** these are design choices, not defects, but they shape the q result (the worst cell is `q_high × mchirp_low`, OBS-003) and the paper's mirror-degeneracy discussion.
+- **Next:** the user decides whether to keep or change them (`GENERATOR_OVERHAUL.md` D-02, D-08).
+
+### OBS-022 — No held-out test split
+
+Opened 2026-10-19T21:03Z. Status: `OPEN`.
+Origin: `GENERATOR_OVERHAUL.md` G-11.
+
+- **Evidence (verified, code read):** `gen.py` writes only `training` and `validation`, and `load_arrays` reads a `split` name from the file.
+- **Unknown:** how the test set for the q_value work is meant to be formed.
+- **Decision 2026-10-19T21:10Z (user):** the regenerated dataset gets a test split (10,000 samples: 5,000 injections and 5,000 noise-only), alongside training (100,000) and validation (20,000); see `GENERATOR_OVERHAUL.md` D-03.
+- **Next:** implement it in the generator; the loader here does not yet read a `test` split.

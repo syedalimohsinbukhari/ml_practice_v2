@@ -15,10 +15,10 @@ Tag any such in-place change note with a `date: time` stamp (`YYYY-MM-DD HH:MM`,
 ## Topics so far
 
 **Active**
-2. The degeneracy hypothesis under test, and the circular (cosine) loss and unit-circle normalization (`transform_utils.py`, `trainer.py`, `002_problem-formulation.tex`)
-3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot (`prereq_checks.py`, `curriculum.py`, `003_prereq_study.tex`)
-4. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
-5. The positive controls, and why the sky-position head is a weak one (`005_diagnostics.tex`, `002_problem-formulation.tex`, `heads_spec.py`, `analyse_predictions.py`, `bootstrap_sky_separation.py`)
+1. The degeneracy hypothesis under test, the circular (cosine) loss and unit-circle normalization, the von Mises–Fisher sky head, why inclination uses Huber loss, and homoscedastic uncertainty weighting (`transform_utils.py`, `trainer.py`, `losses.py`, `heads_spec.py`, `002_problem-formulation.tex`)
+2. Step 1.1 prerequisite-check math and the $\iota$-sweep plot (`prereq_checks.py`, `curriculum.py`, `003_prereq_study.tex`)
+3. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
+4. The positive controls, and why the sky-position head is a weak one (`005_diagnostics.tex`, `002_problem-formulation.tex`, `heads_spec.py`, `analyse_predictions.py`, `bootstrap_sky_separation.py`)
 
 **Deferred**
 - P.1. $\pi/4$ / $3\pi/4$ reference-point plot annotations (removed from the figure 2026-09-22 11:20)
@@ -133,6 +133,84 @@ It is one-sided evidence: $\to1$ implies a single-mode collapse, but $\approx0$ 
 So for a collapsed head the reading tracks where it collapsed, not its norm, and can land inside the healthy band.
 
 **Why the $\lambda=0.10$ pass was predictable.** `poc_b`'s $\varphi_c$ collapsed near $111^\circ$ at $\lambda=0.01$, which predicts about $0.92$; the gate read $0.930$ at $\lambda=0.10$. Its $\psi$ collapsed at $2\psi\approx207^\circ$ (predicts $0.31$; gate readings $0.25$–$0.53$). The collapse angle at $\lambda=0.10$ itself was not measured, so this is consistent with, not a proof of, the mechanism.
+
+### 2.7 The von Mises–Fisher sky head
+
+**Why a spherical head.** Sky position (declination, RA) is converted to a unit vector $\hat{\mathbf{n}}\in S^2$ by `radec_to_unit_vector` and trained jointly.
+This replaced the older pair of per-angle heads (`ra` periodic, `declination` unit-affine), which discarded the two-dimensional structure on the sphere; RA also becomes degenerate at the poles, so per-axis errors are misleading there (`heads_spec.py`, `sky_transform.py`).
+
+**The distribution.** The von Mises–Fisher density on $S^2$ is the spherical analogue of a Gaussian:
+$$
+f(\mathbf{x}\mid\mu,\kappa)=\frac{\kappa}{4\pi\sinh\kappa}\,e^{\kappa\,\mu\cdot\mathbf{x}},
+$$
+with mean direction $\mu$ and concentration $\kappa>0$.
+On $S^2$ the normalizing constant is closed-form, so the negative log-likelihood is exact, with no Bessel functions or sampling:
+$$
+-\log f=-\log\kappa+\log 4\pi+\log\sinh\kappa-\kappa\,\mu\cdot\mathbf{x}.
+$$
+`vmf_nll_loss` in `losses.py` implements exactly this; the density integrates to $1$ numerically for $\kappa=0.1,1,10,50$.
+
+**What the network outputs.** Two tensors, `mu_raw` (3 values, unconstrained) and `kappa_raw` (1 value).
+`mu_raw` is normalized inside the loss with $\max(\|\cdot\|,10^{-8})$, the paper-literal clamp that the periodic heads do not use (§2.1).
+$\kappa=\operatorname{softplus}(\kappa_\text{raw})+0.1$; the $0.1$ floor keeps $-\log\kappa$ finite as $\kappa\to0$.
+$\log\sinh\kappa$ is computed as $\kappa+\log(1-e^{-2\kappa})-\log2$ so that it stays stable for large $\kappa$.
+
+**$\kappa$ is a per-sample confidence.** The head predicts a concentration for every input, so it is heteroscedastic in the sense of §2.9: a large $\kappa$ is rewarded only if $\mu$ is close to the truth, and penalized by the $-\kappa\,\mu\cdot\mathbf{x}$ term otherwise.
+For fixed predictions, the best $\kappa$ solves $\coth\kappa-1/\kappa=\bar R$, where $\bar R$ is the mean of $\mu\cdot\mathbf{x}$ (checked: true $\kappa=0.5,5,50$ are recovered by both direct minimization and this equation).
+
+**Reference values.**
+- Null: for a uniform direction the loss tends to $\log4\pi\approx2.531$ as $\kappa\to0$ ($2.5327$ at the floor with $\mu\cdot\mathbf{x}=0$), and the mean great-circle separation is $90^\circ$.
+- For large $\kappa$ the mean angular error is $\approx\sqrt{\pi/(2\kappa)}$ ($10.2^\circ$ at $\kappa=50$, $33.0^\circ$ at $\kappa=5$); the approximation fails below $\kappa\approx5$.
+
+**How it is used downstream.** Evaluation uses only $\mu$, as great-circle separation (§5.2); $\kappa$ is not used.
+For vMF heads the trainer tracks mean $\kappa$ instead of per-axis MAE, $R^2$ and `std_ratio` (`head_kappa`), and skips the variance penalty, because those statistics on three unit-vector components are not physically meaningful.
+So `std_ratio` (§2.6) does not apply to the sky head.
+
+### 2.8 Why inclination uses Huber loss
+
+**It is the registry default, not a per-head choice.** `HeadSpec.loss` defaults to `"huber"` (`heads_spec.py:57`), and every head that does not declare `"vmf"` gets `keras.losses.Huber(delta=1.0)`.
+`heads_spec.py` itself argues the general case: a periodic parameter is a $(\sin,\cos)$ pair, so "the standard Huber loss on the pair is correct, with no wraparound discontinuity ever reaching the loss".
+The redo's trainers override this only for $\varphi_c$ and $\psi$ (circular loss, because the combination construction needs unit vectors, §2.1–2.3).
+`_other_heads_loss` then treats every remaining head, inclination included, "identically to a standard training run".
+No document searched (the redo directory, the thesis chapter, and the original experiment's trace note) gives an inclination-specific reason beyond that default; what is documented is the consequence (`experiments/phic_psi_poc/inclination_loss_trace.md`; `thesis/chapter_phic_psi_degeneracy.md`, where inclination is kept out of the positive-control list for exactly this reason).
+
+**How the two losses differ.** For unit vectors, $1-\mathbf{a}\cdot\mathbf{b}=\tfrac12\|\mathbf{a}-\mathbf{b}\|^2$ (checked to $10^{-16}$), so the circular loss is a squared chord distance, the same shape as Huber's quadratic zone.
+The difference is where $\mathbf{a}$ comes from:
+- *Circular loss:* the prediction is normalized first, so the loss is blind to $\|\mathbf{v}\|$. That blindness plus the $1/\|\mathbf{v}\|$ in the backward pass of the normalization is what caused the gradient pathology fixed by the magnitude penalty $\lambda$.
+- *Huber on the raw pair:* the minimum is at $\mathbf{v}_\text{pred}=\mathbf{v}_\text{true}$, which has $\|\mathbf{v}\|=1$, so the loss is magnitude-sensitive and has no such pathology. Its per-component residuals lie in $[-2,2]$, quadratic for $|r|\le1$ and linear beyond.
+
+So inclination's partial mode collapse (§4.3) cannot be the normalization mechanism that affected $\varphi_c/\psi$, and comparing the two heads mixes two different loss paths (the threats-to-validity point in `008_discussion.tex`).
+
+**The optimal constant.** For an unlearnable target the best constant under an $L_2$-type loss on the pair is the mean of $(\sin\iota,\cos\iota)$.
+With the correct prior $\iota\sim\mathrm{Uniform}[0,2\pi)$ that is $(0,0)$; the "$(0.637,0)$" quoted in the original trace document is the mean for $\mathrm{Uniform}[0,\pi)$ (checked: $0.637,0.000$), which is the superseded support assumption of §4.1.
+
+### 2.9 Homoscedastic uncertainty weighting
+
+**What it is.** Kendall, Gal & Cipolla (2018) weight a multi-task loss by learned noise levels.
+Each head $h$ has one learnable scalar $s_h=\log\sigma_h^2$, initialized at $0$, and the total loss is
+$$
+L=\sum_h\left(e^{-s_h}L_h+s_h\right)
+$$
+(`losses.py:239`, `trainer.py`).
+It comes from a Gaussian likelihood with a task-specific noise variance, $-\log p=\tfrac1{2\sigma^2}L+\tfrac12\log\sigma^2$; the code drops the factors of $\tfrac12$, which only rescale.
+"Homoscedastic" means the variance is constant across samples but differs between heads, in contrast to the per-sample $\kappa$ of the vMF head (§2.7).
+
+**What it does.** For fixed $L_h$ the optimum is $s_h^*=\log L_h$, so the effective weight is $e^{-s_h^*}=1/L_h$ (checked: $L=0.5\to2.0$, $L=4\to0.25$).
+The $+s_h$ term stops the trivial solution $s_h\to\infty$, which would drive every weight to zero.
+Heads with large loss are down-weighted and heads with small loss are up-weighted, which equalizes gradient scale across heads.
+
+**Why it is useful here.** The heads have different units and loss types: Huber on z-scored scalars, a circular loss in $[0,2]$, a vMF NLL in nats.
+A single hand-set weight vector would need tuning per head and would not transfer between configurations.
+The learned weights are also exposed as metrics (`weight_<head>`, $=e^{-s_h}$), so the training log shows which heads the data constrains.
+
+**The clamp.** $s_h$ is clamped to $[-3,3]$ (`log_var_clamp`, `ClampConstraint`), so the weight lies in $[e^{-3},e^{3}]\approx[0.05,20.1]$.
+The upper end binds for very well-learned heads: $L=0.01$ would want a weight of $100$ and gets $20.1$.
+The lower end exists so that uncertainty weighting cannot drive a head's weight toward zero and entrench a collapse (`losses.py` docstring).
+
+**Consequences to keep in mind (inferred from the optimum above).**
+- A head at the null ($\varphi_c/\psi$, $L\approx1$) settles at $s\approx0$, a weight near $1$, while well-learned heads get weights above $1$. The scheme therefore does not switch an unlearnable head off; it still contributes a unit-weight share of gradient to the shared trunk.
+- In PoC mode the curriculum weight is applied inside $L_h$ before $s_h$ sees it (§2.3), so the two weighting schemes are not independent.
+- If one head's training loss shrinks quickly (for example through memorization), it can pull every head toward the same clamp ceiling and erase the per-head signal (`losses.py` docstring, citing `q_head_action_plan.md`).
 
 ## 3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot
 

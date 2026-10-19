@@ -191,7 +191,7 @@ def analyse_run(label: str, config_path: Path) -> dict:
         print(f"  {label}: ✗ no best.weights.h5 at {run_dir}")
         return None
 
-    strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=2000)
+    strain, params = load_arrays(cfg["data"]["path"], "validation", max_samples=5000)
     transforms = TargetTransforms.from_json(run_dir / "transforms.json")
 
     trainer = build_sumdiff_trainer(cfg)

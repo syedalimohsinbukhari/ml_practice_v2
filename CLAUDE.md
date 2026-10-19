@@ -42,7 +42,8 @@ Files in the repo root that predate this file (`PLAN.md`, `q_head_action_plan.md
 
 ## Scope, subagents, destructive operations (§9, §10)
 
-- Work stays inside this machine's working tree, as listed under "Machines" below; root searches at a specific subdirectory, never a parent or home.
+- Work stays inside this machine's working tree and the related repositories listed under "Related repositories" below; both are in scope and not out of jurisdiction.
+- Root searches at a specific subdirectory, never a parent or home.
 - Check `hostname` and `pwd` at session start and use the matching row; a host that is not in the table is a decision point for the user, not something to guess.
 - Do not spawn subagents by default; when one is spawned, restate this boundary in its prompt and verify its actual diffs.
 - Confirm with the user before: `rm` outside the working tree or `rm -rf` without a listed path, overwriting a non-generated file wholesale, force-push or history rewrite on a pushed branch, branch or tag deletion, and mass renames or refactors beyond the current change.
@@ -94,3 +95,23 @@ Paths are absolute; the `.venv` sits inside the working tree.
 
 - Add a row (host, path, GPU, role, verification time) the first time a session runs on a new machine.
 - The lab GPU machine named in `VERIFY.md` entries is not yet tied to a row; record which host it is.
+
+## Related repositories
+
+Two sibling repositories are part of this work and are in scope for reading and editing.
+They are separate git repositories: a commit in one never covers the others, and the §11 rule to ask before committing applies to each.
+
+| Repository | Path on `thinkpad-t530` | Branch | Role | Verified |
+|------------|-------------------------|--------|------|----------|
+| `ml-gw-search` | `/home/syedalimohsinbukhari/PycharmProjects/ml-gw-search` | `dev` | data generation (`mlgwsc-1/gen.py`, `re_package_hdf.py`); has its own `.venv` with pycbc | 2026-10-19T20:36Z |
+| `gw_research_paper` | `/home/syedalimohsinbukhari/PycharmProjects/gw_research_paper` | `main` | the research paper, an Overleaf git repo (LaTeX) | 2026-10-19T20:36Z |
+
+- Paths for these two on the other machines are unrecorded; add them to this table when a session runs there.
+- `ml-gw-search`:
+  - `origin` is the upstream author's GitHub repository, so never push to it.
+  - It holds the 1.9 GB `combined_repackaged.hdf`, which is untracked; read its structure with `h5py` metadata only and never load it wholesale.
+  - Generation is CPU-heavy pycbc work; do not run it without the user's go-ahead, and not on `thinkpad-t530`.
+- `gw_research_paper`:
+  - `origin` is Overleaf, so a push publishes to the paper's Overleaf project; never push without the user's explicit go-ahead.
+  - Check `git status` before editing, because `main.tex` may carry the user's uncommitted edits; do not overwrite or stage them.
+  - Edit `.tex` and `.bib` sources only, never the build products (`main.pdf`, `*.aux`, `*.bbl`, and similar, which `.gitignore` excludes).

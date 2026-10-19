@@ -6,7 +6,8 @@ Newest entry at the bottom.
 Verify-queue entries in `VERIFY.md` are keyed by the ID they check.
 Format rules are in `CLAUDE.md` and `WORKING_CONVENTIONS.md` §3.
 
-All entries below were opened on 2026-10-19T11:37Z from `experiments/q_recovery/experiment_index.md` (open items 1–8), `PHIC_PSI_CARRYOVER.md`, and the 2026-10-19 doc reconciliation.
+BUG-001 to BUG-006 and OBS-001 to OBS-013 were opened on 2026-10-19T11:37Z from `experiments/q_recovery/experiment_index.md` (open items 1–8), `PHIC_PSI_CARRYOVER.md`, and the 2026-10-19 doc reconciliation.
+BUG-007 onward and OBS-014 onward carry their own dates; they come from the 2026-10-19 read of the sibling generator repo `ml-gw-search` (paths in `CLAUDE.md`, "Related repositories").
 Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 
 | ID | Description | Status |
@@ -30,6 +31,13 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-011 | `CLAUDE.md` lacks the periodic-checkpoint rule that `f50dfae` cites | OPEN |
 | OBS-012 | "ThinkPad T530, CPU-only" statements may not match the machine(s) in use | CLOSED: T530 confirmed in use; machines now tracked in `CLAUDE.md` |
 | OBS-013 | The test suite has no recorded run (`pytest -m "not slow"`, then full) | OPEN |
+| BUG-007 | `ml-gw-search` data generation is unseeded, so the dataset cannot be regenerated bit-for-bit | OPEN |
+| BUG-008 | `PARAM_COLUMNS` in `ml-gw-search` `train.py` mislabels the columns `gen.py` writes (`mass1`/`mass2` versus `mchirp`/`q`) | OPEN |
+| BUG-009 | `injection_time` is stored as float32, which resolves only 128 s at GPS ≈ 1.2e9 | OPEN |
+| OBS-014 | The repackaged dataset drops the noise-only samples and carries no column labels or file attributes | OPEN |
+| OBS-015 | With `--real-noise-file`, `gen.py` pairs whitened waveforms with unwhitened real noise | OPEN |
+| OBS-016 | The generation arguments and the step that produced `combined_repackaged.hdf` are not recorded anywhere | OPEN |
+| OBS-017 | Two diverging copies of `gen_py_data_pipeline.md` (sibling 90 lines, `src/gwml/` 58 lines) | OPEN |
 
 ## Entries
 
@@ -201,3 +209,91 @@ Origin: `q_recovery` item 3.
 The action plan records `pytest -m "not slow"` as never run, and nothing since shows otherwise.
 The code has changed substantially since (vMF head, linear periodic heads, `PeriodicCheckpoint`), so the suite's current state is unknown.
 Next: see `VERIFY.md` OBS-013.
+
+### BUG-007 — Generation is unseeded
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+Origin: read of `ml-gw-search/mlgwsc-1/gen.py`.
+
+- **Evidence (verified, code read):**
+  - `gen.py:39` creates `np_gen = np.random.default_rng()` with no seed, and the argument parser (`gen.py:281-297`) has no seed option.
+  - The injection parameters (masses, angles, spins, injection time, merger placement) all draw from `np_gen`.
+  - The Gaussian noise comes from `pycbc.noise.gaussian.frequency_noise_from_psd(psd)` called without a seed (`gen.py:111`); I did not read pycbc's default RNG behavior.
+  - `train.py`'s `Dataset.__init__` also creates an unseeded `np.random.default_rng()` for the per-epoch SNR draw.
+  - Only `re_package_hdf.py:47` seeds anything (`default_rng(132354)`, a literal, for the SNR column).
+- **Impact:** the current 25,000 / 5,000 dataset cannot be reproduced bit-for-bit, and a regeneration will differ from it even with identical arguments.
+  This contradicts the `CLAUDE.md` determinism rule (one named master seed, per-run seeds derived from it).
+  The paper already names this gap: `004_methods.tex` (comment, line 6) and `008_discussion.tex` (line 45) list "dataset regeneration from a version-controlled generator" as open.
+- **Next:** add a master-seed constant and a CLI seed option, thread one generator through the noise and injection draws, and check determinism on a shrunken workload (to be run on a non-T530 machine with the user's go-ahead); no code change made.
+
+### BUG-008 — `PARAM_COLUMNS` mislabels the written columns
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+Origin: read of `ml-gw-search/mlgwsc-1/train.py` and `gen.py`.
+
+- **Evidence (verified, code read):**
+  - `train.py:24-34` defines `PARAM_COLUMNS = ['mass1', 'mass2', 'inclination', 'coa_phase', 'pol_angle', 'declination', 'right_ascension', 'merger_time_gps', 'merger_time_in_window']`, and `Dataset.save()` writes it as the `columns` attribute of `waveform_params`.
+  - `gen.py:258-268` writes `[mchirp, q, inclination, coa_phase, pol_angle, declination, right_ascension, injection_time, merger_time_in_window]`, with `q = m2/m1`.
+  - Columns 0 and 1 are therefore chirp mass and mass ratio, not the two masses; the other seven names match.
+  - Column 7 is called `merger_time_gps` but holds the injection time (GPS seconds, provenance only).
+- **Impact:** any `gen.py` output carries a `columns` attribute that contradicts its contents.
+  The repackaged file has no labels at all (OBS-014), so the real meaning lives only in `gen.py` and in this repo's `heads_spec.py`.
+- **Unknown:** whether `src/gwml/heads_spec.py` assigns the same meaning to the ten columns as `gen.py` does; not compared here.
+- **Next:** fix the labels in `ml-gw-search` and compare against `heads_spec.py`; no code change made.
+
+### BUG-009 — `injection_time` quantized to 128 s
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+
+- **Evidence:**
+  - `gen.py:210` draws the injection time uniformly in [1238166018, 1253977218], and `gen.py:268` stores the parameter row as `float32` (verified, code read).
+  - `np.spacing(np.float32(1.24e9))` is 128.0, and the same at both ends of the range (verified, computed 2026-10-19T20:38Z).
+  - `combined_repackaged.hdf` stores `params` as float64, but the values were rounded to float32 first (inferred from the generation path).
+- **Impact:** the column is documented as provenance only, so training is probably unaffected.
+  Any use that needs better than 128 s, such as matching an injection to an O3a data segment, cannot rely on it.
+- **Next:** store it as float64, or drop it from the parameter row; no code change made.
+
+### OBS-014 — Repackaged dataset: no noise class, no labels
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+Origin: read of `ml-gw-search/re_package_hdf.py` and the structure of `combined_repackaged.hdf`.
+
+- **Evidence (verified):**
+  - `re_package_hdf.py` truncates `noises` to `noises[:n_wv]` and writes only the injection samples.
+  - The HDF (listed with `h5py`, metadata only, 2026-10-19) has `training` (25,000 rows) and `validation` (5,000 rows), each with `h1`, `l1`, `h1_waveform`, `l1_waveform` (float32, 4096 samples) and `params` (float64, 10 columns).
+  - There are no file attributes and no dataset attributes.
+  - The `snr` column is appended as the tenth, drawn uniformly in [7, 15] with seed 132354, whereas `train.py` defaults to (5, 15) and redraws every epoch.
+- **Impact:** a consumer needing a noise class has to take it from elsewhere, and column meaning has to be known from outside the file (BUG-008).
+  Whether this is intended for the current model work is the user's call.
+- **Next:** decide at regeneration time whether to keep noise-only samples and whether to write labels and `sample_rate` as attributes.
+
+### OBS-015 — Real-noise path pairs whitened and unwhitened data
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+Origin: `mlgwsc-1/gen_py_data_pipeline.md` caveat, checked against the code.
+
+- **Evidence:** `slice_real_noise.py:72` calls the slicer with `white=False` (verified, grep), and `HDFNoiseGetter.__next__` returns those slices unchanged (`gen.py:77-79`, verified, code read), while the waveform is whitened (`gen.py:242-245`).
+- **Inferred, not tested:** the stored noise is then colored and the waveform whitened, so the sum is inconsistent.
+- **Impact:** none for the Gaussian-noise default; it matters only if the regeneration uses `--real-noise-file`.
+- **Next:** if real noise is chosen, whiten it in the generator, then confirm on a small run that noise and waveform have matching spectra.
+
+### OBS-016 — Generation provenance not recorded
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+
+- **Evidence (verified):**
+  - `ml-gw-search/out/` is empty and `out.hdf`, which `re_package_hdf.py` reads, does not exist there.
+  - The script writes `out_repackaged.hdf`, but the dataset is named `combined_repackaged.hdf`, so a step outside the repository produced it.
+  - The HDF shows 2 detectors, 4096-sample windows, and 25,000 / 5,000 injections, but the `gen.py` arguments (approximant, noise source, seed, sample counts) are not stored in the file or anywhere I found.
+  - The two copies of `combined_repackaged.hdf` (sibling and this repository) are byte-identical (`cmp`, 2026-10-19T20:38Z).
+  - In `ml-gw-search`, `re_package_hdf.py` is untracked and the HDF is neither tracked nor ignored.
+- **Impact:** the existing dataset cannot be described from the repositories alone, which is the reproducibility gap the paper lists.
+- **Next:** record the generation command and seed in the regenerated dataset's attributes or a sidecar file, and track `re_package_hdf.py`.
+
+### OBS-017 — Two diverging pipeline notes
+
+Opened 2026-10-19T20:40Z. Status: `OPEN`.
+
+- `ml-gw-search/mlgwsc-1/gen_py_data_pipeline.md` (90 lines) adds a `re_package_hdf.py` section after line 58; `src/gwml/gen_py_data_pipeline.md` (58 lines) is otherwise the same and predates it (verified, `diff`).
+- `CLAUDE.md` leaves the `src/gwml/` copy ungoverned until triaged.
+- Next: decide which copy is the source of truth, or point one at the other.

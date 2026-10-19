@@ -2,6 +2,11 @@
 
 Each rule below was paid for by a specific failure in the φc/ψ investigation (see `experiments/phic_psi_poc/diagnostic_log.md`); do not relax them without an equally specific reason.
 
+Derived from `WORKING_CONVENTIONS.md`.
+Adopted in substance: §2 (timestamps, forward only), §5/§16 (verify, claim labels), §6–8 (generated artifacts, per-unit docs, frozen vs. living), §11 (git), §13 (prose).
+Not adopted: §1 working-document trio and `PLAN.md` (`NOTES.md`, `experiment_index.md` and `UNDERSTANDING.md` serve), §3 bug IDs, §4 verify queue, §9–10, §12, §15, §17 (this experiment is essentially closed; revisit if it reopens).
+§14 (determinism) is not adopted here: there is no new randomness on this branch, and the existing runs used seed 42 with an unseeded dataset (a documented limitation, see `NOTES.md`); the seed policy lives on `q_value`.
+
 ## Prose formatting (thesis / documentation)
 
 - All prose files (`.tex`, `.md` — thesis chapters, experiment write-ups, notes) use **one sentence per line** (semantic line breaks). Never hard-wrap sentences across lines and never put multiple sentences on one line.
@@ -47,6 +52,18 @@ Each rule below was paid for by a specific failure in the φc/ψ investigation (
 - Preregistrations and dated historical snapshots are never rewritten — dated addenda only; pre-committed criteria are never touched after results exist.
 - Living docs (`NOTES.md`, `diagnostic_log.md`, `experiment_index.md`) are updated in place; a status change is propagated to every doc that states it, in one sweep.
 - Exceptions are reported per-case, never averaged away: "3/4 resolved, 1/4 persists," not "mostly resolved."
+
+## Timestamps
+
+- Any new dated entry in a working document (`NOTES.md`, addenda, index rows, commit messages that cite one) carries date and time together with an offset, ISO 8601: `2026-10-19 12:54 +05:00`.
+- Never a bare date and never local time without an offset.
+- Entries written before 2026-10-19 are not backfilled; the cut-off is the date this section was added.
+
+## Claim vocabulary
+
+- Label every non-trivial claim in a report, note or summary: **verified** (a specific check was run; name it), **inferred** (follows from something verified), **assumed** (not checked; state why), **unknown**.
+- Unlabeled prose reads as verified.
+- A number copied from an auto-generated report is only as verified as its script (the sky-position table read as verified until a second script disagreed).
 
 ## Compute & git ground rules
 

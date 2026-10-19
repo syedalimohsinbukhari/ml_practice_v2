@@ -1,0 +1,17 @@
+Log file: experiments/phic_psi_poc-redo/analysis_output/analyse_predictions_20261019_124314.log
+
+Scalar heads CSV: experiments/phic_psi_poc-redo/analysis_output/scalar_heads_20261019_124314.csv
+Sky position CSV: experiments/phic_psi_poc-redo/analysis_output/sky_position_20261019_124314.csv
+Periodic heads CSV: experiments/phic_psi_poc-redo/analysis_output/periodic_heads_20261019_124314.csv
+Health check CSV: experiments/phic_psi_poc-redo/analysis_output/health_check_20261019_124314.csv
+Markdown report: experiments/phic_psi_poc-redo/analysis_output/analysis_report_20261019_124314.md
+Plot: experiments/phic_psi_poc-redo/analysis_output/histogram_coa_phase_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/histogram_coa_phase_20261019_124314.pdf
+Plot: experiments/phic_psi_poc-redo/analysis_output/histogram_polarization_angle_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/histogram_polarization_angle_20261019_124314.pdf
+Plot: experiments/phic_psi_poc-redo/analysis_output/histogram_inclination_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/histogram_inclination_20261019_124314.pdf
+Plot: experiments/phic_psi_poc-redo/analysis_output/scatter_mchirp_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/scatter_mchirp_20261019_124314.pdf
+Plot: experiments/phic_psi_poc-redo/analysis_output/scatter_merger_time_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/scatter_merger_time_20261019_124314.pdf
+Plot: experiments/phic_psi_poc-redo/analysis_output/scatter_snr_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/scatter_snr_20261019_124314.pdf
+Plot: experiments/phic_psi_poc-redo/analysis_output/health_check_20261019_124314.png / experiments/phic_psi_poc-redo/analysis_output/health_check_20261019_124314.pdf
+
+
+Done.

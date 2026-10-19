@@ -92,3 +92,9 @@ The null is for point-estimating regression on a dominant-mode, SNR 7–15 popul
 ## 7. Pointers
 
 `UNDERSTANDING.md` §2.5–2.9 (baselines, diagnostics, vMF, Huber for inclination, weighting), §4 (ι prior and the inclination head), §5 (controls); `NOTES.md` (dated entries from 2026-09-30); the paper in the sibling repo `../gw_research_paper`.
+
+## Addendum 2026-10-19 16:28 +05:00
+
+`experiments/q_recovery/` (item "Move" in §5) was copied to `q_value` in commit `0ace363` and has been removed from this branch, so it will not reach `master` through the phic PR.
+The three files were byte-identical on both branches at the time of the move.
+The copy of this document on `q_value` is the snapshot taken at `73793c4` and does not include this addendum.

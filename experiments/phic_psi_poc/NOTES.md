@@ -740,3 +740,19 @@ poc_b is the only config with `loss.mode: poc` (`config_poc.yaml`); every other 
 `SumDiffTrainer` only builds the combo_A/combo_B circular-loss metrics in poc mode (`trainer.py:534-544`).
 Baseline mode tracks circular loss on the individual coa_phase/polarization_angle heads instead (`trainer.py:555-563`).
 See "B — poc_b config diff" in `diagnostic_log.md` for the fuller writeup of what else differs between poc_a and poc_b.
+
+## ⚠ Open finding (2026-09-09): combo formula is wrong — `2φc ± 2ψ`, not `φc ± 2ψ`
+
+A reviewer flagged the combo_A/combo_B combination this whole investigation is built on (`φc + 2ψ` / `φc − 2ψ`) as using the wrong phase convention.
+Traced and confirmed: `coa_phase` is injected via `pycbc.waveform.get_td_waveform(coa_phase=...)` (`src/gwml/gen_py_data_pipeline.md`; matching sibling generators `ml-gw-search/mlgwsc-1/gen.py:202`, `ml-gw-search/extended_mass/gen.py:179`), i.e. PyCBC/LALSimulation's **orbital** reference phase (`phiRef`), not the GW-frame phase the cited literature (Cutler 1994; Sathyaprakash & Schutz 2009) assumes.
+For the dominant (2,2)-mode-only approximant this dataset uses (IMRPhenomD, already confirmed in the v2 adversarial-review section above), the strain depends on `coa_phase` doubled — `e^{i·2·coa_phase}` — exactly like `ψ`.
+`curriculum.py:35-37`'s own toy model gives away the same conflation: `h_plus ∝ cos(2·Φ_orbital + phi_c)` adds `phi_c` singly to an already-doubled orbital-phase term, silently assuming `phi_c` is GW-frame, not orbital-frame.
+
+**Correct combination: `2φc ± 2ψ` = `2(φc ± ψ)`.**
+The three things that looked like independent confirmation of `φc±2ψ` (thesis citation, `curriculum.py`'s derivation, the `prereq_checks.py` harness check) all trace back to the same unverified claim in `planning_files/phi_c_psi_degeneracy_poc.md` Sec. 1 — not independent evidence.
+
+**This is not localized.** Every combo_A/combo_B result in this file — Round 1, Runs 6–9b, λ-retune, verification Sections A–E, the "degeneracy is fundamental, network learns nothing" conclusion — was tested against a combination that isn't actually the physically degenerate one, and is now unverified (not confirmed wrong, just no longer established) pending a rerun under the corrected formula.
+
+Full evidence chain, and the RE-EDIT / RE-RUN / RE-WRITE breakdown, in `diagnostic_log.md`'s matching 2026-09-09 dated entry.
+**Status: OPEN.** No code changed, no rerun started yet.
+`experiment_index.md` and the thesis chapter still need their own status sweep once a fix/rerun path is decided.

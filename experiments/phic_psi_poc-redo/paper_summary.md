@@ -39,7 +39,7 @@ Two head parameterizations were compared, an independent-angle baseline and an e
 ## What we found
 
 The answer is a null for regression networks.
-Every configuration converges to the random-guessing baseline on both angles, while the same shared features recover chirp mass ($R^2 = 0.92$–$0.96$), merger time ($0.91$–$0.93$) and SNR ($0.74$–$0.79$) well.
+Every configuration converges to the random-guessing baseline on both angles, while the same shared features recover chirp mass ($R^2 = 0.92$–$0.96$), merger time ($0.90$–$0.92$) and SNR ($0.75$–$0.79$) well.
 Two of the four models are outright mode-collapsed on $\psi$ or $\varphi_c$, with predictions concentrated in a single angular bin.
 The other two are noisy and uninformative rather than collapsed.
 A label-permutation bootstrap with 10,000 shuffles finds none of the eight $\varphi_c/\psi$ tests significant, and most are on the wrong side of chance.

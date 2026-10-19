@@ -25,6 +25,6 @@ figures:
         label: fig:controls
         referenced_in:
             - 005_diagnostics.tex
-        dest_name: scatter_mchirp_20260916_113847.png
-        source: analysis_output/scatter_mchirp_20260916_113847.png
+        dest_name: scatter_mchirp_20261019_125442.png
+        source: analysis_output/scatter_mchirp_20261019_125442.png
         formats: [ png, pdf ]

@@ -227,7 +227,7 @@ True $\varphi_c/\psi/\iota/$right-ascension are uniform to circular resultant $\
 A full forward/backward trace on \texttt{poc\_redo\_b}'s real trained checkpoint shows healthy, non-vanishing gradient at every stage of the combination pipeline: $dL/d(\text{combo\_A\_pred}) = 0.4245$, dropping through the new \texttt{double\_angle} stage ($dL/d(\mathbf{z}_{2\varphi_c,\text{norm}}) = 0.375$) to $dL/d(\mathbf{z}_{\varphi_c,\text{raw}}) = 0.570$ and $dL/d(\mathbf{z}_{\psi,\text{raw}}) = 0.514$ --- all comparable in order of magnitude to the healthy inclination-head baseline, 0.728 (\texttt{diagnostic\_output/diagnostic\_checks\_20260916\_113913.log}, lines 297--304).
 Prediction perturbation after one optimizer step shows the periodic heads moving far more than the converged scalar control ($\text{coa\_phase}$ mean$|\Delta| = 1.61\times10^{-2}$, $\text{polarization\_angle}$ $1.33\times10^{-2}$, against mchirp's $3.28\times10^{-4}$), confirming the gradient path is live, not disconnected.
 
-\textbf{The chirp-mass, merger-time and SNR positive controls recover well} (Fig.~\ref{fig:phicpsi:redo:controls}): chirp mass R\textsuperscript{2} $= 0.920$--$0.960$ (\texttt{poc\_a} 0.958, \texttt{poc\_b} 0.958, \texttt{tcn} 0.960, \texttt{cnn\_attention} 0.920), merger time R\textsuperscript{2} $= 0.906$--$0.928$, SNR R\textsuperscript{2} $= 0.741$--$0.789$.
+\textbf{The chirp-mass, merger-time and SNR positive controls recover well} (Fig.~\ref{fig:phicpsi:redo:controls}): chirp mass R\textsuperscript{2} $= 0.921$--$0.961$ (\texttt{poc\_a} 0.960, \texttt{poc\_b} 0.958, \texttt{tcn} 0.961, \texttt{cnn\_attention} 0.921), merger time R\textsuperscript{2} $= 0.901$--$0.921$, SNR R\textsuperscript{2} $= 0.749$--$0.794$.
 Sky position is a weaker control: its mean great-circle separation is $77.5^\circ$--$87.1^\circ$ against $\approx 90^\circ$ for chance, with only \texttt{cnn\_attention} clearly better (\S\ref{sec:phicpsi:sky}).
 Inclination is deliberately excluded from this positive-control list for a documented, code-level reason --- its Huber-loss, non-normalized path is architecturally distinct from $\varphi_c/\psi$'s --- not omitted quietly; its own, more nuanced result is presented on its own terms in \S\ref{sec:phicpsi:inclination}.
 
@@ -254,7 +254,7 @@ Inclination is deliberately excluded from this positive-control list for a docum
 
 \begin{figure}[tbp]
     \centering
-    \includegraphics[width=\textwidth]{scatter_mchirp_20260916_113847.png}
+    \includegraphics[width=\textwidth]{scatter_mchirp_20261019_125442.png}
     \caption{Positive-control recovery (chirp mass) for the four Round-1 models.}
     \label{fig:phicpsi:redo:controls}
 \end{figure}
@@ -273,21 +273,21 @@ At epoch~79 (last-10-epoch mean), \texttt{poc\_redo\_b}'s combination-space circ
 
 \begin{table}[tbp]
     \centering
-    \caption{Periodic-head recovery, four down-selected models, $\lambda=0.01$, Round~1 (2026-09-15). Source: \texttt{analysis\_output/analysis\_report\_20260916\_113847.md}.}
+    \caption{Periodic-head recovery, four down-selected models, $\lambda=0.01$, Round~1 (2026-09-15). Source: \texttt{analysis\_output/analysis\_report\_20261019\_125442.md}.}
     \label{tab:phicpsi:redo:headline}
     \small
     \begin{tabular}{@{}llccc@{}}
         \toprule
         Head & Model & $\text{circ}_r$ & ang\_MAE (rad) & Health grade \\
         \midrule
-        coa\_phase & poc\_a & 0.542 & 1.586 & XX \\
-        coa\_phase & poc\_b & 0.975 & 1.535 & \textbf{COLLAPSE} \\
-        coa\_phase & tcn & 0.840 & 1.590 & XX \\
-        coa\_phase & cnn\_attention & 0.386 & 1.616 & XX \\
-        polarization\_angle & poc\_a & 0.972 & 0.801 & \textbf{COLLAPSE} \\
-        polarization\_angle & poc\_b & 1.000 & 0.801 & \textbf{COLLAPSE} \\
-        polarization\_angle & tcn & 0.639 & 0.799 & $\sim$ \\
-        polarization\_angle & cnn\_attention & 0.396 & 0.785 & $\sim$ \\
+        coa\_phase & poc\_a & 0.532 & 1.574 & XX \\
+        coa\_phase & poc\_b & 0.971 & 1.572 & \textbf{COLLAPSE} \\
+        coa\_phase & tcn & 0.836 & 1.585 & XX \\
+        coa\_phase & cnn\_attention & 0.385 & 1.594 & XX \\
+        polarization\_angle & poc\_a & 0.966 & 0.785 & \textbf{COLLAPSE} \\
+        polarization\_angle & poc\_b & 1.000 & 0.784 & \textbf{COLLAPSE} \\
+        polarization\_angle & tcn & 0.629 & 0.788 & $\sim$ \\
+        polarization\_angle & cnn\_attention & 0.395 & 0.778 & $\sim$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -598,7 +598,7 @@ All paths relative to \texttt{experiments/phic\_psi\_poc-redo/}.
         Combination construction (\S4.3) & \texttt{formulae\_reference.md} \S A.1.5/A.2; \texttt{trainer.py} \\
         Figs.~\ref{fig:phicpsi:redo:labels}--\ref{fig:phicpsi:redo:controls} & \texttt{diagnostic\_output/}, \texttt{analysis\_output/} \\
         Gradient-chain numbers (\S5.2) & \texttt{diagnostic\_output/diagnostic\_checks\_20260916\_113913.log} \\
-        Table~\ref{tab:phicpsi:redo:headline} & \texttt{analysis\_output/analysis\_report\_20260916\_113847.md} \\
+        Table~\ref{tab:phicpsi:redo:headline} & \texttt{analysis\_output/analysis\_report\_20261019\_125442.md} \\
         Table~\ref{tab:phicpsi:redo:bootstrap}, Bonferroni correction (\S6.3) & \texttt{bootstrap\_output/bootstrap\_ang\_mae\_20260916\_113955.md} \\
         Table~\ref{tab:phicpsi:redo:snr} & \texttt{snr\_output/snr\_stratification\_20260916\_113730.md} \\
         \S6.6 (perturbation trace, parked) & \texttt{perturbation\_trace\_output/perturbation\_trace\_early\_20260916\_114129.md} \\

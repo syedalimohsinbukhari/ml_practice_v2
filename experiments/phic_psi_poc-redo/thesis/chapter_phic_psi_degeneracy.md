@@ -144,14 +144,14 @@ Confirming, on the Round-1 (λ = 0.01) checkpoints, that the machinery above is 
 **Gradients reach the periodic-head weights, end to end, through the corrected construction.** A full forward/backward trace on `poc_redo_b`'s real trained checkpoint shows healthy, non-vanishing gradient at every stage of the combination pipeline: dL/d(combo_A_pred) = 0.4245, dropping through the new `double_angle` stage (dL/d(z_2φc_norm) = 0.375) to dL/d(z_φc_raw) = 0.570 and dL/d(z_ψ_raw) = 0.514 — all comparable in order of magnitude to the healthy inclination-head baseline, 0.728 (`diagnostic_output/diagnostic_checks_20260916_113913.log`, lines 297–304).
 Prediction perturbation after one optimizer step shows the periodic heads moving far more than the converged scalar control (coa_phase mean|Δ| = 1.61×10⁻², polarization_angle 1.33×10⁻², against mchirp's 3.28×10⁻⁴), confirming the gradient path is live, not disconnected.
 
-**The chirp-mass, merger-time and SNR positive controls recover well** (Fig. 5.4): chirp mass R² = 0.920–0.960 (poc_a 0.958, poc_b 0.958, tcn 0.960, cnn_attention 0.920), merger time R² = 0.906–0.928, SNR R² = 0.741–0.789.
+**The chirp-mass, merger-time and SNR positive controls recover well** (Fig. 5.4): chirp mass R² = 0.921–0.961 (poc_a 0.960, poc_b 0.958, tcn 0.961, cnn_attention 0.921), merger time R² = 0.901–0.921, SNR R² = 0.749–0.794.
 Sky position is a weaker control: its mean great-circle separation is 77.5°–87.1° against ≈90° for chance, with only `cnn_attention` clearly better (§6.8).
 Inclination is deliberately excluded from this positive-control list for a documented, code-level reason — its Huber-loss, non-normalized path is architecturally distinct from φ_c/ψ's — not omitted quietly; its own, more nuanced result is presented on its own terms in §6.7.
 
 > **Figure 5.1.** True label distributions (Check 1) — `diagnostic_output/true_label_distributions.png`.
 > **Figure 5.2.** Combo/circular-loss trajectories for `poc_redo_b`, all 80 epochs — `diagnostic_output/combo_loss_trajectories.png`.
 > **Figure 5.3.** Uncertainty-weighting exp(−s) trajectories per head — `diagnostic_output/logvar_trajectories.png`.
-> **Figure 5.4.** Positive-control recovery (chirp mass, merger time, SNR) for the four Round-1 models — `analysis_output/scatter_{mchirp,merger_time,snr}_20260916_113847.png`.
+> **Figure 5.4.** Positive-control recovery (chirp mass, merger time, SNR) for the four Round-1 models — `analysis_output/scatter_{mchirp,merger_time,snr}_20261019_125442.png`.
 
 The machinery this study depends on is verifiably healthy.
 What it produces on the actual question of interest is presented next.
@@ -162,18 +162,18 @@ What it produces on the actual question of interest is presented next.
 
 At epoch 79 (last-10-epoch mean), `poc_redo_b`'s combination-space circular loss reads combo_A = 0.9999, combo_B = 0.9895 — both essentially at the ceiling value of 1 expected under random guessing.
 
-**Table 6.1 — Periodic-head recovery, four down-selected models, λ = 0.01, Round 1 (2026-09-15).** Source: `analysis_output/analysis_report_20260916_113847.md`.
+**Table 6.1 — Periodic-head recovery, four down-selected models, λ = 0.01, Round 1 (2026-09-15).** Source: `analysis_output/analysis_report_20261019_125442.md`.
 
 | Head | Model | circ_r | ang_MAE (rad) | Null | Health grade |
 |---|---|---|---|---|---|
-| coa_phase | poc_a | 0.542 | 1.586 | 1.571 | XX |
-| coa_phase | poc_b | 0.975 | 1.535 | 1.571 | **COLLAPSE** |
-| coa_phase | tcn | 0.840 | 1.590 | 1.571 | XX |
-| coa_phase | cnn_attention | 0.386 | 1.616 | 1.571 | XX |
-| polarization_angle | poc_a | 0.972 | 0.801 | 0.785 | **COLLAPSE** |
-| polarization_angle | poc_b | 1.000 | 0.801 | 0.785 | **COLLAPSE** |
-| polarization_angle | tcn | 0.639 | 0.799 | 0.785 | ~ |
-| polarization_angle | cnn_attention | 0.396 | 0.785 | 0.785 | ~ |
+| coa_phase | poc_a | 0.532 | 1.574 | 1.571 | XX |
+| coa_phase | poc_b | 0.971 | 1.572 | 1.571 | **COLLAPSE** |
+| coa_phase | tcn | 0.836 | 1.585 | 1.571 | XX |
+| coa_phase | cnn_attention | 0.385 | 1.594 | 1.571 | XX |
+| polarization_angle | poc_a | 0.966 | 0.785 | 0.785 | **COLLAPSE** |
+| polarization_angle | poc_b | 1.000 | 0.784 | 0.785 | **COLLAPSE** |
+| polarization_angle | tcn | 0.629 | 0.788 | 0.785 | ~ |
+| polarization_angle | cnn_attention | 0.395 | 0.778 | 0.785 | ~ |
 
 `poc_a` and `poc_b` are, by the systematic COLLAPSE grade (circ_r > 0.9 **and** ang_MAE > 0.5 — a near-constant output that is also wrong), genuinely mode-collapsed: `poc_b`'s `polarization_angle` predictions place 99.9% of 5,000 validation samples in one 10°-wide histogram bin.
 `tcn` and `cnn_attention` fail differently — noisy and uninformative rather than collapsed — but ang_MAE sits at the null for both regardless of failure style.
@@ -404,8 +404,8 @@ All paths relative to `experiments/phic_psi_poc-redo/`.
 | Combo-loss trajectories (Fig. 5.2) | `diagnostic_output/combo_loss_trajectories.png` |
 | Uncertainty-weighting trajectories (Fig. 5.3) | `diagnostic_output/logvar_trajectories.png` |
 | Gradient-chain / prediction-perturbation numbers (§5.2) | `diagnostic_output/diagnostic_checks_20260916_113913.log` |
-| Positive controls (Fig. 5.4, §5.2) | `analysis_output/analysis_report_20260916_113847.md`, `scatter_{mchirp,merger_time,snr}_20260916_113847.{png,pdf}` |
-| Table 6.1 | `analysis_output/analysis_report_20260916_113847.md` |
+| Positive controls (Fig. 5.4, §5.2) | `analysis_output/analysis_report_20261019_125442.md`, `scatter_{mchirp,merger_time,snr}_20261019_125442.{png,pdf}` |
+| Table 6.1 | `analysis_output/analysis_report_20261019_125442.md` |
 | Table 6.3, Bonferroni correction (§6.3) | `bootstrap_output/bootstrap_ang_mae_20260916_113955.md` |
 | Table 6.4 | `snr_output/snr_stratification_20260916_113730.md` |
 | §6.6 (perturbation trace, parked) | `perturbation_trace_output/perturbation_trace_early_20260916_114129.md`, `closing_summary.md` |

@@ -71,7 +71,7 @@
 
 ## What's still open?
 
-**Erratum (2026-10-19):** the sky-position table in `analysis_output/analysis_report_20260916_113847.md` (4.4°-10.3°, median 0.0°) is wrong (script bug, fixed in `analyse_predictions.py`, not rerun); use `bootstrap_output/bootstrap_sky_separation_20260918_151359.md` (77.5°-87.1° vs. ~90° null). See `NOTES.md`.
+**Erratum (2026-10-19):** the sky-position table in `analysis_output/analysis_report_20260916_113847.md` (4.4°-10.3°, median 0.0°) is wrong (script bug, fixed in `analyse_predictions.py`); superseded by the rerun on all 5,000 validation samples, `analysis_output/analysis_report_20261019_125442.md` (sky 77.5°-87.1°, matching `bootstrap_output/bootstrap_sky_separation_20260918_151359.md`). See `NOTES.md`.
 
 **Open since 2026-10-19 (paper and chapter now state the architecture-pool limit):** the three Round-1 trunks dropped at the down-select (`cnn_baseline`, `inception_time`, `resnet1d`) were never run through the ungated battery, and all configurations use seed 42. No decision made on an evaluation-only pass over the Round-1 checkpoints or on seed replication (see `NOTES.md`, 2026-09-30 to 2026-10-19 entry). The inclination wording inconsistency (§6.7 partial mode collapse vs. "small real signal" elsewhere) was fixed in the paper and chapter on 2026-10-19.
 

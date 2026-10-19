@@ -390,3 +390,20 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
 - **Unaffected:** the phi_c/psi null and every other check (bootstrap, SNR and inclination stratification, gradient trace, collapse inspection) use other code paths; mchirp, merger_time and SNR remain healthy positive controls.
 - **Edited to match:** paper abstract, introduction, §2 (eight parameters in seven heads), §5, §6.8; thesis chapter (`.md`/`.tex`) overview, §2, §5, §6.8; `paper_summary.md`.
 - **Also open:** `analyse_predictions.py` loads 2,000 validation samples (`max_samples=2000`) while the paper's collapse figure says 5,000; not checked.
+
+## analyse_predictions.py rerun on 5,000 samples (2026-10-19)
+
+- **Runs.**
+  A first rerun (`20261019_124314`) used the script's old `max_samples=2000`; a second (`20261019_125442`, logs in `analysis_output/`) uses all 5,000 validation samples (`max_samples=5000`), on the same Round-1 checkpoints.
+- **Sky fixed.**
+  Mean separation 86.69° (poc_a), 87.02° (poc_b), 87.11° (tcn), 77.52° (cnn_attention); medians 86.4°, 87.0°, 86.7°, 77.5°.
+  These equal the `bootstrap_sky_separation_20260918_151359.md` values to two decimals.
+- **Now consistent with the bootstrap scripts.**
+  The 5,000-sample φc and inclination ang_MAE equal the observed values in `bootstrap_ang_mae_20260916_113955.md` (e.g. poc_a φc 1.5736, poc_b φc 1.5716); the 2,000-sample report did not.
+  poc_b's ψ top bin is 0.999, so "99.9% of 5,000 validation samples in one 10° bin" is backed by this report.
+- **Numbers that moved** (health-check grades unchanged; poc_a ψ, poc_b φc and ψ remain COLLAPSE; every angular error still at the π/2 and π/4 baselines):
+  φc circ_r 0.542/0.975/0.840/0.386 -> 0.532/0.971/0.836/0.385 and ang_MAE 1.586/1.535/1.590/1.616 -> 1.574/1.572/1.585/1.594;
+  ψ circ_r 0.972/1.000/0.639/0.396 -> 0.966/1.000/0.629/0.395 and ang_MAE 0.801/0.801/0.799/0.785 -> 0.785/0.784/0.788/0.778;
+  R² ranges chirp mass 0.920-0.960 -> 0.921-0.961, merger time 0.906-0.928 -> 0.901-0.921, SNR 0.741-0.789 -> 0.749-0.794.
+- **Edited to match:** paper Table 1, §5 ranges, mchirp scatter figure (`scatter_mchirp_20261019_125442.png`, copied by `scripts/collect_figures.py`; the old PNG removed from the paper repo), appendix map row; thesis chapter Table 6.1, §5.2 text, Fig. 5.4 caption, appendix rows (`.md`/`.tex`); `scripts/figures_registry.yaml`; `paper_summary.md`.
+- **Left as dated history:** `NOTES.md` entries and `closing_summary.md` that cite the 2026-09-16 report.

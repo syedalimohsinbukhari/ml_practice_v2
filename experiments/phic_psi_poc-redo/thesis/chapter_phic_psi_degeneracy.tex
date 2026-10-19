@@ -126,7 +126,10 @@ For uniformly distributed targets and any fixed prediction, the expected circula
 The null baselines are $\text{ang\_MAE} = \pi/2 \approx 1.5708$~rad for $\varphi_c$ and $\iota$, $\pi/4 \approx 0.7854$~rad for $\psi$.
 The $\psi$ head's circular loss is computed on the doubled angle $2\psi$, whereas $\text{ang\_MAE}$ is measured in $\psi$ itself, with residuals wrapped by the head's period $\pi$.
 The inclination head is not trained with the circular loss, so only its $\text{ang\_MAE}$ baseline applies.
-Two further diagnostic statistics recur throughout: the circular resultant $\text{circ}_r = \|\text{mean}(\hat{\mathbf{u}})\|$, which measures mode collapse ($\text{circ}_r \to 1$ means all predictions concentrate at one angle), and $\text{std\_ratio}$, the ratio of the standard deviation of a head's raw outputs to that of the encoded targets, a monitor of raw-magnitude health with a healthy band of $[0.5, 2.0]$.
+Two further diagnostic statistics recur throughout.
+The circular resultant $\text{circ}_r = \|\text{mean}(\hat{\mathbf{u}})\|$ measures mode collapse: $\text{circ}_r \to 1$ means all predictions concentrate at one angle, while a value near 0 does not rule out a multi-modal or antipodal collapse.
+$\text{std\_ratio}$ is the ratio of the standard deviation of a head's raw outputs to that of the encoded targets, pooled over both vector components.
+For angularly spread predictions it equals the mean raw norm, so it monitors raw-magnitude health with a healthy band of $[0.5, 2.0]$.
 Non-periodic heads use a Huber loss on transformed targets, and the sky-position head uses a closed-form von Mises--Fisher negative log-likelihood on the unit sphere.
 The inclination head keeps an architecturally distinct path --- periodic two-vector encoding, but a Huber loss on the raw output, with no \texttt{tf\_normalize\_unit} projection and no circular loss anywhere in its path.
 
@@ -475,7 +478,9 @@ A single failing reading keeps the whole round uninterpretable.
 * The one nominal PASS does not survive inspection.
 \texttt{poc\_redo\_b}'s coa\_phase at $\lambda=0.10$ clears every numeric threshold in the gate, but its own training-time scatter plot (\texttt{runs/phic\_psi\_lam010\_retune\_b/20260915\_181803/scatter/epoch\_\{0005,0080\}.png}) shows two completely flat horizontal bands at the same angle mod $2\pi$ --- a literal two-point mode collapse, present from epoch~5 through epoch~80 --- not real per-sample learning.
 This is stated here as a worked example of the discipline this chapter is built on, not an embarrassment to omit: a $\text{std\_ratio}$ number in the healthy band is not, by itself, proof that a head is producing a real per-sample regression, only a scatter plot is.
-$\text{std\_ratio}$ certifies raw-vector norm health, not angular diversity, and the two are not interchangeable: nothing about clearing the numeric threshold guarantees the scatter plot will look healthy.
+$\text{std\_ratio}$ pools both vector components, so a head collapsed at one encoded angle $\theta_0$ with unit norm reads $|\sin(\theta_0-\pi/4)|$, which depends on where it collapsed and can sit anywhere in $[0,1]$.
+A collapse near the $111^\circ$ seen for this head at $\lambda=0.01$ would read about $0.92$, consistent with the observed $0.930$.
+$\text{std\_ratio}$ therefore certifies neither angular diversity nor, for a collapsed head, norm health: nothing about clearing the numeric threshold guarantees the scatter plot will look healthy.
 
 With every reading at $\lambda=0.10$ either failing outright or failing on inspection, the round closes: \textbf{$\lambda$ alone is insufficient to stabilize this pipeline's $\|v\|$-space for these heads.}
 Steps~1--3 of the pre-registration never ran, because Step~0 never cleared, at any of the three $\lambda$ values tried, for any of the twelve readings.
@@ -548,7 +553,7 @@ Three lessons run through this chapter --- aggregate metrics are not evidence un
 
 \textbf{A passing interpretability gate is not proof that its subject matter is what the gate measures.}
 The $\lambda=0.10$ $\text{std\_ratio}$ false-positive (\S\ref{sec:phicpsi:prereg:outcome}) demonstrated this directly: a checkpoint that cleared every numeric gate threshold was, on scatter-plot inspection, a literal two-point mode collapse.
-$\text{std\_ratio}$ measures raw-vector norm health, not angular diversity; the corrective, as with every lesson in this arc, is mechanism inspection --- a scatter plot, not a summary statistic.
+$\text{std\_ratio}$ is a pooled-element statistic: it tracks the raw norm only for angularly spread predictions, and for a head collapsed at angle $\theta_0$ it reads $|\sin(\theta_0-\pi/4)|$ instead (\S\ref{sec:phicpsi:circular}); the corrective, as with every lesson in this arc, is mechanism inspection --- a scatter plot, not a summary statistic.
 
 \subsection{Future work}
 \label{sec:phicpsi:future}

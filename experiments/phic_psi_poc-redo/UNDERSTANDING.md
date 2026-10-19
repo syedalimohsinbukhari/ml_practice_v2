@@ -121,6 +121,19 @@ Two details that are easy to miss:
 
 Checked numerically (400k uniform draws, a fixed arbitrary prediction): mean circular loss $1.0001$/$1.0011$/$0.9999$ and $\text{ang\_MAE}$ $1.5708$/$0.7859$/$1.5708$ for $\varphi_c$/$\psi$/$\iota$, against $T/4$ of $1.5708$/$0.7854$/$1.5708$; encode → decode round-trips to about $10^{-8}$, and the `(sin, cos)` complex products reproduce $\theta_1\pm\theta_2$ and $2\theta$ to about $10^{-15}$.
 
+### 2.6 What `circ_r` and `std_ratio` actually measure
+
+**`circ_r`.** The mean resultant length $\|\text{mean}(\hat{\mathbf{u}})\|\in[0,1]$, computed in `analyse_predictions.circular_stats` from the *decoded* angles (already unit vectors, so the raw norm is discarded); for $\psi$ the angle is mapped by $2\pi/T$ with $T=\pi$, so it is the resultant of $2\psi$.
+It is $1$ exactly when every prediction shares one angle. For $n$ uniform angles its mean is $\approx\sqrt{\pi}/(2\sqrt{n})$, which is $0.0125$ for $n=5000$, matching the label audit (all $\le0.013$).
+It is one-sided evidence: $\to1$ implies a single-mode collapse, but $\approx0$ does not rule out collapse. A two-point antipodal collapse reads $0.002$, and several preferred angles (the inclination head, $0.32$–$0.60$) read only partially.
+
+**`std_ratio`.** `StdRatio` in `losses.py` flattens both components of `y_pred` and `y_true` into one pool before taking each standard deviation. For uniform angles the target pool has std $1/\sqrt2$.
+- *Angularly spread predictions with raw norm $r$:* the ratio equals $r$ (checked: $0.50$, $1.00$, $1.50$ for $r=0.5,1,1.5$). This is the case the $[0.5,2.0]$ band is meant for.
+- *All predictions at one encoded angle $\theta_0$, unit norm:* the pooled values are $\{\sin\theta_0,\cos\theta_0\}$, whose std is $|\sin\theta_0-\cos\theta_0|/2$, so the ratio is $|\sin(\theta_0-\pi/4)|$. It is $0$ at $45^\circ$, $1$ at $135^\circ$ and $315^\circ$, $0.92$ at $111.4^\circ$, $0.31$ at $206.8^\circ$ (all checked numerically).
+So for a collapsed head the reading tracks where it collapsed, not its norm, and can land inside the healthy band.
+
+**Why the $\lambda=0.10$ pass was predictable.** `poc_b`'s $\varphi_c$ collapsed near $111^\circ$ at $\lambda=0.01$, which predicts about $0.92$; the gate read $0.930$ at $\lambda=0.10$. Its $\psi$ collapsed at $2\psi\approx207^\circ$ (predicts $0.31$; gate readings $0.25$–$0.53$). The collapse angle at $\lambda=0.10$ itself was not measured, so this is consistent with, not a proof of, the mechanism.
+
 ## 3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot
 
 ### 3.1 $\iota$'s domain vs. $\psi$'s domain — two unrelated facts that both involve $\pi$

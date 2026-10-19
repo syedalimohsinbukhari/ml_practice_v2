@@ -26,12 +26,12 @@ strain (N, 4096, 2) float32        params (N, 10) float64
                              │
                              ▼
         MultiHeadTrainer(base, loss_cfg, heads)          [training.md]
-          Huber per head · uncertainty/fixed weighting
+          Huber per head (vMF NLL for sky_position) · uncertainty/fixed weighting
           collapse safeties: r2/std_ratio metrics, log-var clamp
                              │  fit(callbacks=...)
                              ▼
         runs/<name>/                                     [training.md]
-          transforms.json      best.weights.h5   final.weights.h5
+          transforms.json      best.weights.h5   final.weights.h5   checkpoints/epoch_*.weights.h5
           history.csv          diagnostics.csv   scatter/epoch_*.png   tb/
                              │
                              ▼
@@ -46,15 +46,17 @@ strain (N, 4096, 2) float32        params (N, 10) float64
 | module | responsibility |
 |--------|----------------|
 | `gwml/heads_spec.py` | **single source of truth** for every possible output head: params column, transform, dim, activation, loss binding |
-| `gwml/data/loader.py` | HDF5 → numpy → `tf.data`; optional SNR sample weights |
+| `gwml/data/loader.py` | HDF5 → numpy → `tf.data`; optional SNR sample weights; `build_subset_masks` for diagnostics and oversampling |
+| `gwml/data/sky_transform.py` | (dec, ra) ↔ unit-vector conversion and angular separation for the `sky_position` head |
 | `gwml/data/transforms.py` | executes the spec's transforms; JSON persistence; wrap-aware error helpers |
 | `gwml/models/registry.py` | trunk name → builder lookup |
 | `gwml/models/trunks/*` | the five trunk architectures (docs in `../models/`) |
 | `gwml/models/heads.py` | attaches the active heads to any trunk's feature vector |
-| `gwml/training/losses.py` | `MultiHeadTrainer`: multi-task loss, collapse safeties, custom train/test steps |
+| `gwml/training/losses.py` | `MultiHeadTrainer`: multi-task loss (Huber + vMF NLL), collapse safeties, custom train/test steps |
 | `gwml/training/callbacks.py` | `LiveScatterCallback`, `DiagnosticSubsetsCallback`, `WarmupLR` |
 | `gwml/training/train.py` | YAML config → full experiment (`run_experiment`) |
-| `gwml/evaluation/` | physical-unit metrics and plots |
+| `gwml/evaluation/` | physical-unit metrics and plots; `plot_style.py` is the shared matplotlib style (`experiments/plot_style.py` is a separate, non-identical module) |
+| `gwml/vmf_head_testing/` | standalone vMF-head prototype, sanity check, and loss-plan notes; not imported by the pipeline |
 
 ## Design invariants
 

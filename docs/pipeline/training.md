@@ -4,8 +4,11 @@
 
 The single source of truth. Each `HeadSpec` binds, for one physical
 parameter: params column, transform kind, output dim, activation, and loss
-key. Valid heads: `mchirp`, `q`, `merger_time`, `snr` (the defaults), plus
-`inclination`, `coa_phase`, `polarization_angle`, `declination`, `ra`.
+key.
+Valid heads: `mchirp`, `q`, `merger_time`, `snr`, `inclination`, `coa_phase`, `polarization_angle`, and `sky_position`.
+The defaults (`DEFAULT_HEADS`) are `mchirp`, `merger_time`, `snr`, `sky_position`, `coa_phase`; `q` was shelved from the defaults (commit `8b2eb41`, 2026-07-15) but stays registered and can be re-added via `model.heads`.
+`sky_position` is one joint head over (declination, RA): a 3-D unit vector on the sphere (`SPHERICAL_UNIT_VECTOR`) trained with a closed-form von Mises-Fisher NLL (`loss: "vmf"`).
+It replaced the earlier independent `ra` and `declination` heads, which are no longer in the registry.
 `injection_time` is deliberately not a head (absolute GPS time is not
 learnable from a 2 s window) — requesting it raises with the valid list.
 
@@ -25,8 +28,11 @@ paired with a plain loss on raw angles" unrepresentable.
    to give q pre-pooling transformer features; see Phase 3.2).
 2. `attach_heads(...)` — per active head: `Dense(hidden_units, relu)` →
    optional `Dropout` → `Dense(spec.dim, spec.activation)`, layer named after
-   the head. `head_cfg.bounded: false` downgrades sigmoid/tanh outputs to
-   linear (an A/B lever; bounded stays on by default). `hidden_units`,
+   the head. `head_cfg.bounded: false` downgrades sigmoid outputs to
+   linear (an A/B lever; bounded stays on by default).
+   Only `UNIT_AFFINE` heads use sigmoid; `PERIODIC` heads are linear on the (sin, cos) pair since 2026-07-18 (commit `6839b47`).
+   `sky_position` emits two flat outputs, `sky_position_mu_raw` (3) and `sky_position_kappa_raw` (1), consumed jointly by the vMF loss.
+   `hidden_units`,
    `dropout`, `l2`, `sigmoid_bias`, and `branch` all default globally but can
    be overridden for one head via `head_cfg.per_head.<name>`:
    - `hidden_units`/`dropout`/`l2` — regularize a head that overfits
@@ -35,14 +41,18 @@ paired with a plain loss on raw angles" unrepresentable.
    - `branch` — connect this head to a named extra feature tensor from the
      trunk instead of the global pooled features (Phase 3.2)
 
+   The `per_head` overrides, `sigmoid_bias`, and `branch` machinery is retained in the code (the `per_head` overrides are covered by `tests/test_heads_spec.py`), but no config in `configs/` currently uses it.
+   The q-specific settings from Phase 2/2.5/3 (`log_var_clamp: {q: 1.0}`, q-head regularization, `q_tokens` branch, `q_high_mchirp_low` oversampling) were removed from the configs when q was shelved; `resnet1d.yaml` keeps `warmup_epochs: 5`.
+   Results and rationale are in `q_head_action_plan.md`, `q_head_run_comparison.md`, and `phase2_5_3_run_results.md`.
+
 ## `MultiHeadTrainer` — `gwml/training/losses.py`
 
 A `keras.Model` subclass wrapping the functional model with a custom
 multi-task loss (custom `train_step`/`test_step`; weights-only
 checkpointing, the model is rebuilt from YAML).
 
-**Per-head loss** — resolved from `HeadSpec.loss` (currently Huber for every
-head; periodic heads are (sin, cos) pairs so Huber on the pair is correct).
+**Per-head loss** — resolved from `HeadSpec.loss`: Huber for every head except `sky_position`, which uses the vMF NLL (`vmf_nll_loss`).
+Periodic heads are (sin, cos) pairs, so Huber on the pair is correct.
 Unknown loss keys fail at construction, not mid-training.
 
 **Head balancing** (`loss.weighting`):
@@ -58,8 +68,9 @@ predicting the target mean with ~0 variance):
 
 | safety | always on? | mechanism |
 |--------|-----------|-----------|
-| `r2_<head>` metric | yes | `keras.metrics.R2Score` per head; collapse ⇒ → 0 |
-| `std_ratio_<head>` metric | yes | exact epoch-level `std(pred)/std(true)` (custom `StdRatio`); collapse ⇒ → 0 |
+| `r2_<head>` metric | yes | `keras.metrics.R2Score` per head; collapse ⇒ → 0; not tracked for the vMF `sky_position` head |
+| `std_ratio_<head>` metric | yes | exact epoch-level `std(pred)/std(true)` (custom `StdRatio`); collapse ⇒ → 0; not tracked for `sky_position`. `StdRatio` flattens its inputs, so for a two-component (sin, cos) head it pools both components and a collapsed head need not read 0 — see `PHIC_PSI_CARRYOVER.md` §4 |
+| `kappa_<head>` metric | yes, vMF head only | mean predicted concentration κ for `sky_position`, in place of `r2`/`std_ratio`/`mae` |
 | log-var clamp | yes | `s_h` constrained to ±`loss.log_var_clamp` (default 3.0) so a head's effective weight never drops below `exp(−3) ≈ 5%` — uncertainty weighting cannot entrench collapse |
 | variance penalty | opt-in | `loss.variance_penalty: λ` adds `λ·(std(pred)−std(true))²` per head per batch |
 | LR warmup | opt-in | `optim.warmup_epochs: N` ramps LR linearly, dodging the early mean-prediction minimum |
@@ -82,6 +93,7 @@ Built by `train.py` in this order:
    r2_<head>…, std_ratio_<head>…` — all physical units, wrap-aware. Errors
    should order cleanly by SNR; if they don't, be suspicious.
 3. **`ModelCheckpoint`** — `best.weights.h5` on `val_loss`, weights only.
+   **`PeriodicCheckpoint`** (commit `f50dfae`) — also writes `checkpoints/epoch_NNN.weights.h5` every `train.checkpoint_every_n` epochs (default 10), so early-training weights survive alongside best and final.
 4. **`CSVLogger`** (`history.csv`) and **TensorBoard** (`tb/`).
 5. **LR schedule** — `optim.schedule.type: plateau` (default;
    `ReduceLROnPlateau` with `factor`/`patience`/`min_lr`) or `step`
@@ -99,12 +111,12 @@ Built by `train.py` in this order:
 | `data.path` | — | HDF5 file |
 | `data.batch_size` | 128 | batch size |
 | `data.max_samples` | null | truncate splits (smoke/debug) |
-| `data.augmentation.oversample.<subset>` | — | duplication factor for named subsets before transforms are fitted (Phase 3.1) |
+| `data.augmentation.oversample.<subset>` | — | duplication factor for named subsets before transforms are fitted (Phase 3.1); implemented but not enabled in any current config |
 | `model.trunk` | — | registry name (see `../models/`) |
 | `model.trunk_cfg` | `{}` | trunk knobs (per-trunk doc) |
-| `model.heads` | core four | active output heads |
+| `model.heads` | `DEFAULT_HEADS` (`mchirp`, `merger_time`, `snr`, `sky_position`, `coa_phase`) | active output heads |
 | `model.head_cfg.hidden_units` | 64 | per-head MLP width |
-| `model.head_cfg.bounded` | true | sigmoid/tanh output activations |
+| `model.head_cfg.bounded` | true | sigmoid output activations on `UNIT_AFFINE` heads (set false to make them linear) |
 | `model.head_cfg.dropout` | 0.0 | dropout after the hidden Dense, applied to every head |
 | `model.head_cfg.l2` | 0.0 | L2 kernel regularizer on both Dense layers, every head |
 | `model.head_cfg.sigmoid_bias` | 0.0 | bias initializer for sigmoid output heads (Phase 2.5) |
@@ -122,6 +134,7 @@ Built by `train.py` in this order:
 | `train.seed` | 42 | `keras.utils.set_random_seed` |
 | `train.deterministic_ops` | false | `enable_op_determinism` (slower, strict) |
 | `train.diagnostics_every_n` | 5 | cadence of callbacks 1–2 |
+| `train.checkpoint_every_n` | 10 | cadence of the periodic `checkpoints/epoch_NNN.weights.h5` snapshots |
 | `train.scatter_subset` | 1000 | samples in the live scatter |
 | `train.early_stopping` | false | off by default |
 | `train.verbose` | 2 | Keras fit verbosity |
@@ -133,6 +146,7 @@ runs/<name>/
 ├── transforms.json      # active heads + fitted stats — needed for inference
 ├── best.weights.h5      # best val_loss checkpoint (weights only)
 ├── final.weights.h5     # last epoch
+├── checkpoints/         # epoch_NNN.weights.h5 every train.checkpoint_every_n epochs
 ├── history.csv          # per-epoch: loss, mae_*, r2_*, std_ratio_*, weight_*, val_*
 ├── diagnostics.csv      # per-subset physical-unit metrics (see above)
 ├── scatter/epoch_*.png  # live scatter grids

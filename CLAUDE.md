@@ -3,7 +3,7 @@
 Derived from `WORKING_CONVENTIONS.md`; adopted: §1–5, 9–11, 13–17.
 Dropped for now: §6 (generated artifacts), §7 (per-unit notes and index), §8 (frozen vs living docs), §12 (code style) — no need has appeared yet in the q_value work; add each when one does.
 Not adopted: the φc/ψ-era rules, which live on branch `poc/phic-psi-degeneracy-redo` and are preserved verbatim in `CLAUDE_phic_psi_backup.md`.
-Files in the repo root that predate this file (`PLAN.md`, `q_head_action_plan.md`, `phase2_5_3_*.md`, `q_head_run_comparison.md`) and the `experiments/` directory are not governed by these conventions until triaged.
+Files in the repo root that predate this file (`PLAN.md`, `q_head_action_plan.md`, `phase2_5_3_*.md`, `q_head_run_comparison.md`), the carryover snapshot `PHIC_PSI_CARRYOVER.md`, `src/gwml/gen_py_data_pipeline.md`, and the `experiments/` directory (including `experiments/q_recovery/`) are not governed by these conventions until triaged.
 
 ## Working documents (§1)
 

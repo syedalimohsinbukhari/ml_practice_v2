@@ -2,7 +2,7 @@
 
 ## Objective
 
-Regress four physical parameters from dual-detector whitened strain using a single
+Regress physical parameters of a compact-binary signal (default heads: chirp mass, merger time, SNR, sky position, coalescence phase) from dual-detector whitened strain using a single
 shared-trunk, multi-head network. Multiple trunk architectures are pluggable behind a
 common interface so they can be benchmarked against each other (locally on CPU for
 smoke tests, on the lab GPU machine for real training).
@@ -32,25 +32,28 @@ training split gives fixed (non-batch-dependent) statistics at inference, which 
 slightly more stable than BatchNorm's moving averages. Both are one line behind the
 same trunk interface; we start with BatchNorm and can A/B this cheaply.
 
-### Targets (6 heads, 8 output dims)
+### Targets (default heads: 5 heads, 8 output dims)
+
+Current defaults (`DEFAULT_HEADS` in `src/gwml/heads_spec.py`); `q`, `inclination`, and `polarization_angle` are registered and can be added via `model.heads`.
+`q` was shelved from the defaults (banner in `q_head_action_plan.md` dated 2026-07-14; code change in commit `8b2eb41`, 2026-07-15).
+The original plan listed independent `ra` and `declination` heads; they were replaced by the joint `sky_position` head below.
+
 
 | head          | raw range    | transform for training                                                          | head activation   | dim |
 |---------------|--------------|---------------------------------------------------------------------------------|-------------------|-----|
 | `mchirp`      | 8.84 – 43.45 | log, then z-score (MSE in log-space ≈ fractional error — no custom loss needed) | linear            | 1 |
 | `merger_time` | 1.6 – 1.8 s  | affine map [1.6, 1.8] → [0, 1]                                                  | sigmoid (bounded) | 1 |
 | `snr`         | 7.0 – 15.0   | z-score                                                                         | linear            | 1 |
-| `ra`          | 0 – 2π rad   | periodic → (sin θ, cos θ)                                                       | tanh              | 2 |
-| `declination` | −π/2 – π/2 rad | affine map [−π/2, π/2] → [0, 1]                                              | sigmoid (bounded) | 1 |
-| `coa_phase`   | 0 – 2π rad   | periodic → (sin θ, cos θ)                                                       | tanh              | 2 |
+| `sky_position` | dec −π/2 – π/2, RA 0 – 2π rad | (dec, RA) → 3-D unit vector on S²; von Mises-Fisher NLL, with a second raw output for κ | linear | 3 |
+| `coa_phase`   | 0 – 2π rad   | periodic → (sin θ, cos θ)                                                       | linear            | 2 |
 
 Bounded sigmoid heads guarantee physical predictions for range-limited
-targets; periodic heads use (sin, cos) pairs so no wraparound discontinuity
+targets; periodic heads use (sin, cos) pairs (linear output since 2026-07-18) so no wraparound discontinuity
 ever reaches the loss. All toggleable per config via `model.heads`.
 
-**Head registry (`src/gwml/heads_spec.py`):** every possible head — the core
-four above plus `inclination`, `coa_phase`, `polarization_angle`,
-`declination`, `ra` — is defined once as a `HeadSpec` binding its params
-column, transform, output dimension, activation, and loss. Experiment YAMLs
+**Head registry (`src/gwml/heads_spec.py`):** every possible head — the five
+defaults above plus `q`, `inclination`, and `polarization_angle` — is defined once as a `HeadSpec` binding its params
+column(s), transform, output dimension, activation, and loss. Experiment YAMLs
 select *which* heads are active via `model.heads: [...]`; they cannot override
 *how* a head is handled — that binding lives in code so a periodic parameter
 can never be silently paired with a plain loss. Periodic heads are (sin, cos)
@@ -69,6 +72,7 @@ evaluation time so metrics are reported in physical units.
 src/gwml/
 ├── data/
 │   ├── loader.py        # HDF5 → tf.data.Dataset; loads splits into RAM (~800 MB)
+│   ├── sky_transform.py # (dec, ra) <-> unit vector, angular separation (sky_position head)
 │   └── transforms.py    # input scaling + per-target transform/inverse, JSON persistence
 ├── models/
 │   ├── registry.py      # @register("name") → build_trunk(cfg) lookup
@@ -80,13 +84,19 @@ src/gwml/
 │       ├── tcn.py             # exponentially dilated temporal conv net
 │       └── cnn_attention.py   # conv front-end + transformer encoder + attention pool
 ├── training/
-│   ├── losses.py        # per-head Huber, configurable loss weights
+│   ├── losses.py        # per-head Huber (+ vMF NLL for sky_position), configurable loss weights
 │   ├── callbacks.py     # LiveScatterCallback, DiagnosticSubsetsCallback (see below)
 │   └── train.py         # fit loop: callbacks, checkpoints, CSV/TensorBoard logs
-└── evaluation/
-    ├── metrics.py       # per-head MAE/RMSE in physical units
-    └── plots.py         # pred-vs-true scatter, residual-vs-SNR/mchirp,
-                          # pre-sigmoid logit histograms (train vs val)
+├── evaluation/
+│   ├── metrics.py       # per-head MAE/RMSE in physical units (angular separation for sky_position)
+│   ├── plot_style.py    # shared matplotlib style
+│   └── plots.py         # pred-vs-true scatter, residual-vs-SNR/mchirp,
+│                         # pre-sigmoid logit histograms (train vs val)
+├── heads_spec.py        # single source of truth for every output head
+└── vmf_head_testing/    # standalone vMF-head prototype + loss-plan notes (not imported by the pipeline)
+
+experiments/             # per-experiment work (phic_psi_poc, phic_psi_poc-redo, plot_style.py)
+runs/                    # timestamped training runs, one directory per config
 
 docs/models/             # one MD file per trunk: what it is + selection rationale
 ├── cnn_baseline.md
@@ -111,7 +121,8 @@ scripts/
 ├── train.py             # python scripts/train.py configs/resnet1d.yaml
 ├── plot_run.py          # history.csv + diagnostics.csv -> summary PNGs
 ├── evaluate.py          # loads checkpoint, writes metrics + plots for a split
-└── run_all.py           # train -> plot_run -> evaluate, one config, fail-fast
+├── run_all.py           # train -> plot_run -> evaluate, one config, fail-fast
+└── run_full.py          # same three steps for every non-smoke config in configs/
 ```
 
 ## Model contract (the pluggable part)
@@ -133,7 +144,8 @@ def build_trunk(cfg) -> tuple[keras.Input, tf.Tensor]:
 
 `heads.py` takes the feature vector and attaches one small MLP per active
 head (Dense `hidden_units` → Dense `spec.dim`, 1 for scalar heads like
-`mchirp`/`q`/`merger_time`/`snr`, 2 for periodic sin/cos pairs), named after
+`mchirp`/`q`/`merger_time`/`snr`, 2 for periodic sin/cos pairs; `sky_position`
+instead emits two outputs, a 3-vector `mu_raw` and a scalar `kappa_raw`), named after
 the head. All heads share `head_cfg`'s global `hidden_units`/`dropout`/`l2`
 by default, but any one head can override them via
 `head_cfg.per_head.<name>` — used to cut capacity on a head that overfits
@@ -175,25 +187,25 @@ its doc doesn't get merged into the zoo.
 
 ## Training setup
 
-- **Per-head loss:** Huber (delta in config).
+- **Per-head loss:** Huber (delta in config); `sky_position` uses the closed-form von Mises-Fisher NLL.
 - **Head balancing:** uncertainty-weighted multi-task loss (Kendall, Gal & Cipolla
   2018) **on by default** — each head gets a learnable log-variance `s_i`, total loss
-  `Σ exp(-s_i)·L_i + s_i`. The network balances the four heads itself, and the learned
+  `Σ exp(-s_i)·L_i + s_i`. The network balances the heads itself, and the learned
   `s_i` are logged per epoch as a diagnostic of which parameters the data constrains.
   Fixed hand-set weights remain available as the config fallback.
 - **SNR-weighted sample loss:** optional config switch (off by default) — weight each
   sample by `(SNR/10)^alpha` to down-weight events whose labels are barely
   recoverable. An experiment, not a default.
-- **Targeted oversampling:** `data.augmentation.oversample.<subset>: <factor>`
+- **Targeted oversampling** (implemented; not enabled in any current config):
+  `data.augmentation.oversample.<subset>: <factor>`
   duplicates rows in named subsets (from `build_subset_masks()` in
   `loader.py`) before transforms are fitted. Used to up-weight the
   `q_high × mchirp_low` cell (~11% of data, val_r2_q ≈ −22 across all
   trunks). No architecture changes — pure array-level duplication before
   dataset construction. See `q_head_action_plan.md` Phase 3.1.
-- **Not doing:** GradNorm/gradient-balancing schemes — overkill for four well-behaved
-  regression heads. Periodic losses (`1 − cos(Δ)` or sin/cos pairs) only become
-  relevant if/when angle heads are added; plain MSE on wrapped angles is silently
-  wrong (noted for the extensions).
+- **Not doing:** GradNorm/gradient-balancing schemes — overkill for a handful of well-behaved
+  regression heads. Angle heads are now in the registry: periodic parameters use sin/cos pairs
+  (plain MSE on wrapped angles is silently wrong), and sky position uses the vMF NLL.
 - **Mean-collapse safeties** (GW regression often collapses every head to the
   target mean with ~0 variance):
   - *Always on:* per-head R² (`r2_<head>`) and `std(pred)/std(true)`
@@ -271,6 +283,7 @@ dependencies.
 ## Evaluation
 
 - Per-head MAE and RMSE in **physical units** on the validation split.
+- For `sky_position`, mean and RMS great-circle angular separation (degrees) replace per-column MAE/RMSE.
 - Pred-vs-true scatter per head; residuals binned by true SNR (errors should shrink
   as SNR grows — a good physics sanity check) and by mchirp.
 - A single comparison table across trunk architectures.
@@ -291,5 +304,5 @@ dependencies.
 
 - Auxiliary denoising decoder using `*_waveform` targets (regularizes the trunk).
 - Heteroscedastic heads (mean + σ, Gaussian NLL) for per-event error bars.
-- Sky-position and orientation-angle heads with periodic encodings.
+- Orientation-angle heads: `inclination` and `polarization_angle` are registered with periodic encodings but not in the default head set (`coa_phase` and `sky_position` already are).
 - Time-shift augmentation (shift window, update merger_time label accordingly).

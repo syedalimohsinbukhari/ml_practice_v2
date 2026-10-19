@@ -19,14 +19,16 @@ variables on a dummy batch → `load_weights` (default
 
 - `metrics_<split>.csv` — MAE and RMSE per active head
   (`gwml/evaluation/metrics.py::evaluate_model`)
+  For `sky_position`, MAE and RMSE are mean and root-mean-square great-circle angular separation in degrees, not per-column residuals.
 - `scatter_<split>.png` — pred-vs-true grid, y=x diagonal, MAE annotated
+  `sky_position` gets one panel per component, annotated with the mean angular separation (degrees)
 - `residuals_snr_<split>.png` — mean |residual| binned by true SNR
 - `residuals_mchirp_<split>.png` — mean |residual| binned by true mchirp
   (same `residuals_vs_param` helper as the SNR plot, different column)
 - `logits_train_vs_val.png` — pre-sigmoid logit histograms (`ln(p/(1-p))`
   recovered from the raw sigmoid output, no architecture change needed),
   train vs val, split by true-value tercile, for every sigmoid/`UNIT_AFFINE`
-  head (e.g. `q`, `merger_time`). Needs both splits loaded regardless of
+  head (e.g. `merger_time`, and `q` when it is an active head). Needs both splits loaded regardless of
   `--split`, so this always runs. See "sigmoid saturation" below.
 
 ## Physics sanity checks to apply to every run
@@ -41,7 +43,7 @@ variables on a dummy batch → `load_weights` (default
    their cross-tab with `mchirp_low`/`mchirp_high` (e.g. `q_high_mchirp_low`)
    — a head can look fine in aggregate while one narrow cross-tab cell is far
    worse than the rest.
-3. **std_ratio ≈ 1, r2 well above 0** per head. `std_ratio → 0` is mean
+3. **std_ratio ≈ 1, r2 well above 0** per head (for the two-component periodic heads `std_ratio` pools sin and cos, so a collapsed head can still look healthy; read it with the per-component scatter). `std_ratio → 0` is mean
    collapse; `std_ratio > 1` with poor r2 means the head is guessing with
    overconfident spread.
 4. **`weight_<head>` history** (uncertainty weighting): a weight pinned at
@@ -69,6 +71,8 @@ regime.
 
 ## Caveats
 
+- The vMF `sky_position` head has no `r2_*`/`std_ratio_*`/`mae_*` entry in `history.csv`; it logs `kappa_sky_position` instead.
+  Judge it from the angular separation in `metrics_<split>.csv`.
 - R² on a periodic quantity (diagnostics CSV) is computed on wrapped
   residuals against the linear variance of the angles — fine for spotting
   collapse and trends, but not a rigorous circular-statistics R²; treat the

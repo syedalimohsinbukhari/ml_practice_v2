@@ -16,6 +16,10 @@ sequence, followed by transformer encoder blocks and attention pooling:
   → attention pooling (learned scoring → softmax-weighted sum) → (128,) features
 ```
 
+The builder also returns the per-token output before attention pooling, shape `(B, 128, 128)`, as a third element `{"q_tokens": tokens}`.
+A head can connect to it through `head_cfg.per_head.<name>.branch: q_tokens` (GAP-pooled inside `attach_heads`).
+No current config sets `branch`, so this path is unused; the q experiment that used it is a recorded null result (`phase2_5_3_run_results.md`).
+
 ## Why it's here
 
 Convolutions are translation-equivariant: good for finding chirp structure

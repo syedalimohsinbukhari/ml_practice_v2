@@ -271,3 +271,13 @@ still converging (12.68 at epoch 79) — it may benefit from more epochs.
 5. **TCN: consider more epochs** — weight_snr still converging at 12.68 (cap
    is 20.09). The model hasn't finished optimizing. Running to 120-150 epochs
    might squeeze out a bit more performance.
+
+---
+
+## Status addendum 2026-10-19T10:43Z
+
+The analysis above is the original record and is unchanged.
+Final-epoch `val_r2_q` and `r2_q` for all ten runs in its run index were recomputed from `history.csv` and match.
+None of the "Recommended next steps" has a record of being carried out, and the q-specific config settings from these runs have since been removed from `configs/` (q was shelved from the default head set: banner dated 2026-07-14, `DEFAULT_HEADS` change in commit `8b2eb41` on 2026-07-15).
+The recommended `resnet1d` follow-up (q-head regularization with the clamp back at `q: 1.0`) and the `inception_time` `merger_time` diagnosis remain open.
+See the status addendum in `q_head_action_plan.md` for the current code and config state.

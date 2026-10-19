@@ -207,3 +207,14 @@ is catastrophic (predictions are essentially random noise around a constant
 with no correlation to true values). The other four models cluster tightly
 around −22, suggesting this is a fundamental data limitation (scarcity in
 this physically-hard regime) rather than a model-specific flaw.
+
+---
+
+## Status addendum 2026-10-19T10:43Z
+
+The tables above are the original 2026-07-14 record and are unchanged.
+Final-epoch `val_r2_q` and `r2_q` for all nine runs in the run index were recomputed from `history.csv` and match.
+The label "NEW" is used for two different things: in the first two tables it means the attempt-1 run, and in the "Phase 2 attempt #2" tables it means the attempt-2 run.
+Read it against the run index at the top.
+The later results (Phase 2.5/3) are in `phase2_5_3_run_results.md`.
+The q-specific config settings these runs used are no longer present in `configs/` (see the status addendum in `q_head_action_plan.md`).

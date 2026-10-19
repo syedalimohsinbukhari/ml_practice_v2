@@ -32,12 +32,13 @@ in the trunks if BatchNorm's moving averages ever misbehave.)
 (`gwml/heads_spec.py` is the single source of truth — see `training.md`'s
 "Head registry" section; summary):
 
-| kind | heads | forward | inverse |
-|------|-------|---------|---------|
-| `LOG_ZSCORE` | mchirp | `(log v − μ)/σ`, μ/σ from **training split only** | `exp(vσ + μ)` |
-| `ZSCORE` | snr | `(v − μ)/σ` | `vσ + μ` |
-| `UNIT_AFFINE` | q, merger_time, declination | fixed documented bounds → [0, 1] | affine back |
-| `PERIODIC` | ra, coa_phase, inclination, polarization_angle | angle → `(sin θ, cos θ)`, θ = 2π·v/period | `atan2` → [0, period) |
+| kind                    | heads                                      | forward                                                        | inverse                         |
+|-------------------------|--------------------------------------------|----------------------------------------------------------------|---------------------------------|
+| `LOG_ZSCORE`            | mchirp                                     | `(log v − μ)/σ`, μ/σ from **training split only**              | `exp(vσ + μ)`                   |
+| `ZSCORE`                | snr                                        | `(v − μ)/σ`                                                    | `vσ + μ`                        |
+| `UNIT_AFFINE`           | q, merger_time                             | fixed documented bounds → [0, 1]                               | affine back                     |
+| `PERIODIC`              | coa_phase, inclination, polarization_angle | angle → `(sin θ, cos θ)`, θ = 2π·v/period                      | `atan2` → [0, period)           |
+| `SPHERICAL_UNIT_VECTOR` | sky_position (declination, RA)             | `(dec, ra)` → 3-D unit vector via `gwml/data/sky_transform.py` | normalized vector → `(dec, ra)` |
 
 - `fit(train_params)` computes the z-score stats; affine/periodic transforms
   are stateless (fixed constants from the spec).
@@ -47,6 +48,9 @@ in the trunks if BatchNorm's moving averages ever misbehave.)
 - `signed_error(head, true, pred)` / `abs_error(...)` compute physical-unit
   residuals, **wrap-aware** for periodic heads (0.05 rad vs 6.23 rad is an
   error of 0.1, not 6.18). Every reported MAE/RMSE goes through these.
+
+`sky_position` is a two-column head (declination, then RA, taken from `PARAM_COLUMNS`); its errors are great-circle angular separations rather than per-column residuals.
+The earlier independent `ra` and `declination` heads were removed from the registry.
 
 Why these choices: MSE in log-space ≈ fractional error, which is what matters
 for mchirp — so no custom loss is needed there. The (sin, cos) encoding keeps
@@ -70,6 +74,7 @@ snr_weight_alpha)` builds `tf.data.Dataset.from_tensor_slices` over
 
 ## Targeted oversampling (Phase 3.1)
 
+Implemented but not enabled in any current config (the q-specific settings were removed when q was shelved from the defaults, 2026-07-15).
 `run_experiment` supports `data.augmentation.oversample` — a dict mapping
 subset names to integer duplication factors. Before transforms are fitted,
 rows in the named subsets are duplicated the specified number of times.

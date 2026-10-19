@@ -187,3 +187,13 @@ via `history.csv`) before reading any R²/MAE numbers. The key signals:
   trajectory shape may differ with regularization
 - cnn_attention: same clamp as before (1.0), but q_tokens branch may
   change the loss landscape → weight_q could move differently
+
+---
+
+## Status addendum 2026-10-19T10:43Z
+
+The resolution notes above were written before the GPU runs and are unchanged.
+The runs happened on 2026-07-14 between 16:18 and 16:48; results are in `phase2_5_3_run_results.md`.
+Concern 2 (which part of the `cnn_attention` gain came from the clamp versus the q-head regularization) is still unresolved: the clamp-only ablation on `cnn_attention` was never run.
+Concern 5 (`inception_time` `merger_time` dead) was reconfirmed by `phase2_5_3_run_results.md` but has no diagnosis yet.
+The q-specific settings are no longer in `configs/` (see the status addendum in `q_head_action_plan.md`).

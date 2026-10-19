@@ -8,6 +8,29 @@
 > gap (q_high×mchirp_low cell data scarcity) requires dataset-level fixes
 > beyond the current scope. See `phase2_5_3_run_results.md` for final numbers.
 
+> **Status addendum 2026-10-19T10:43Z** — reconciled against the repo at HEAD `21552e2`.
+> The text below is the original 2026-07-14 record and is left as written; the points here supersede it where they differ.
+>
+> - **Configs:** none of the six `configs/*.yaml` carries any q-specific setting any more.
+>   `log_var_clamp` is a flat `3.0` everywhere, and there is no `per_head`, `branch`, or `data.augmentation.oversample` block.
+>   `resnet1d.yaml` keeps `warmup_epochs: 5`.
+>   The default head set is `mchirp, merger_time, snr, sky_position, coa_phase`.
+> - **Code kept, unused:** `per_head` overrides, `sigmoid_bias`, and `branch` in `models/heads.py`; the `log_var_clamp` dict in `training/losses.py`; oversampling in `training/train.py` plus `build_subset_masks` in `data/loader.py`; the `q_tokens` return from `cnn_attention`.
+>   The q bounds `(0.15, 1.05)` are still in `heads_spec.py`.
+> - **"Immediate next steps" (below) resolved by the 2026-07-14 16:18–16:48 runs:**
+>   items 1, 2, and 4 were run, and item 6's re-run happened; results are in `phase2_5_3_run_results.md`.
+>   Item 1 (`resnet1d`): `val_r2_q` went from −5.738 to +0.100.
+>   Item 2 (`cnn_baseline`): `val_r2_q` went from 0.075 to 0.151.
+>   Item 4 (the `q_tokens` branch): a null result.
+>   Both figures were recomputed from `history.csv`.
+>   Items 5, 7, and 8 (`pytest -m "not slow"` on the lab machine, the clamp sweep, the auxiliary classifier) have no record of being done.
+> - **Label correction, "Before/after table" in "Phase 2 attempt #2":** the rows marked OLD for `cnn_attention` and `cnn_baseline` are the attempt-1 runs (`20260714_104523` and `20260714_104107`), not the pre-fix runs.
+>   Recomputed from `history.csv`, the pre-fix runs (`20260714_093319` and `20260714_091740`) end at `val_r2_q` −0.179 and −0.164, with peaks 0.232 (epoch 12) and 0.192 (epoch 3).
+>   The table's peaks (0.237 at epoch 19, 0.146 at epoch 6) match the attempt-1 runs.
+> - **Dangling reference:** the "Phase 2 attempt #1 results" section mentioned near the top does not exist; the attempt-1 numbers are in `q_head_run_comparison.md`.
+> - **Scope:** every q run is from 2026-07-14.
+>   The `runs/*/20260715_*` runs have no q head.
+
 Context: `cnn_baseline` underfits q (train R2 ~0.7-0.85, val R2 ~0). `cnn_attention`
 overfits q (train R2 ~0.95-1.0, val R2 declines to ~ -0.2). Loss weights for all
 four heads saturate identically at ~20.09 regardless of per-head performance.

@@ -224,7 +224,12 @@ Origin: read of `ml-gw-search/mlgwsc-1/gen.py`.
 - **Impact:** the current 25,000 / 5,000 dataset cannot be reproduced bit-for-bit, and a regeneration will differ from it even with identical arguments.
   This contradicts the `CLAUDE.md` determinism rule (one named master seed, per-run seeds derived from it).
   The paper already names this gap: `004_methods.tex` (comment, line 6) and `008_discussion.tex` (line 45) list "dataset regeneration from a version-controlled generator" as open.
-- **Next:** add a master-seed constant and a CLI seed option, thread one generator through the noise and injection draws, and check determinism on a shrunken workload (to be run on a non-T530 machine with the user's go-ahead); no code change made.
+- **Update 2026-10-19T20:55Z (verified, pycbc source read in the sibling `.venv`):** seeding `np_gen` alone is not enough.
+  `frequency_noise_from_psd(psd, seed=None)` draws from the legacy global `numpy.random` (a seed only calls `numpy.random.seed`), and the sky draw `UniformSky.rvs()` (`gen.py:204`) uses the global `numpy.random.uniform` and has no seed parameter.
+  Passing one seed per call also gives identical noise on every call, including identical H1 and L1 noise within a sample (verified).
+- **Decision 2026-10-19T20:55Z (user):** per-file keys `SeedSequence(MASTER_SEED, spawn_key=(file_index, stream, purpose))`, one `np.random.default_rng` threaded per stream, and one `numpy.random.seed` call per stream for pycbc (option A).
+  The scheme and the fresh `MASTER_SEED` are recorded in `SEEDING.md`.
+- **Next:** implement the scheme in `ml-gw-search` (a master-seed constant, a file-index CLI option, the per-stream seeding), then run the determinism check in `SEEDING.md` on a shrunken workload on a non-T530 machine with the user's go-ahead; no code change made yet.
 
 ### BUG-008 — `PARAM_COLUMNS` mislabels the written columns
 
@@ -288,7 +293,8 @@ Opened 2026-10-19T20:40Z. Status: `OPEN`.
   - The two copies of `combined_repackaged.hdf` (sibling and this repository) are byte-identical (`cmp`, 2026-10-19T20:38Z).
   - In `ml-gw-search`, `re_package_hdf.py` is untracked and the HDF is neither tracked nor ignored.
 - **Impact:** the existing dataset cannot be described from the repositories alone, which is the reproducibility gap the paper lists.
-- **Next:** record the generation command and seed in the regenerated dataset's attributes or a sidecar file, and track `re_package_hdf.py`.
+- **Update 2026-10-19T20:55Z:** the required provenance for a regenerated file is now specified in `SEEDING.md` ("What each generated file records"): master seed, file index and keys, `gen.py` arguments, generator git SHA, library versions, UTC time, host, and column names, stored as HDF attributes.
+- **Next:** implement that recording in the generator, and track `re_package_hdf.py`.
 
 ### OBS-017 — Two diverging pipeline notes
 

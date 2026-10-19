@@ -1,6 +1,6 @@
 # Handoff
 
-Written 2026-10-19T10:36Z; last extended 2026-10-19T20:41Z.
+Written 2026-10-19T10:36Z; last extended 2026-10-19T20:58Z.
 
 ## Environment
 
@@ -33,6 +33,11 @@ Written 2026-10-19T10:36Z; last extended 2026-10-19T20:41Z.
 
 ## Decided
 
+- 2026-10-19T20:55Z: per-file seeding for the regenerated dataset, recorded in `SEEDING.md`.
+  Keys are `SeedSequence(MASTER_SEED, spawn_key=(file_index, stream, purpose))` with train and validation as separate streams; one `rng` per stream; pycbc's global state seeded once per stream (option A, chosen over per-call seed arrays and over rewriting the noise and sky draws).
+  A fresh `MASTER_SEED` was drawn with `secrets` (provenance in that file).
+  The scheme was adapted from a `SEEDING.md` that came from another repository; the user renamed this project's file from `SEEDING_qvalue.md` to `SEEDING.md`, which replaced the foreign copy (2026-10-19T20:56Z).
+
 - 2026-10-19T20:30Z: OBS-012 closed; a T530 is in use, and the three machines are tracked by host and path in the "Machines" table in `CLAUDE.md`.
   The third machine's host and path, and which machine is the "lab GPU machine", are still unrecorded.
 
@@ -42,7 +47,8 @@ Written 2026-10-19T10:36Z; last extended 2026-10-19T20:41Z.
 
 - First task, per the user (2026-10-19T20:36Z): data regeneration with the `ml-gw-search` generator.
   The generator review is logged as BUG-007 to 009 and OBS-014 to 017 (unseeded generation, mislabeled `PARAM_COLUMNS`, float32 `injection_time`, noise-only half dropped by repackaging, real-noise whitening mismatch, unrecorded generation arguments, two diverging pipeline notes).
-  Settle with the user what the regeneration should change (parameters, noise source, sample counts, seed handling) before any generation is run; generation must not run on `thinkpad-t530`.
+  Seed handling is settled (above); still to settle with the user: parameters, noise source, sample counts, and the open items listed at the end of `SEEDING.md`.
+  Then implement the scheme in `ml-gw-search` (BUG-007, OBS-016) and run its determinism check on a shrunken workload; generation must not run on `thinkpad-t530`.
 
 - Work the `PENDING` items in `VERIFY.md`; the decisions that need you (OBS-002, 007, 008, 011) are listed under "Open decisions" above and in `BUGS.md`.
 - Decide the first q_value task and log it here.
@@ -51,7 +57,8 @@ Written 2026-10-19T10:36Z; last extended 2026-10-19T20:41Z.
 
 - Committed as `[q_value-minor-5]` (the convention files), `[q_value-minor-6]` (the doc update plus the earlier refresh) and `[q_value-minor-7]` (`BUGS.md`, `VERIFY.md`, `HANDOFF.md`: the q_recovery and carryover items logged), on top of `0ace363`; `git log -3` shows them.
 - Committed as `[q_value-minor-8]` (`CLAUDE.md` "Machines" table, `BUGS.md` OBS-012 closed, the earlier refresh).
-- Committed as `[q_value-minor-9]` (`CLAUDE.md` "Related repositories" section, `BUGS.md` generator findings, this refresh).
-- Uncommitted: none.
+- Committed as `[q_value-minor-9]` (`CLAUDE.md` "Related repositories" section, `BUGS.md` generator findings, the earlier refresh).
+- Committed as `[q_value-minor-10]` (`SEEDING.md` new, `BUGS.md` BUG-007 and OBS-016 updates, this refresh).
+- Uncommitted: none of the tracked files; the untracked `deeplearning_models/`, `experiments/paper/`, and `experiments/phic_psi_poc-redo/` are deliberately not staged.
 - The sibling repos have their own working-tree state, untouched by this session: `ml-gw-search` has untracked `re_package_hdf.py`, `mlgwsc-1/gen_py_data_pipeline.md`, `mlgwsc-1/__pycache__/` and `combined_repackaged.hdf`; `gw_research_paper` has an uncommitted `main.tex`.
 - The user must run `git push --force-with-lease origin q_value` (history was rewritten to fix commit messages); another machine holding the old commits needs `git fetch` then `git reset --hard origin/q_value`.

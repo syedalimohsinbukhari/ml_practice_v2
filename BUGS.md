@@ -25,7 +25,7 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-005 | Clamp-value sweep (1.5 / 2.0) on `tcn` and `cnn_baseline`                                                                     | DEFERRED                                                           |
 | OBS-006 | All q numbers predate the current code and the carryover findings; none has been reproduced                                   | OPEN                                                               |
 | OBS-007 | `coa_phase` is in every default config; the carryover recommends dropping it                                                  | OPEN                                                               |
-| OBS-008 | The head-inclusion rule's N, M, K and per-head floor are unset                                                                | OPEN                                                               |
+| OBS-008 | The head-inclusion rule: M = 10, N = 8, K = all five trunks decided; the per-head floors are proposed and await the user's confirmation | OPEN |
 | OBS-009 | Whether keeping `sky_position` helps or hurts the other heads is untested                                                     | DEFERRED                                                           |
 | OBS-010 | The action plan's "OLD" rows are the attempt-1 runs                                                                           | VERIFIED                                                           |
 | OBS-011 | `CLAUDE.md` lacks the periodic-checkpoint rule that `f50dfae` cites                                                           | OPEN                                                               |
@@ -43,6 +43,8 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-020 | `gen.py` imports `Dataset` from `train.py`, so generating data needs torch and the network code; the sibling has no tests | OPEN                                                                 |
 | OBS-021 | Legacy priors and window to settle: skewed `q`, angles on [0, 2π], merger time fixed in [1.6, 1.8] s with a stale comment | OPEN                                                                 |
 | OBS-022 | The generator writes no held-out test split, and how the q_value test set is formed is unknown                                | OPEN                                                               |
+| OBS-023 | Training uses one `42` literal for weight init and data order, `make_dataset` defaults to `seed=0`, and a run does not record its seed | OPEN |
+| OBS-024 | The tests seed their randomness with 11 scattered literals (`0` to `3`) | OPEN |
 
 ## Entries
 
@@ -165,11 +167,25 @@ Opened 2026-10-19T11:37Z. Status: `OPEN`.
 - Decision for you.
   Dropping it also removes the `StdRatio` exposure in BUG-003 for the default set.
 
-### OBS-008 — Head-inclusion rule unset
+### OBS-008 — Head-inclusion rule
 
-Opened 2026-10-19T11:37Z. Status: `OPEN`.
+Opened 2026-10-19T11:37Z. Status: `OPEN` (the numbers below are set; closes when the user confirms the floors and the K question).
 Origin: `PHIC_PSI_CARRYOVER.md` §3.
-N seeds, M seeds, K trunks, and the per-head materiality floor are the author's to fix before any training and not to change afterward.
+
+- **Decided 2026-10-19T22:06Z (user):** M = 10 training seeds per trunk, N = 8 of those must clear the floor, K = all five trunks (`cnn_attention`, `cnn_baseline`, `inception_time`, `resnet1d`, `tcn`; `smoke` is a test configuration).
+  The seeds are `seed_index` 0 to 9 (`SEEDING.md`).
+- **Floors, proposed 2026-10-19T22:06Z by Claude on the user's delegation ("you can decide"):**
+  - Scalar heads (`mchirp`, `q`, `merger_time`, `snr`, and `cos ι` or `|cos ι|` if used in place of `inclination`): validation R², averaged over the last five epochs of `history.csv`, at least 0.50, and validation `std_ratio` at least 0.50 so the head is not collapsed.
+  - Angle heads (`inclination` as an angle, `coa_phase`, `polarization_angle`) and `sky_position`: validation error (angular MAE, or mean great-circle separation) at most 0.75 of the same error for a shuffled-pairs baseline on the same validation set, which is about 67.5° for sky position against the ≈90° null.
+  - Rationale: a material head has errors about a quarter below the chance predictor; R² 0.50 corresponds to an RMSE about 29% below the mean predictor.
+- **Positive controls, in the same run:** `mchirp` validation R² at least 0.87, `merger_time` at least 0.85, and `snr` at least 0.70 (the lowest recorded values, 0.921, 0.901, and 0.749 from the φc/ψ branch, minus 0.05; measured there, assumed similar on the new dataset).
+  A run whose controls fail is untrusted and none of its heads counts.
+- **Counting:** a head clears a trunk if it passes the floor, with the controls reading correctly, in at least 8 of that trunk's 10 seeds; it is a goal of the sister paper if it clears all five trunks.
+- **Fixed in advance:** these values are set before any training and are changed only by a dated addendum; until the first campaign run starts the user may still amend the floors.
+- **Cost (inferred from run start times; see the answer in the session of 2026-10-19T22:06Z):** 10 seeds × 5 trunks is 50 runs of 80 epochs, about 5 h at the current 25,000 training rows and about 10 h at the planned 50,000 injection rows, one GPU, sequential.
+- **Consequence to decide (verified from BUG-001):** the InceptionTime `merger_time` head is dead (validation R² ≈ 0 in all five recorded runs), so its control fails and, under the rule above, no head can clear `inception_time`; with K = all, no head can qualify unless BUG-001 is fixed first, or K is lowered to 4, or `inception_time` is left out of the campaign.
+- **Also open:** the rule says "validated recovery" (the validation split, as in the carryover); whether the planned test split is used for a final confirmation is not decided.
+- **Original text:** N seeds, M seeds, K trunks, and the per-head materiality floor are the author's to fix before any training and not to change afterward.
 
 ### OBS-009 — Effect of `sky_position` on the other heads
 
@@ -233,8 +249,9 @@ Origin: read of `ml-gw-search/mlgwsc-1/gen.py`.
   `frequency_noise_from_psd(psd, seed=None)` draws from the legacy global `numpy.random` (a seed only calls `numpy.random.seed`), and the sky draw `UniformSky.rvs()` (`gen.py:204`) uses the global `numpy.random.uniform` and has no seed parameter.
   Passing one seed per call also gives identical noise on every call, including identical H1 and L1 noise within a sample (verified).
 - **Decision 2026-10-19T20:55Z (user):** per-file keys `SeedSequence(MASTER_SEED, spawn_key=(file_index, stream, purpose))`, one `np.random.default_rng` threaded per stream, and one `numpy.random.seed` call per stream for pycbc (option A).
-  The scheme and the fresh `MASTER_SEED` are recorded in `SEEDING.md`.
-- **Next:** implement the scheme in `ml-gw-search` (a master-seed constant, a file-index CLI option, the per-stream seeding), then run the determinism check in `SEEDING.md` on a shrunken workload on a non-T530 machine with the user's go-ahead; no code change made yet.
+  The scheme and the fresh `MASTER_SEED` are recorded in `SEEDING.md`; since 2026-10-19T22:06Z they live in the generator's own `ml-gw-search/SEEDING.md`, and this repository has a separate master seed for training and tests.
+  Revised 2026-10-19T21:46Z for the shard design: the key is now `(dataset_id, split, shard, purpose)`, with one process per 10,000-sample shard, and the earlier per-file key is superseded (`ml-gw-search/SEEDING.md`).
+- **Next:** implement the scheme in `ml-gw-search` (a master-seed constant, a file-index CLI option, the per-stream seeding), then run the determinism check in `ml-gw-search/SEEDING.md` on a shrunken workload on a non-T530 machine with the user's go-ahead; no code change made yet.
 
 ### BUG-008 — `PARAM_COLUMNS` mislabels the written columns
 
@@ -312,7 +329,7 @@ Opened 2026-10-19T20:40Z. Status: `OPEN`.
   - The two copies of `combined_repackaged.hdf` (sibling and this repository) are byte-identical (`cmp`, 2026-10-19T20:38Z).
   - In `ml-gw-search`, `re_package_hdf.py` is untracked and the HDF is neither tracked nor ignored.
 - **Impact:** the existing dataset cannot be described from the repositories alone, which is the reproducibility gap the paper lists.
-- **Update 2026-10-19T20:55Z:** the required provenance for a regenerated file is now specified in `SEEDING.md` ("What each generated file records"): master seed, file index and keys, `gen.py` arguments, generator git SHA, library versions, UTC time, host, and column names, stored as HDF attributes.
+- **Update 2026-10-19T20:55Z:** the required provenance for a regenerated file is now specified in `ml-gw-search/SEEDING.md` ("What each generated file records"): master seed, file index and keys, `gen.py` arguments, generator git SHA, library versions, UTC time, host, and column names, stored as HDF attributes.
 - **Next:** implement that recording in the generator, and track `re_package_hdf.py`.
 
 ### OBS-017 — Two diverging pipeline notes
@@ -352,7 +369,7 @@ Origin: `GENERATOR_OVERHAUL.md` G-18 and G-19.
 
 - **Evidence (verified, imports read and listing):** `gen.py` imports `Dataset` from `train.py`, which imports `torch` and the network code from `apply.py`, only to write an HDF.
   Scripts import each other as top-level modules, and the sibling repository has no tests.
-- **Impact:** data generation needs the whole training environment, and the determinism check in `SEEDING.md` can only be an ad-hoc check unless a test is added.
+- **Impact:** data generation needs the whole training environment, and the determinism check in `ml-gw-search/SEEDING.md` can only be an ad-hoc check unless a test is added.
 - **Next:** decide where the generator code lives (`GENERATOR_OVERHAUL.md` D-11); no code change made.
 
 ### OBS-021 — Legacy priors and window to settle
@@ -377,3 +394,26 @@ Origin: `GENERATOR_OVERHAUL.md` G-11.
 - **Unknown:** how the test set for the q_value work is meant to be formed.
 - **Decision 2026-10-19T21:10Z (user):** the regenerated dataset gets a test split (10,000 samples: 5,000 injections and 5,000 noise-only), alongside training (100,000) and validation (20,000); see `GENERATOR_OVERHAUL.md` D-03.
 - **Next:** implement it in the generator; the loader here does not yet read a `test` split.
+
+### OBS-023 — Training seed handling
+
+Opened 2026-10-19T21:53Z. Status: `OPEN`.
+Origin: `SEEDING.md` D-10.
+
+- **Evidence (verified, grep and code read):**
+  - `train.seed: 42` is set in all six `configs/*.yaml` (`cnn_attention` line 36, `cnn_baseline`, `inception_time`, `resnet1d`, `tcn` line 34, `smoke` line 35), and `train.py:147` defaults to 42.
+  - `train.py:148` passes it to `keras.utils.set_random_seed`, and `train.py:185` passes the same number to `make_dataset(seed=...)`, so weight initialisation and data order share one number.
+  - `make_dataset` in `loader.py:87` defaults to `seed: int = 0`.
+  - Nothing else reads or writes the seed, so a run does not record which seed it used.
+- **Decision 2026-10-19T21:53Z (user, D-10):** derive the training seeds from the master seed with a replicate index in the configs and separate streams for initialisation and data order (`SEEDING.md`, "Training seeds"); `make_dataset` can take the derived value (checked with `tf.data`).
+- **Next:** implement it, and have a run record `seed_index`, the derived seeds, and the master seed; no code change made.
+
+### OBS-024 — Test seeds
+
+Opened 2026-10-19T21:53Z. Status: `OPEN`.
+Origin: `SEEDING.md` D-10.
+
+- **Evidence (verified, grep):** `np.random.default_rng` or `keras.utils.set_random_seed` is called with a literal `0`, `1`, `2`, or `3` in `conftest.py:49`, `test_registry.py:25`, `test_losses.py` (lines 21, 108, 121), `test_heads_spec.py` (lines 53, 86, 105, 125), and `test_overfit.py:35`; several tests share the same literal.
+- **Decision 2026-10-19T21:53Z (user):** the tests are seeded with the same methodology, keyed by test name (`SEEDING.md`, "Test seeds").
+- **Risk:** reseeding changes each test's data, and tolerance-based and overfit tests may be sensitive to it; a failure after reseeding is a decision point for the user, not a reason to search for a seed that passes.
+- **Next:** implement a `conftest.py` fixture, then run the suite on the lab machine (to be queued in `VERIFY.md` with the change); no code change made.

@@ -1,13 +1,25 @@
 # Generator overhaul
 
 Written 2026-10-19T21:03Z.
-Status: gap inventory and open decisions; no generator code has been changed.
+Status: gap inventory, draft output contract, and decisions; no generator code has been written (see the status summary below).
 The generator lives in the sibling repository `ml-gw-search` (`mlgwsc-1/gen.py`, `re_package_hdf.py`; paths in `CLAUDE.md`, "Related repositories").
 This file is the single list of what the current generator lacks, what the regenerated file must contain, and what is still to be decided.
-Seeding is specified separately in `SEEDING.md`; this file links to it rather than repeating it.
+Seeding of the generator is specified separately in `ml-gw-search/SEEDING.md` (its own master seed, since 2026-10-19T22:06Z); training and test seeding is in this repository's `SEEDING.md`.
 
 Claim labels follow `CLAUDE.md`: **verified** (name the check), **inferred**, **assumed**, **unknown**.
 Gap IDs (`G-nn`) are local to this file; the project-wide log is `BUGS.md`, and each gap cites its entry where one exists.
+
+## Status summary (2026-10-19T22:12Z)
+
+- **Settled:**
+  - The generator backend is frozen; all new work wraps it (section 0, section 7).
+  - The dataset: `IMRPhenomD`, spinless, legacy priors, Gaussian aLIGO noise, H1 and L1, 4096 samples at 2048 Hz, 100,000 / 20,000 / 10,000 with half noise-only, in 13 shards plus a merge (D-01 to D-08, D-11).
+  - The layout: injection rows in `h1`, `l1`, `params` so the loader is unchanged, noise-only rows in separate datasets, the strain plus the unit-SNR waveform stored, one SNR per sample baked in (D-05, D-12).
+  - Seeding: a separate master seed per repository, `dataset_id` in the generation key, training seeds from `seed_index` (D-09, D-10; `ml-gw-search/SEEDING.md` and this repository's `SEEDING.md`).
+- **Done:** the `PARAM_COLUMNS` label list in the sibling's `train.py` (BUG-008, committed there as `[dev-minor-2]`).
+- **Not built:** the seeded driver, `re_package_hdf_with_noise.py`, the merge step, the backend hash pinning, the provenance attributes, the contract check; no generator code has run.
+- **Open:** the head-inclusion floors and K = all against BUG-001 (`BUGS.md` OBS-008, which concerns the later training campaign, not the generation); the decisions are listed in `HANDOFF.md`.
+- **Next:** build the wrap-around one step at a time with the user's go-ahead (`HANDOFF.md`, "Next").
 
 ## 0. Constraint: the generator internals are frozen (user, 2026-10-19T21:20Z)
 
@@ -42,11 +54,11 @@ Implications, confirmed by the user on 2026-10-19T21:36Z (section 7 sets them ou
 **G-01 Generation is unseeded** (BUG-007; verified, code read).
 `np_gen = np.random.default_rng()` has no seed or CLI option; `train.py`'s `Dataset` also has an unseeded `rng`.
 The existing dataset cannot be regenerated bit-for-bit.
-Target: the scheme in `SEEDING.md`.
+Target: the scheme in `ml-gw-search/SEEDING.md`.
 
 **G-02 pycbc draws use global state** (BUG-007; verified, pycbc source read).
 The noise draw (`frequency_noise_from_psd`) and the sky draw (`UniformSky.rvs`) use the legacy global `numpy.random`, so seeding `np_gen` alone leaves them random.
-Target: one `numpy.random.seed` call per stream, never `seed=` inside the sample loop (`SEEDING.md`).
+Target: one `numpy.random.seed` call per stream, never `seed=` inside the sample loop (`ml-gw-search/SEEDING.md`).
 
 **G-03 No provenance in the output** (OBS-016; verified).
 The generator writes two file attributes, `sample_length` and `sample_rate`, and nothing else.
@@ -136,7 +148,7 @@ Target: a generator that needs only numpy, h5py, and pycbc.
 
 **G-19 No tests, no package structure** (verified, listing).
 The sibling has no test suite, and scripts import each other as top-level modules (`from apply import …`).
-The determinism check in `SEEDING.md` would be an ad-hoc check unless a test is added.
+The determinism check in `ml-gw-search/SEEDING.md` would be an ad-hoc check unless a test is added.
 
 **G-20 Artifacts and scripts untracked** (verified, `git status`).
 `re_package_hdf.py`, the pipeline note, and the 1.9 GB dataset are untracked in the sibling, and `.gitignore` does not exclude `*.hdf`.
@@ -180,7 +192,7 @@ Firm items follow from the gaps above; items marked "open" depend on section 5.
 | `params`          | `(N, 10)` or more columns; float64; an attribute `columns` that matches `heads_spec.py`                                                                                                                        | firm                                 |
 | Extra columns     | spins (for `IMRPhenomXPHM`)                                                                                                                                                                                    | open (D-01)                          |
 | File attributes   | schema version; sample length and rate; detectors; approximant; noise source and PSD; `low_frequency_cutoff`; whitening constants; SNR range and the `data = noise + snr × waveform` convention; whitened flag | firm                                 |
-| Seed attributes   | `master_seed`, `file_index`, the `(file_index, stream, purpose)` keys                                                                                                                                          | firm (`SEEDING.md`)                  |
+| Seed attributes   | `master_seed`, `file_index`, the `(file_index, stream, purpose)` keys                                                                                                                                          | firm (`ml-gw-search/SEEDING.md`)                  |
 | Run attributes    | generator arguments, git SHA, library versions, UTC time, host                                                                                                                                                 | firm                                 |
 | Completion        | written under a temporary name, renamed on success, with a `complete` attribute                                                                                                                                | firm                                 |
 | Contract document | one file describing the layout, checked against a generated file                                                                                                                                               | firm                                 |
@@ -190,17 +202,17 @@ Firm items follow from the gaps above; items marked "open" depend on section 5.
 | ID   | Question                                                                                             | Status                                                                                                                                                                                                                                                                                                 |
 |------|------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | D-01 | Which approximant, and are spins recorded?                                                           | **decided 2026-10-19T21:10Z (user):** `IMRPhenomD`, spinless; the approximant is still recorded as a file attribute                                                                                                                                                                                    |
-| D-02 | Mass prior and angle priors: keep the legacy ones (G-13, G-14) or change them?                       | **decided 2026-10-19T21:04Z (user):** keep the legacy priors and make them configurable                                                                                                                                                                                                                |
+| D-02 | Mass prior and angle priors: keep the legacy ones (G-13, G-14) or change them? | **decided 2026-10-19T21:04Z (user), narrowed 2026-10-19T21:20Z by the freeze:** keep the legacy priors exactly; they are not made configurable |
 | D-03 | Splits and counts: sample counts per split, a test split, and sharding into files                    | **decided 2026-10-19T21:10Z (user):** training 100,000 (50,000 signal + noise, 50,000 noise only), validation 20,000 (10,000 + 10,000), test 10,000 (5,000 + 5,000); 10,000-sample shards (5,000 + 5,000 each) generated in parallel, 13 in all (10 training, 2 validation, 1 test), then a merge step |
 | D-04 | Keep a noise-only class?                                                                             | **decided 2026-10-19T21:10Z (user):** yes, half of every split; written by a new `re_package_hdf_with_noise.py`, with the original `re_package_hdf.py` left unchanged; the layout of the noise-only rows is open (D-12)                                                                                |
 | D-05 | SNR: baked at generation (reproducible) or applied at training time (fresh per epoch), and its range | **decided 2026-10-19T21:04Z (user):** bake one SNR per sample at generation and store the unit-SNR waveform; the range stays (7, 15). **Storage form decided 2026-10-19T21:31Z (user):** the smallest form, strain plus the unit-SNR waveform plus the `snr` column (two float32 arrays per injection sample, not three) |
-| D-06 | Detectors, sample length, and the strain layout                                                      | **accepted 2026-10-19T21:10Z (user), proposal:** H1 and L1, 4096-sample windows at 2048 Hz, datasets `h1` / `l1` / `params` as the loader expects, all configurable and recorded                                                                                                                       |
+| D-06 | Detectors, sample length, and the strain layout | **decided 2026-10-19T21:10Z (user):** H1 and L1, 4096-sample windows at 2048 Hz, datasets `h1` / `l1` / `params` as the loader expects, recorded in the file attributes (as run-time values, not new settings) |
 | D-07 | Noise source: Gaussian aLIGO design PSD or real noise (OBS-015 applies)                              | **decided 2026-10-19T21:04Z (user):** Gaussian aLIGO design PSD; the real-noise path is not part of this overhaul                                                                                                                                                                                      |
-| D-08 | Merger-time window: keep [1.6, 1.8] s or widen and parameterize                                      | **accepted in principle 2026-10-19T21:10Z (user), explanation requested before implementation:** default [1.6, 1.8] s, parameterized and recorded                                                                                                                                                      |
-| D-09 | A dataset-version level in the seed key (`SEEDING.md`, open items)                                   | **accepted in principle 2026-10-19T21:10Z (user), explanation requested before implementation:** add a `dataset_id` level                                                                                                                                                                              |
-| D-10 | How training-side seeds relate to the master seed; the seed count and materiality floor (OBS-008)    | open                                                                                                                                                                                                                                                                                                   |
+| D-08 | Merger-time window: keep [1.6, 1.8] s or widen and parameterize | **decided 2026-10-19T21:20Z (freeze, confirmed 21:36Z):** keep [1.6, 1.8] s; it is not parameterized and is documented as a property of the generator |
+| D-09 | A dataset-version level in the seed key (`ml-gw-search/SEEDING.md`, open items) | **decided 2026-10-19T21:53Z (user):** yes, `dataset_id` is the first element of the generation key `(dataset_id, split, shard, purpose)` |
+| D-10 | How training-side seeds relate to the master seed; the seed count and materiality floor (OBS-008) | **decided 2026-10-19T22:06Z (user):** each repository has its own, separate master seed; training seeds are derived from this repository's master with `seed_index` (M = 10), and the tests are seeded the same way, keyed by test name (this repository's `SEEDING.md`, OBS-023, OBS-024); N = 8, K = all five trunks, floors proposed (OBS-008) |
 | D-12 | Layout of the noise-only rows in the merged file, and what the consumer does with them (section 5b) | **decided 2026-10-19T21:36Z (user):** the loader works unchanged, so the injection rows keep `h1`, `l1`, `params` exactly as now and the noise-only rows go in separate datasets (`noise_h1`, `noise_l1`) in the same group |
-| D-11 | Where the generator code and the output contract live                                                | **accepted in principle 2026-10-19T21:10Z (user), explanation requested before implementation:** code in `ml-gw-search`, contract in this repository                                                                                                                                                   |
+| D-11 | Where the generator code and the output contract live | **decided 2026-10-19T21:36Z (user, with the plan):** new code in `ml-gw-search` (the frozen files untouched), the output contract and its check in this repository |
 
 ### 5a. Consequences of the decisions so far (2026-10-19T21:10Z)
 
@@ -215,7 +227,7 @@ Firm items follow from the gaps above; items marked "open" depend on section 5.
   No timing has been recorded (unknown), and generation must not run on `thinkpad-t530`.
 - **Memory:** a 10,000-sample shard holds about 0.5 GB in lists, and about twice that at the `np.stack` step, which is what makes sharding workable (G-12); one 100,000-sample group in a single process would not be.
 - **Loader (verified, `loader.py` docstring and arithmetic):** `load_arrays` reads a whole split eagerly, with a docstring assumption of about 800 MB of training strain (25,000 samples); 100,000 rows are about 3.3 GB of strain, or about 1.6 GB for only the 50,000 injection rows, before the `astype` copy.
-- **Seeds (needs revising `SEEDING.md`):** a shard holds one split, so the `stream` level of the key now names the split (training 0, validation 1, test 2) and `file_index` numbers the 13 shards; `SEEDING.md` still describes train and validation streams inside one file.
+- **Seeds (`ml-gw-search/SEEDING.md` revised 2026-10-19T21:46Z):** a shard holds one split, the key is `(dataset_id, split, shard, purpose)` with the shard counted within its split, and each shard is generated by its own process.
 - **Comparability:** with legacy priors, IMRPhenomD, and Gaussian noise, the signal half is a larger draw from the same distribution as `combined_repackaged.hdf`.
 
 ### 5b. Noise-only rows and the consumer (D-12, decided 2026-10-19T21:36Z)
@@ -233,7 +245,7 @@ Decision (2026-10-19T21:36Z, user): the loader works unchanged, so the separate-
 
 ## 6. Verification plan
 
-- The determinism check in `SEEDING.md`, on a shrunken workload, on a machine other than `thinkpad-t530`, with the user's go-ahead.
+- The determinism check in `ml-gw-search/SEEDING.md`, on a shrunken workload, on a machine other than `thinkpad-t530`, with the user's go-ahead.
 - SNR consistency (G-22): for a batch of whitened noise-only samples and whitened unit-SNR waveforms from the same chain, the summed squared waveform divided by the per-sample noise variance should be about 1.
   Falsified by: a ratio that differs from 1 by more than the batch spread.
   The check must first read a known case correctly (a white-noise series with a waveform of known matched-filter SNR).
@@ -253,7 +265,7 @@ Their blob hashes are recorded in every generated file, and a test pins them, so
 
 | Need                                        | Mechanism                                                                                                                                                                                                                                                                  | Touches the backend?                                                            |
 |---------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| Seeding (G-01, G-02)                        | A new driver rebinds the module global `gen.np_gen` before calling `generate_dataset` (the function reads it as a global at call time, by code read), and calls `numpy.random.seed` once per shard for pycbc, per `SEEDING.md`                                             | No: the draws come from the same distributions                                  |
+| Seeding (G-01, G-02)                        | A new driver rebinds the module global `gen.np_gen` before calling `generate_dataset` (the function reads it as a global at call time, by code read), and calls `numpy.random.seed` once per shard for pycbc, per `ml-gw-search/SEEDING.md`                                             | No: the draws come from the same distributions                                  |
 | One split per 10,000-sample shard           | The driver repeats the few orchestration lines of `gen.main()` (detectors, colored length, `GaussianNoiseGetter`) and calls `generate_dataset` unchanged; `gen.main()` itself cannot produce a shard without a validation group, because `np.stack` of an empty list fails | No, but the driver can drift from `main()`; a check compares them on a tiny run |
 | Provenance (G-03, G-04)                     | Attributes written to each shard after `Dataset.save`; constants read from the `gen` module at run time                                                                                                                                                                    | No                                                                              |
 | SNR baking and noise-only rows (G-08, G-09) | The new `re_package_hdf_with_noise.py`; `re_package_hdf.py` stays unchanged                                                                                                                                                                                                | No                                                                              |

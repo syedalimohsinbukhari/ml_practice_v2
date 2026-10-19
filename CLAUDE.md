@@ -56,8 +56,12 @@ Files in the repo root that predate this file (`PLAN.md`, `q_head_action_plan.md
 - Run `git status` after any broad `git add`.
 - Never stage the untracked `deeplearning_models/` directory.
 - Amend only unpushed commits.
-- A commit that addresses a logged item cites its ID, e.g. `(BUG-042)`.
+- A commit that addresses a logged item cites its ID inside a bullet, e.g. `(BUG-042)`, never in the subject.
 - Keep the required attribution trailer on every commit.
+- Commit message format, from `[q_value-minor-11]` and `[dev-minor-2]` on: the subject is the bare `[<branch>-minor-N]` label, then a blank line, then one bullet per change, then a blank line and the trailers.
+- Each bullet is one sentence on a single physical line, with no hard wrapping and no continuation lines.
+- The same format applies to commits in the related repositories (`ml-gw-search` uses its own `[dev-minor-N]` numbering); earlier messages keep their older wrapped layout and are not rewritten.
+- Check the message with `git show -s --format=%B` after committing, because an IDE reword can change the hash (not the label) of an unpushed commit.
 
 ## Prose (§13)
 
@@ -107,6 +111,7 @@ They are separate git repositories: a commit in one never covers the others, and
 | `gw_research_paper` | `/home/syedalimohsinbukhari/PycharmProjects/gw_research_paper` | `main` | the research paper, an Overleaf git repo (LaTeX) | 2026-10-19T20:36Z |
 
 - Paths for these two on the other machines are unrecorded; add them to this table when a session runs there.
+- `ml-gw-search` has its own `HANDOFF.md` and `SEEDING.md` (with its own master seed, separate from this repository's); read them before working there.
 - `ml-gw-search`:
   - `origin` is the upstream author's GitHub repository, so never push to it.
   - It holds the 1.9 GB `combined_repackaged.hdf`, which is untracked; read its structure with `h5py` metadata only and never load it wholesale.

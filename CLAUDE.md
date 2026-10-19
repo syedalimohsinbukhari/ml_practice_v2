@@ -42,7 +42,8 @@ Files in the repo root that predate this file (`PLAN.md`, `q_head_action_plan.md
 
 ## Scope, subagents, destructive operations (§9, §10)
 
-- Work stays inside `/mnt/DRIVE1/PycharmProjects/ml_practice_v2`; root searches at a specific subdirectory, never a parent or home.
+- Work stays inside this machine's working tree, as listed under "Machines" below; root searches at a specific subdirectory, never a parent or home.
+- Check `hostname` and `pwd` at session start and use the matching row; a host that is not in the table is a decision point for the user, not something to guess.
 - Do not spawn subagents by default; when one is spawned, restate this boundary in its prompt and verify its actual diffs.
 - Confirm with the user before: `rm` outside the working tree or `rm -rf` without a listed path, overwriting a non-generated file wholesale, force-push or history rewrite on a pushed branch, branch or tag deletion, and mass renames or refactors beyond the current change.
 - Test: if undoing an operation needs anything other than `git checkout` or a script re-run, confirm first.
@@ -78,4 +79,18 @@ Files in the repo root that predate this file (`PLAN.md`, `q_head_action_plan.md
 
 - Do not run training, evaluation, or GPU scripts without the user's go-ahead; prepare them for the lab GPU machine and wait for the output.
 - Scripts that loop over models on GPU chunk large forward passes and free each model before the next (`del`, `tf.keras.backend.clear_session()`, `gc.collect()`).
-- Earlier notes call the local machine "T530, CPU-only"; on 2026-10-19T10:36Z the host was `sarlws5-Precision-7820-Tower` with a Quadro P620 — treat the old description as stale.
+- Earlier notes call "the local machine" a "T530, CPU-only"; that was true of only one of several machines, so read the "Machines" table instead of relying on it.
+
+## Machines
+
+The repo is worked on from more than one machine, each with its own checkout path.
+Paths are absolute; the `.venv` sits inside the working tree.
+
+| Host | Working tree | GPU | Role | Verified |
+|------|--------------|-----|------|----------|
+| `thinkpad-t530` | `/home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2` | none (`nvidia-smi` absent), 8 CPUs | edits, docs, code-only work; no training | 2026-10-19T20:27Z |
+| `sarlws5-Precision-7820-Tower` | `/mnt/DRIVE1/PycharmProjects/ml_practice_v2` | Quadro P620, 40 CPUs | workstation | 2026-10-19T10:36Z |
+| unrecorded | unrecorded | unrecorded | third machine | — |
+
+- Add a row (host, path, GPU, role, verification time) the first time a session runs on a new machine.
+- The lab GPU machine named in `VERIFY.md` entries is not yet tied to a row; record which host it is.

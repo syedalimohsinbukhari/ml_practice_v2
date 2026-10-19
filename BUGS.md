@@ -28,7 +28,7 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-009 | Whether keeping `sky_position` helps or hurts the other heads is untested | DEFERRED |
 | OBS-010 | The action plan's "OLD" rows are the attempt-1 runs | VERIFIED |
 | OBS-011 | `CLAUDE.md` lacks the periodic-checkpoint rule that `f50dfae` cites | OPEN |
-| OBS-012 | "ThinkPad T530, CPU-only" statements may not match the machine(s) in use | OPEN |
+| OBS-012 | "ThinkPad T530, CPU-only" statements may not match the machine(s) in use | CLOSED: T530 confirmed in use; machines now tracked in `CLAUDE.md` |
 | OBS-013 | The test suite has no recorded run (`pytest -m "not slow"`, then full) | OPEN |
 
 ## Entries
@@ -183,11 +183,16 @@ Decision for you: restore a short rule in `CLAUDE.md`.
 
 ### OBS-012 — "T530, CPU-only" statements
 
-Opened 2026-10-19T11:37Z. Status: `OPEN`.
+Opened 2026-10-19T11:37Z. Status: `CLOSED: T530 confirmed in use; machines now tracked in CLAUDE.md`, closed 2026-10-19T20:30Z.
 
-- `PLAN.md`, `README.md`, and `docs/pipeline/testing.md` call the local machine a ThinkPad T530 with no GPU.
-- On 2026-10-19T10:36Z the host was `sarlws5-Precision-7820-Tower` with a Quadro P620 (verified).
-- Whether a T530 is still in use is unknown, so the statements were left unchanged.
+- **Resolution:** a T530 is still in use.
+  A session on 2026-10-19T20:27Z ran on `thinkpad-t530` with 8 CPUs and no `nvidia-smi` (verified), so the "T530, CPU-only" statements are correct for that machine.
+  At least three machines work on this repo, so "the local machine" in those documents is ambiguous; the per-machine hosts and paths are now in the "Machines" table in `CLAUDE.md`.
+  `PLAN.md`, `README.md`, and `docs/pipeline/testing.md` are left unchanged.
+- **Original diagnosis:**
+  - `PLAN.md`, `README.md`, and `docs/pipeline/testing.md` call the local machine a ThinkPad T530 with no GPU.
+  - On 2026-10-19T10:36Z the host was `sarlws5-Precision-7820-Tower` with a Quadro P620 (verified).
+  - Whether a T530 is still in use was unknown, so the statements were left unchanged.
 
 ### OBS-013 — No recorded test run
 

@@ -1,12 +1,14 @@
 # Handoff
 
-Written 2026-10-19T10:36Z; last extended 2026-10-19T20:24Z.
+Written 2026-10-19T10:36Z; last extended 2026-10-19T20:30Z.
 
 ## Environment
 
-- Host `sarlws5-Precision-7820-Tower`, 40 logical CPUs, Quadro P620 present (`nvidia-smi -L`).
-- Branch `q_value`, based on `0ace363`.
-- Re-derive this each session rather than trusting it.
+- At least three machines work on this repo; their hosts and working-tree paths are in the "Machines" table in `CLAUDE.md`.
+- Last session ran on `thinkpad-t530` (2026-10-19T20:27Z), working tree `/home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2`, `.venv` active, 8 CPUs, no GPU.
+- The earlier 2026-10-19T10:36Z session ran on `sarlws5-Precision-7820-Tower` (`/mnt/DRIVE1/PycharmProjects/ml_practice_v2`, Quadro P620, 40 CPUs).
+- Branch `q_value`, HEAD `74466f1` (`[q_value-minor-7]`) when this was written.
+- Re-derive host and path each session rather than trusting this; record the path of any machine not yet in the table.
 
 ## Current state
 
@@ -26,19 +28,22 @@ Written 2026-10-19T10:36Z; last extended 2026-10-19T20:24Z.
 - Drop `coa_phase` from the default head set (carryover §2 recommends it; configs still list it).
 - Restore the periodic-checkpoint rule in `CLAUDE.md` (it exists only in `CLAUDE_phic_psi_backup.md`).
 - The seed count and materiality floor for the head-inclusion rule are the author's to fix (carryover §3).
-- Whether the "T530, CPU-only" statements in `PLAN.md`, `README.md`, and `docs/pipeline/testing.md` still hold on another machine.
 
 ## Decided
+
+- 2026-10-19T20:30Z: OBS-012 closed; a T530 is in use, and the three machines are tracked by host and path in the "Machines" table in `CLAUDE.md`.
+  The third machine's host and path, and which machine is the "lab GPU machine", are still unrecorded.
 
 - 2026-10-19T20:24Z: the non-convention md files (the four q documents, `PHIC_PSI_CARRYOVER.md`, `experiments/q_recovery/`) are kept as they are; no archive or deletion.
 
 ## Next
 
-- Work the `PENDING` items in `VERIFY.md`; the decisions that need you (OBS-002, 007, 008, 011, 012) are listed under "Open decisions" above and in `BUGS.md`.
+- Work the `PENDING` items in `VERIFY.md`; the decisions that need you (OBS-002, 007, 008, 011) are listed under "Open decisions" above and in `BUGS.md`.
 - Decide the first q_value task and log it here.
 
 ## Working tree
 
 - Committed as `[q_value-minor-5]` (the convention files), `[q_value-minor-6]` (the doc update plus the earlier refresh) and `[q_value-minor-7]` (`BUGS.md`, `VERIFY.md`, `HANDOFF.md`: the q_recovery and carryover items logged), on top of `0ace363`; `git log -3` shows them.
+- Committed as `[q_value-minor-8]` (`CLAUDE.md` "Machines" table, `BUGS.md` OBS-012 closed, this refresh).
 - Uncommitted: none.
 - The user must run `git push --force-with-lease origin q_value` (history was rewritten to fix commit messages); another machine holding the old commits needs `git fetch` then `git reset --hard origin/q_value`.

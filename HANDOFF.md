@@ -1,6 +1,6 @@
 # Handoff
 
-Written 2026-10-19T10:36Z; last extended 2026-10-19T11:30Z.
+Written 2026-10-19T10:36Z; last extended 2026-10-19T20:24Z.
 
 ## Environment
 
@@ -12,7 +12,7 @@ Written 2026-10-19T10:36Z; last extended 2026-10-19T11:30Z.
 
 - New q_value work starts here; the φc/ψ experiment is concluding on branch `poc/phic-psi-degeneracy-redo`.
 - `CLAUDE.md` was rebuilt from `WORKING_CONVENTIONS.md`; the previous φc/ψ-era version is preserved verbatim in `CLAUDE_phic_psi_backup.md`.
-- `BUGS.md` and `VERIFY.md` are still empty skeletons.
+- `BUGS.md` holds 6 bugs and 13 observations opened 2026-10-19T11:37Z from the `q_recovery` open items, the carryover, and the doc reconciliation; `VERIFY.md` holds 7 `PENDING` checks keyed by those IDs.
 - Commits `f50dfae` (`PeriodicCheckpoint`, epoch-N snapshots every `train.checkpoint_every_n` epochs, default 10) and `0ace363` (carryover from the φc/ψ branch) landed from the other machine.
   The convention commit (`[q_value-minor-5]`) was rebased on top of them and its message numbering fixed.
 - `PHIC_PSI_CARRYOVER.md` is a frozen snapshot of what the φc/ψ redo established; its source of truth is `experiments/phic_psi_poc-redo/qvalue_carryover.md` on the φc/ψ branch.
@@ -28,11 +28,17 @@ Written 2026-10-19T10:36Z; last extended 2026-10-19T11:30Z.
 - The seed count and materiality floor for the head-inclusion rule are the author's to fix (carryover §3).
 - Whether the "T530, CPU-only" statements in `PLAN.md`, `README.md`, and `docs/pipeline/testing.md` still hold on another machine.
 
+## Decided
+
+- 2026-10-19T20:24Z: the non-convention md files (the four q documents, `PHIC_PSI_CARRYOVER.md`, `experiments/q_recovery/`) are kept as they are; no archive or deletion.
+
 ## Next
 
-- Turn the open items in `experiments/q_recovery/experiment_index.md` and the carryover into `BUGS.md` and `VERIFY.md` entries.
+- Work the `PENDING` items in `VERIFY.md`; the decisions that need you (OBS-002, 007, 008, 011, 012) are listed under "Open decisions" above and in `BUGS.md`.
 - Decide the first q_value task and log it here.
 
 ## Working tree
 
-- Committed as `[q_value-minor-5]` (the convention files) and `[q_value-minor-6]` (the doc update plus this refresh), on top of `0ace363`; `git log -2` shows them.
+- Committed as `[q_value-minor-5]` (the convention files), `[q_value-minor-6]` (the doc update plus the earlier refresh) and `[q_value-minor-7]` (`BUGS.md`, `VERIFY.md`, `HANDOFF.md`: the q_recovery and carryover items logged), on top of `0ace363`; `git log -3` shows them.
+- Uncommitted: none.
+- The user must run `git push --force-with-lease origin q_value` (history was rewritten to fix commit messages); another machine holding the old commits needs `git fetch` then `git reset --hard origin/q_value`.

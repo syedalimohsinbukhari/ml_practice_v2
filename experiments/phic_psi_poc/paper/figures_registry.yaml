@@ -3,7 +3,7 @@
 #
 # HISTORICAL: the original paper moved out of this repository into the
 # Overleaf-linked sibling repo ../gw_research_paper (formerly paper/paper1/),
-# and that repo now holds the redo paper (experiments/phic_psi_poc-redo/paper/).
+# and that repo now holds the redo paper (experiments/phic_psi_poc-redo/; see its scripts/collect_figures.py).
 # The original paper survives only in that repo's git history (up to commit
 # d83db4b, [main-major-1]). This registry is kept as a record of which figures
 # the original paper used; collect_figures.py no longer has a destination and

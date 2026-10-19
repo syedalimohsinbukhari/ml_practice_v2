@@ -7,7 +7,7 @@ Import this rather than re-declaring the mapping locally -- it used to be hand-d
 prevent (mirrors ``combo_labels.py`` for the combination-space names).
 The same canonical keys (``poc_a``, ``poc_b``, ``tcn``, ``cnn_attention``, ``cnn_baseline``, ``inception_time``,
 ``resnet1d``) are what the paper's LaTeX macros (``\pocA``, ``\pocB``, ``\Tcn``, ``\cnnAttn``, ``\cnnBaseline``,
-``\inceptionTime``, ``\resnetOneD`` in ``paper/000_preamble.tex``) spell out, so a model referenced in prose and a
+``\inceptionTime``, ``\resnetOneD`` in ``../gw_research_paper/000_preamble.tex``) spell out, so a model referenced in prose and a
 model plotted in a figure always name the same thing the same way -- notably ``cnn_attention``, never the
 ``cnn_attn`` abbreviation that had crept into some table cells.
 

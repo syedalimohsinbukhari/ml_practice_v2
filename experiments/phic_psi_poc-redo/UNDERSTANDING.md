@@ -5,7 +5,7 @@ Its prime concept is the paper's *understanding* — what's currently true about
 When a topic's own investigation is worth preserving in detail, cross-reference it from here rather than reproducing it (see §4's closing pointer to `NOTES.md` for the pattern).
 It has three tracks, each with its own numbering so none has to be renumbered when the others grow:
 
-- **Active** topics, numbered `N.M` — things currently live in the paper/thesis/code as written. `N` matches the paper's own section-file number in `paper/` (e.g. §2 ↔ `002_problem-formulation.tex`, §3 ↔ `003_prereq_study.tex`), so the doc section a topic sits under tells you which paper file it documents; `M` is just that topic's own sub-numbering.
+- **Active** topics, numbered `N.M` — things currently live in the paper/thesis/code as written. `N` matches the paper's own section-file number in the paper repo (`../gw_research_paper/`) (e.g. §2 ↔ `002_problem-formulation.tex`, §3 ↔ `003_prereq_study.tex`), so the doc section a topic sits under tells you which paper file it documents; `M` is just that topic's own sub-numbering.
 - **Deferred** topics, numbered `P.Q` — discussions that did happen, but whose subject is no longer current (a plot element that got removed, an approach that got superseded, etc.). Kept rather than deleted, so the earlier discussion isn't silently lost, but clearly marked as not describing present-day artifacts. Deliberately *not* tied to a paper section number, since by definition they no longer describe what the paper currently says.
 - **Tooling** topics, numbered `T.Q` — lessons about the writing/build infrastructure itself (LaTeX macro conventions, `\ensuremath` pitfalls, the paper/Python notation-consistency setup), not about the paper's scientific content. Also not tied to a paper section number, for the opposite reason from Deferred: these are evergreen craft notes that apply across every section rather than documenting one of them.
 
@@ -24,7 +24,7 @@ Tag any such in-place change note with a `date: time` stamp (`YYYY-MM-DD HH:MM`,
 - P.2. $y=1.0$ "no preference" line, legend, $y$-axis floor, and face-on/edge-on subtitle arrows (removed from the figure 2026-09-22 11:42, so it can go straight into the paper without clutter)
 
 **Tooling**
-- T.1. The paper's notation-macro convention (`paper/000_preamble.tex`), and two `\ensuremath` pitfalls found while extending it
+- T.1. The paper's notation-macro convention (`../gw_research_paper/000_preamble.tex`), and two `\ensuremath` pitfalls found while extending it
 
 ---
 
@@ -295,7 +295,7 @@ The floor/null value itself is unchanged (§3.5); only its visual presentation o
 
 ## T.1 The paper's notation-macro convention, and two `\ensuremath` pitfalls found while extending it
 
-`paper/000_preamble.tex` centralizes every repeated math symbol, diagnostic-statistic name, and model/trunk identifier into one `\newcommand`, precisely so the paper can't drift into two spellings of the same thing across files the way it already had once: `combo \textbf{A}` in `003_prereq_study.tex` prose vs. `$\text{combo}_A$` in `004`/`005`/`006`'s math mode; `MAE_angular` (formally defined) vs. `ang_MAE` (used in `006`'s table); `cnn_attention` (prose) vs. `cnn_attn` (bare table cells).
+`../gw_research_paper/000_preamble.tex` centralizes every repeated math symbol, diagnostic-statistic name, and model/trunk identifier into one `\newcommand`, precisely so the paper can't drift into two spellings of the same thing across files the way it already had once: `combo \textbf{A}` in `003_prereq_study.tex` prose vs. `$\text{combo}_A$` in `004`/`005`/`006`'s math mode; `MAE_angular` (formally defined) vs. `ang_MAE` (used in `006`'s table); `cnn_attention` (prose) vs. `cnn_attn` (bare table cells).
 Current inventory: `\comboA`/`\comboB`/`\comboAFull`/`\comboBFull` (via a shared `\combo{}` helper), `\circr`, `\stdratio`, `\MAEang`, `\Lcirc`, `\Lmag`, and `\pocA`/`\pocB`/`\Tcn`/`\cnnAttn`/`\cnnBaseline`/`\inceptionTime`/`\resnetOneD`.
 The model-identifier macros mirror `../model_labels.py`'s `MODEL_LABELS` dict on the Python side — itself created to deduplicate a `model_label_dict` that had been hand-copied (and had already started drifting in trailing-comma style) between `diagnostic_checks.py` and `plot_certified_memorization.py` — so the same canonical name and casing is used whether a model is named in paper prose, a table cell, or a figure title.
 

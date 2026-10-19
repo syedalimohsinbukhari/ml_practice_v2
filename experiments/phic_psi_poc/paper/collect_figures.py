@@ -3,7 +3,7 @@
 
 The original paper moved out of this repository into the Overleaf-linked sibling repo ../gw_research_paper
 (formerly paper/paper1/), and that repo now holds the redo paper, so this script no longer has a destination.
-Use experiments/phic_psi_poc-redo/paper/collect_figures.py for the current paper.
+Use experiments/phic_psi_poc-redo/scripts/collect_figures.py for the current paper.
 The original paper survives only in ../gw_research_paper's git history (up to commit d83db4b).
 
 Usage:
@@ -69,7 +69,7 @@ def main() -> None:
     if not DEST_DIR.is_dir():
         sys.exit(
             "paper/paper1/ no longer exists: the original paper moved to ../gw_research_paper, "
-            "which now holds the redo paper. Use experiments/phic_psi_poc-redo/paper/collect_figures.py instead."
+            "which now holds the redo paper. Use experiments/phic_psi_poc-redo/scripts/collect_figures.py instead."
         )
 
     formats = {fmt.strip().lower() for fmt in args.formats.split(",") if fmt.strip()}

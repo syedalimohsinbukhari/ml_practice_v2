@@ -84,10 +84,10 @@ This chapter asks:
 \itshape Can $\varphi_c$ and $\psi$ be recovered from strain alone by a deep neural network --- individually, or through their better-conditioned sum/difference combinations --- or is the degeneracy effectively exact for a realistic detection-scale population?
 \end{quote}
 
-The answer is a \textbf{null result}: across four down-selected architectures, two head parameterizations, three values of the magnitude-regularization coefficient, and a comprehensive diagnostic battery, no model performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
+The answer is a \textbf{null result}: screened across five trunk architectures and established in full on four down-selected models drawn from two of them (\texttt{tcn} and \texttt{cnn\_attention}), across two head parameterizations, three values of the magnitude-regularization coefficient (on the \texttt{tcn} models), and a comprehensive diagnostic battery, no model performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
 No model here ever cleared the pre-registered metric-health gate that would have certified it as a clean test.
 The null defended here instead rests on convergence across four independent lines of evidence --- direct inspection of the prediction distributions, a code-level gradient-health trace ruling out an implementation bug, a formal label-permutation bootstrap, and population stratification by inclination and signal-to-noise ratio --- applied uniformly to all four down-selected models, without excluding any on interpretability grounds.
-This study additionally surfaced two findings: a genuine, SNR-monotonic partial sky-localization skill in one architecture (\texttt{cnn\_attention}), unrelated to the $\varphi_c/\psi$ question, and a small but statistically real sub-floor signal in the inclination control head, which had been assumed to be clean noise.
+This study additionally surfaced two findings: a genuine, SNR-monotonic partial sky-localization skill in one architecture (\texttt{cnn\_attention}), unrelated to the $\varphi_c/\psi$ question, and the inclination control head, which had been assumed to be clean noise, turned out to be partially mode-collapsed: neither clean noise nor a small recoverable signal.
 
 The chapter is organized as follows, with one section deliberately compressed.
 Section~\ref{sec:phicpsi:problem} formalizes the problem and the circular-regression framework.
@@ -167,7 +167,13 @@ The injection convention behind the combination formula of \S\ref{sec:phicpsi:in
 \subsection{Trunk architectures}
 \label{sec:phicpsi:trunks}
 
-Five one-dimensional trunk architectures (\texttt{tcn}, \texttt{cnn\_baseline}, \texttt{cnn\_attention}, \texttt{inception\_time}, \texttt{resnet1d}) were evaluated, all mapping the $(4096,2)$ input to a pooled feature vector shared by every head.
+Five one-dimensional trunk architectures (\texttt{tcn}, \texttt{cnn\_baseline}, \texttt{cnn\_attention}, \texttt{inception\_time}, \texttt{resnet1d}) were screened, all mapping the $(4096,2)$ input to a pooled feature vector shared by every head.
+The Round-1 screen comprised seven configurations, the \texttt{tcn} trunk appearing in three of them (\texttt{baseline}, \texttt{poc}, and plain \texttt{tcn}).
+All seven sat at the random-guessing level on $\varphi_c$ and $\psi$ in Round~1 (circular loss $0.99$--$1.02$), so this round could not discriminate between them.
+Down-selection therefore used the positive controls instead: validation $R^2$ on chirp mass, merger time, and SNR (\texttt{NOTES.md}, ``Round~1'' and ``Down-select re-validation'').
+\texttt{cnn\_baseline} ($0.833 / 0.818 / 0.699$) and \texttt{inception\_time} (merger-time $R^2 = 0.000$) were measurably weaker, \texttt{resnet1d} ($0.897 / 0.870 / 0.757$) intermediate, while \texttt{tcn} ($0.961 / 0.919 / 0.790$) and \texttt{cnn\_attention} ($0.922 / 0.904 / 0.720$) were carried forward.
+This selection used no numeric threshold.
+The four models analysed in the remainder of this chapter are therefore \texttt{poc\_a}, \texttt{poc\_b}, \texttt{tcn}, and \texttt{cnn\_attention}, i.e., two distinct trunks; the three dropped trunks are not part of any later analysis.
 \texttt{mode: baseline} and \texttt{mode: poc} on the primary \texttt{tcn} trunk give the named configurations \texttt{poc\_a} and \texttt{poc\_b}.
 
 \subsection{Head parameterizations}
@@ -415,7 +421,7 @@ A companion check on a known-good, non-angular control (chirp mass, banded the s
     \end{tabular}
 \end{table}
 
-Three models show the same small-but-real, sub-floor pattern already established for inclination.
+Three models show a statistically significant but sub-floor effect, the pattern inclination showed in the bootstrap (\S\ref{sec:phicpsi:bootstrap}); for inclination \S\ref{sec:phicpsi:inclination} traces it to partial mode collapse, and sky position was not examined for that.
 \texttt{cnn\_attention} clears the materiality floor outright, and --- critically, since this exact model is independently known to memorize training-set phase/polarization structure without generalizing (\S\ref{sec:phicpsi:headline}, \S\ref{sec:phicpsi:pool}) --- the SNR-stratification discriminator resolves in favor of genuine recovery, not a memorization-driven population bias: a hypothetical model that always guesses the population-mean direction scores only $\approx 89.4^\circ$ (essentially at the null), ruling out the simplest shortcut, and the actual error shrinks monotonically with SNR ($80.15^\circ \to 77.95^\circ \to 74.47^\circ$) with the high-SNR tercile alone clearing the floor by a wider margin than the pooled result.
 The leading hypothesis for the mechanism is cross-detector H1/L1 amplitude-ratio information via the sky-dependent antenna pattern --- an envelope cue, not absolute carrier phase, consistent with (not contradicting) the general caveat that positive-control success on timing/amplitude quantities does not establish carrier-phase sensitivity.
 This finding is \textbf{peripheral to the $\varphi_c/\psi$ question and does not affect the null defended above}; it is reported because it is the first result in either investigation to pass every check this chapter's own discipline requires of a positive finding --- significant, floor-clearing, and monotonic with signal strength --- and because a future architecture search on these targets should know this specific model's specific skill and specific failure mode.
@@ -497,7 +503,9 @@ This chapter's own position is that the convergence of four qualitatively differ
 \subsection{Sufficiency of the architecture pool}
 \label{sec:phicpsi:pool}
 
-The five trunk families were chosen as five distinct inductive-bias hypotheses, not five samples from one family, and capacity is not the binding constraint.
+The five trunk families were chosen as five distinct inductive-bias hypotheses, not five samples from one family.
+Only two of them (\texttt{tcn} and \texttt{cnn\_attention}) carry the analysis after the down-selection of \S\ref{sec:phicpsi:trunks}, so the pool that the ungated battery actually covers is narrower than the pool first considered.
+Within that pool, capacity is not the binding constraint.
 The memorization-gap check was run uniformly across all four down-selected models, and the result is asymmetric: \texttt{cnn\_attention}'s training-split circular loss falls to $0.54$--$0.56$ by epoch~80 while validation stays flat at $\approx 1.0$ (train--val gap $+0.44$ to $+0.47$), while \texttt{poc\_a}, \texttt{poc\_b}, and \texttt{tcn} show gaps an order of magnitude smaller ($+0.003$ to $+0.05$), consistent with genuinely flat behavior on both splits rather than found-but-ungeneralized structure (\texttt{NOTES.md}, ``Second batch ported'' table).
 \texttt{cnn\_attention} demonstrably has, and uses, spare capacity to fit sample-specific noise and still generalizes none of it to \texttt{coa\_phase}/\texttt{polarization\_angle} --- the cleanest single demonstration that architecture is not the limiting factor --- while it \emph{simultaneously} shows genuine, generalizing skill on \texttt{sky\_position} (\S\ref{sec:phicpsi:sky}), a pointed illustration that this model's capacity is neither uniformly wasted nor uniformly informative, but head-specific.
 
@@ -521,7 +529,8 @@ Recorded in roughly descending order of concern.
 It does not change the verdict --- \texttt{poc\_b} reads non-significant for both heads regardless, and ground-truth-assisted branch selection can only bias a reconstruction toward looking \emph{more} accurate than a blind one, never less --- but it is disclosed here explicitly, per this chapter's own citation-discipline standard.
 \item \textbf{$\iota$'s noise-floor comparison (\S\ref{sec:phicpsi:inclination}) mixes two non-identically-distributed loss paths.}
 $\iota$ is trained with Huber loss on a raw two-vector; $\varphi_c/\psi$ with circular loss on a normalized vector.
-The two heads' finite-sample fluctuation distributions are not strictly comparable even before accounting for the fact that $\iota$ itself now carries a small real signal --- a second, independent reason (beyond the noise-floor reframing already applied) to read \S\ref{sec:phicpsi:inclination} as descriptive rather than as a formal statistical calibration.
+The two heads' finite-sample fluctuation distributions are not strictly comparable even before accounting for the fact that $\iota$ itself is partially mode-collapsed rather than cleanly random --- a second, independent reason (beyond the noise-floor reframing already applied) to read \S\ref{sec:phicpsi:inclination} as descriptive rather than as a formal statistical calibration.
+\item \textbf{The down-selection from five trunk families to two (\S\ref{sec:phicpsi:trunks}) used positive-control $R^2$ with no numeric threshold}, and the three dropped families were never run through the ungated battery (\S\ref{sec:phicpsi:pool}).
 \item \textbf{The perturbation-trace probe (\S\ref{sec:phicpsi:perturbation}) is open, not closed}, and no salvage attempt was made.
 \item \textbf{Waveform-provenance and inclination-prior gaps carried forward unresolved} (\S\ref{sec:phicpsi:dataset}, \S\ref{sec:phicpsi:future}): the dataset was not regenerated from a version-controlled generator, and the inclination prior remains uniform in $\iota$ rather than the astrophysically correct uniform in $\cos\iota$ --- over-representing face-on systems and under-representing edge-on systems, which mildly favors a null result rather than protecting against one (face-on is where the degeneracy is strongest), though the null itself does not depend on this skew since \S\ref{sec:phicpsi:inclination}'s inclination-band stratification checks the edge-on band directly and still finds no recovery clearing the materiality floor there; it should have been isotropic and was not.
 \item \textbf{Design constraints}: single seed (42) per configuration, fixed 80-epoch budget, single dataset with a single noise realization per event.
@@ -542,7 +551,7 @@ $\text{std\_ratio}$ measures raw-vector norm health, not angular diversity; the 
 Eight items remain open, scoped below.
 
 \begin{enumerate}
-\item[(i)] \textbf{Inclination conditioning} --- the natural next step given \S\ref{sec:phicpsi:prereq}'s analytic structure, scoped as a training-paradigm choice rather than a claim that $\iota$ is unlearnable; if anything strengthened as a target given $\iota$'s newly-confirmed small real signal (\S\ref{sec:phicpsi:inclination}).
+\item[(i)] \textbf{Inclination conditioning} --- the natural next step given \S\ref{sec:phicpsi:prereq}'s analytic structure, scoped as a training-paradigm choice rather than a claim that $\iota$ is unlearnable; left open rather than resolved by $\iota$'s own behavior, which \S\ref{sec:phicpsi:inclination} shows to be partial mode collapse.
 \item[(ii)] \textbf{An architecture-level attack on the $\text{std\_ratio}$ instability}, or a finer, freshly pre-registered $\lambda$ mini-sweep --- this chapter's own $\lambda$-sweep (\S\ref{sec:phicpsi:prereg}) is exhausted on its own terms; it is not this chapter's job to relitigate a closed, pre-registered sweep, only to note the same lever remains available.
 \item[(iii)] \textbf{A posterior-estimation reformulation.}
 \item[(iv)] \textbf{A ridge-structure check}: a 2D joint scatter of the down-selected models' predicted $(\hat\varphi_c, \hat\psi)$ pairs, to test directly whether any model learned the degenerate combination manifold itself.
@@ -566,7 +575,7 @@ We set out to determine whether the coalescence phase and polarization angle of 
 The answer is \textbf{no}.
 Every configuration tested converged to the optimal constant or noise-like predictor at the analytic random-guessing error on both angles, while the same shared representation recovered chirp mass, merger time, signal-to-noise ratio, and --- for one architecture --- a genuine partial sky-localization skill, from the same features.
 No model here passed the pre-registered metric-health gate; the null instead rests on convergence across direct collapse inspection, a code-level gradient-health trace, a formal permutation bootstrap, and population stratification, applied uniformly across every down-selected model rather than to a certified subset --- a defensible basis for the conclusion, argued explicitly in \S\ref{sec:phicpsi:reconcile}, but one that has not yet been through independent adversarial scrutiny.
-Two findings exist only because this study looked further than strictly necessary to answer its own central question: \texttt{cnn\_attention}'s real, SNR-verified sky-localization skill, and inclination's small-but-real departure from the ``clean noise floor'' role this study's own methodology initially assumed for it.
+Two findings exist only because this study looked further than strictly necessary to answer its own central question: \texttt{cnn\_attention}'s real, SNR-verified sky-localization skill, and inclination's departure from the ``clean noise floor'' role this study's own methodology initially assumed for it: its head is partially mode-collapsed, neither clean noise nor a recoverable signal.
 Neither changes the central verdict; both sharpen, honestly, what it does and does not claim.
 The degeneracy remains, on the evidence presented here, effectively exact for this population as a point-estimation problem.
 
@@ -583,6 +592,7 @@ All paths relative to \texttt{experiments/phic\_psi\_poc-redo/}.
         \toprule
         Claim / table / figure & Artifact \\
         \midrule
+        Round-1 screen and down-selection (\S4.2) & \texttt{NOTES.md}, ``Round~1'' and ``Down-select re-validation'' \\
         Analytic sweep (\S3, Fig.~\ref{fig:phicpsi:redo:sweep}) & \texttt{sweep\_1\_1\_ratio\_vs\_iota.\{csv,png\}}, \texttt{prereq\_checks\_output/} \\
         Combination construction (\S4.3) & \texttt{formulae\_reference.md} \S A.1.5/A.2; \texttt{trainer.py} \\
         Figs.~\ref{fig:phicpsi:redo:labels}--\ref{fig:phicpsi:redo:controls} & \texttt{diagnostic\_output/}, \texttt{analysis\_output/} \\

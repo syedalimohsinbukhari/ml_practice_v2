@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Flatten the figures listed in figures_registry.yaml into paper/ for an arXiv-style submission tree.
+"""Copy the figures listed in figures_registry.yaml into the Overleaf-linked paper repo.
 
-This redo's paper/ stays flat inside this experiment directory.
-The Overleaf-linked sibling repo ../gw_research_paper (next to this repository) holds the same paper, replacing the original there as of 2026-09-29.
-Figures are therefore copied into both paper/ and ../gw_research_paper; the .tex sources are still synced by hand.
-arXiv compiles from a flat, self-contained source directory, so every file \\includegraphics'd from main.tex
-(and its \\input sections) must sit alongside the .tex sources, not one level up in the experiment's *_output/
-directories where they are actually produced.
+The paper's source lives in the sibling repo ../gw_research_paper (next to this repository), which is canonical as of 2026-10-19.
+This experiment no longer keeps a copy of the paper.
+Figures are produced in this experiment's *_output/ directories and must sit alongside the .tex sources in the paper repo,
+because arXiv compiles from a flat, self-contained source directory.
 
-This script and figures_registry.yaml both live in paper/ itself; copies land in this same directory, next to main.tex,
-not in a subdirectory.
+This script and figures_registry.yaml live in scripts/; figures land in the root of ../gw_research_paper, next to main.tex.
 
 Usage:
-    python3 collect_figures.py                    # copy PNG only
-    python3 collect_figures.py --formats png,pdf  # copy PNGs and PDFs
-    python3 collect_figures.py --dry-run          # print what would be copied
+    python3 scripts/collect_figures.py                    # copy PNG only
+    python3 scripts/collect_figures.py --formats png,pdf  # copy PNGs and PDFs
+    python3 scripts/collect_figures.py --dry-run          # print what would be copied
 """
 
 from __future__ import annotations
@@ -26,11 +23,11 @@ from pathlib import Path
 
 import yaml
 
-PAPER_DIR = Path(__file__).resolve().parent
-EXPERIMENT_ROOT = PAPER_DIR.parent
-OVERLEAF_DIR = PAPER_DIR.parents[3] / "gw_research_paper"
-DEST_DIRS = [PAPER_DIR, OVERLEAF_DIR]
-REGISTRY_PATH = PAPER_DIR / "figures_registry.yaml"
+SCRIPTS_DIR = Path(__file__).resolve().parent
+EXPERIMENT_ROOT = SCRIPTS_DIR.parent
+OVERLEAF_DIR = EXPERIMENT_ROOT.parents[2] / "gw_research_paper"
+DEST_DIRS = [OVERLEAF_DIR]
+REGISTRY_PATH = SCRIPTS_DIR / "figures_registry.yaml"
 
 
 def load_registry(path: Path) -> list[dict]:

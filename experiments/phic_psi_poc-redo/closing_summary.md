@@ -56,3 +56,14 @@ A second-opinion review of this session's scatter-vs-p-value discipline added th
 ## Where the evidence lives
 
 `NOTES.md`'s 2026-09-15 through 2026-09-18 entries carry the full narrative and every number cited above, in context, with dated corrections left on the record rather than silently edited where earlier reads didn't hold up. `experiment_index.md` indexes every file. `run_commands.md` gives the exact reproducible command and status for every script, staged by actual dependency rather than chronological order. Output directories: `diagnostic_output/`, `bootstrap_output/`, `inclination_output/`, `snr_output/`, `analysis_output/`, `sky_mollweide_output/`, `perturbation_trace_output/`.
+
+## Addendum (2026-10-19)
+
+The verdicts above are unchanged.
+Two clarifications since this summary was written:
+
+- The "4-model certified set" covers only two distinct trunks (`tcn`, `cnn_attention`).
+  It was down-selected from the 7-configuration Round-1 screen on positive-control R², with no numeric threshold; the paper and thesis chapter now say so.
+  The three dropped trunks were never run through the ungated battery, and every configuration uses a single seed.
+- The paper is canonical in `../gw_research_paper` (commit `c67992b`); this directory no longer holds a copy.
+  A prose summary for external review is in [`paper_summary.md`](paper_summary.md).

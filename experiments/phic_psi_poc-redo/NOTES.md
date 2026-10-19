@@ -407,3 +407,36 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
   R² ranges chirp mass 0.920-0.960 -> 0.921-0.961, merger time 0.906-0.928 -> 0.901-0.921, SNR 0.741-0.789 -> 0.749-0.794.
 - **Edited to match:** paper Table 1, §5 ranges, mchirp scatter figure (`scatter_mchirp_20261019_125442.png`, copied by `scripts/collect_figures.py`; the old PNG removed from the paper repo), appendix map row; thesis chapter Table 6.1, §5.2 text, Fig. 5.4 caption, appendix rows (`.md`/`.tex`); `scripts/figures_registry.yaml`; `paper_summary.md`.
 - **Left as dated history:** `NOTES.md` entries and `closing_summary.md` that cite the 2026-09-16 report.
+
+## Session close: wording sweeps, the q_value split, the carry-over file (2026-10-19 16:38 +05:00)
+
+**What landed** (verified from `git log`):
+- Paper, sibling repo `main-minor-3` to `main-minor-6`: the sky-position control claims, the §2 hypothesis and baseline wording, the `w(ι)` scope clause, and the `circ_r`/`std_ratio` fixes.
+- Chapter mirrors (minor-20, minor-21), `UNDERSTANDING.md` §2.4–2.9 and the §3.8 correction (minor-20, minor-21, minor-24), and `CLAUDE.md` (derived-from header, timestamps, claim vocabulary; minor-22).
+- `q_value`, pushed at `0ace363`: merge of `master` (minor-2), `WORKING_CONVENTIONS.md` (minor-1), the `PeriodicCheckpoint` cherry-pick (minor-3), and the carry-over snapshot, `experiments/q_recovery/` and `gen_py_data_pipeline.md` (minor-4).
+- This branch: `qvalue_carryover.md` (minor-23) and the removal of `experiments/q_recovery/` (minor-25).
+
+**Decisions recorded** (the author's, stated this session):
+- The sister paper keeps only the recoverable heads; φc and ψ are excluded and the reason cites this experiment; sky position is not a goal and is reported as a secondary result; inclination only as `cos ι`, which is untested.
+- A new dataset `combined_repackaged2` will use the same generator and distribution with a recorded seed; the existing dataset is to be released as is on Zenodo (stated plan, not done).
+- `q_value` takes route B, cherry-picking instead of merging `master`, to keep about 1.7 GB of `runs/` and the redo folder off that branch.
+- The inclusion rule's N, M, K and the per-head floor are open and must be fixed before any training.
+
+**Findings made this session:**
+- Verified: `src/gwml` is identical on `q_value` and this branch except `PeriodicCheckpoint` and one note; the corrected φc/ψ math lives only in `experiments/phic_psi_poc-redo/{trainer,transform_utils,curriculum}.py`.
+- Verified: `q_value`'s default configs still train `coa_phase`, and its `PLAN.md` and `heads.py` text says tanh while the code is linear.
+- Verified: `std_ratio` pools both components, so a head collapsed at encoded angle $\theta_0$ reads $|\sin(\theta_0-\pi/4)|$. Inferred: this explains the 0.930 pass at λ = 0.10 (the collapse angle at λ = 0.10 was not measured).
+- Verified: inclination uses Huber because it is the registry default; no inclination-specific rationale was found in the docs searched.
+- Verified: the cherry-pick of `09a4980` applies cleanly to `q_value`.
+
+**Open, carried forward:**
+- The three Round-1 trunks dropped at the down-select were never run through the full battery, and every configuration used seed 42.
+- Inclusion-rule values, the with/without sky-head test, and the `cos ι` test are not run.
+- The data-availability text in the paper and chapter needs the Zenodo DOI once it exists.
+- The phic PR into `master` is not opened; `experiments/q_recovery/` was removed here so it does not ride along.
+- The compiled paper has no abstract (`\input{000_abstract}` is commented out in `main.tex`).
+
+**State at close** (from `git branch -vv`; remotes not re-fetched):
+- Main repo: `poc/phic-psi-degeneracy-redo` at `07285de`, in sync with its remote tracking ref; `q_value` at `0ace363`, in sync with its remote.
+- Uncommitted: `WORKING_CONVENTIONS.md` (untracked here, committed on `q_value`), `deeplearning_models/` (never staged), and `summary_paper.pdf` (untracked, not indexed).
+- Paper repo: `main` at `89b451a`, in sync with `origin/main`; uncommitted `main.tex` (in-progress section comments, deliberately left out of commits).

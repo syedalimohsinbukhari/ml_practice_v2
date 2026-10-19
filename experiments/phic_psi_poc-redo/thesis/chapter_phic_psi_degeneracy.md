@@ -50,7 +50,7 @@ Eight of these are used as supervised regression targets, in seven heads since d
 The scientific targets are φ_c ∈ [0, 2π), period 2π, and ψ ∈ [0, π), period π.
 Inclination, chirp mass, merger time, SNR, and sky position are retained as *control heads*: parameters trained through the identical pipeline whose success or failure calibrates what the network can extract from strain when information is present.
 
-The **degeneracy hypothesis** under test is: *φ_c and ψ carry no strain-only recoverable signal for this population, in this architecture and loss family* — a point-estimating network can do no better than the optimal constant prediction, because for most of the population the likelihood constrains only the combination `2φ_c ± 2ψ`, and the remaining direction is unconstrained.
+The **degeneracy hypothesis** under test is: *φ_c and ψ carry no strain-only recoverable signal for this population, in this architecture and loss family* — a point-estimating network can do no better than the optimal constant prediction, because in the face-on limit the likelihood constrains only the combination `2φ_c ± 2ψ` and leaves the orthogonal direction unconstrained, and the two angles separate only partially away from face-on.
 The alternative hypothesis motivating the experimental design is that even if φ_c and ψ are individually unrecoverable, their **sum and difference combinations** may be well-conditioned: a network parameterized in `2φ_c ± 2ψ` combination space, with a curriculum that weights each combination according to how well the current inclination constrains it, might learn the recoverable structure that a naive per-angle parameterization misses.
 
 Conditioning on inclination ι — tested as future work in §8.5 — is treated throughout as a *training-paradigm design choice*, motivated by the analytic structure of §3 showing that the well-constrained combination is recoverable given ι, not as a forced move necessitated by a proof that ι itself is unrecoverable; §6.7 shows ι's own behavior is more complicated than clean noise — partial mode collapse, not a real per-sample signal — which still leaves this question open rather than resolving it.
@@ -61,7 +61,10 @@ No model in this chapter takes ι, or any function of it, as an input at any sta
 Periodic targets are regressed on the unit circle [@mardia2000circular].
 An angle θ with period T is encoded as the two-vector u(θ) = (sin(2πθ/T), cos(2πθ/T)), so the ψ head, with T = π, physically encodes 2ψ.
 Each periodic head outputs a raw two-vector v ∈ ℝ², projected onto the unit circle by `tf_normalize_unit`, û = v/sqrt(max(‖v‖²,ε)) — a clamp on the squared norm, for a stable gradient at v=0, rather than a floor on ‖v‖ itself — and trained with the cosine (circular) loss L_circ = 1 − cos Δθ.
-For uniformly distributed targets and any fixed prediction, the expected circular loss is exactly 1; the null baselines are ang_MAE = π/2 ≈ 1.5708 rad for φ_c and ι, π/4 ≈ 0.7854 rad for ψ.
+For uniformly distributed targets and any fixed prediction, the expected circular loss is exactly 1 for the heads trained with it (φ_c and ψ).
+The null baselines are ang_MAE = π/2 ≈ 1.5708 rad for φ_c and ι, π/4 ≈ 0.7854 rad for ψ.
+The ψ head's circular loss is computed on the doubled angle 2ψ, whereas ang_MAE is measured in ψ itself, with residuals wrapped by the head's period π.
+The inclination head is not trained with the circular loss, so only its ang_MAE baseline applies.
 Two further diagnostic statistics recur throughout: the circular resultant circ_r = ‖mean(û)‖, which measures mode collapse (circ_r → 1 means all predictions concentrate at one angle), and std_ratio, the ratio of the standard deviation of a head's raw outputs to that of the encoded targets, a monitor of raw-magnitude health with a healthy band of [0.5, 2.0].
 Non-periodic heads use a Huber loss on transformed targets, and the sky-position head uses a closed-form von Mises–Fisher negative log-likelihood on the unit sphere.
 The inclination head keeps an architecturally distinct path — periodic two-vector encoding, but a Huber loss on the raw output, with no `tf_normalize_unit` projection and no circular loss anywhere in its path.
@@ -78,6 +81,7 @@ The 100-point inclination sweep (50 points per sign of cos ι, 200 sky positions
 - population-bootstrapped mean ratios are **1.17× (95% CI [1.11, 1.24])** for cos ι > 0 and **1.19× (95% CI [1.12, 1.26])** for cos ι < 0, with the simple two-point reference check clearing statistical significance directly.
 
 The curriculum weight derivation (`formulae_reference.md` §A.7) gives w(face-on) = 0.0000 and w(edge-on) = 0.1416, with an intermediate-peak shape; training uses the analytically motivated fallback w(ι) = 1 − cos²ι = sin²ι rather than the fitted empirical curve.
+The weight multiplies only the poorly-constrained combination; the well-constrained one keeps weight 1, and the two roles swap when cos ι < 0.
 Population balance: 28.7% face-on (|cos ι| > 0.9), 32.7% edge-on (|cos ι| < 0.5).
 
 > **Figure 3.1.** Analytic check of the corrected 2φ_c–2ψ degeneracy structure, ratio of the strain correlation with the well-constrained combination to the poorly-constrained one, as a function of inclination. Source: `sweep_1_1_ratio_vs_iota.png`.

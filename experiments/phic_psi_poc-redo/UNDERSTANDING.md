@@ -15,9 +15,10 @@ Tag any such in-place change note with a `date: time` stamp (`YYYY-MM-DD HH:MM`,
 ## Topics so far
 
 **Active**
-2. The circular (cosine) loss and unit-circle normalization (`transform_utils.py`, `trainer.py`, `002_problem-formulation.tex`)
+2. The degeneracy hypothesis under test, and the circular (cosine) loss and unit-circle normalization (`transform_utils.py`, `trainer.py`, `002_problem-formulation.tex`)
 3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot (`prereq_checks.py`, `curriculum.py`, `003_prereq_study.tex`)
 4. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
+5. The positive controls, and why the sky-position head is a weak one (`005_diagnostics.tex`, `002_problem-formulation.tex`, `heads_spec.py`, `analyse_predictions.py`, `bootstrap_sky_separation.py`)
 
 **Deferred**
 - P.1. $\pi/4$ / $3\pi/4$ reference-point plot annotations (removed from the figure 2026-09-22 11:20)
@@ -86,6 +87,39 @@ The per-sample circular loss (shape `(N,)`) is reduced to a scalar in stages, no
 
 One real subtlety in PoC mode: the curriculum weight is baked into the mean *before* the uncertainty weight $s_h$ ever sees it.
 So the learned per-head uncertainty $s_A$/$s_B$ cannot distinguish "this combo is intrinsically hard to learn" from "this combo was already down-weighted by the curriculum at the inclinations in this batch" — both show up to the uncertainty-weighting stage as the same thing: a smaller loss mean. This doesn't invalidate either mechanism on its own terms, but it means the two weighting schemes aren't fully independent axes of adjustment the way their separate motivations (curriculum: which combo is *informative* at this $\iota$; uncertainty: which head is *harder* overall) might suggest.
+
+### 2.4 The degeneracy hypothesis under test, sentence by sentence
+
+`002_problem-formulation.tex`'s hypothesis paragraph does four separate jobs.
+
+**The null.** $\varphi_c$ and $\psi$ carry no *strain-only* recoverable signal for this population, in this architecture and loss family.
+"Strain-only" means no inclination input and no other side information: $\iota$ appears only as a control output head.
+"This architecture and loss family" scopes the claim to point-estimating regression networks, so a posterior estimator is not covered.
+
+**What "no signal" would look like.** A point estimate can then do no better than the optimal constant, which scores the null baselines of §2's circular-regression framework: circular loss $1$, ang_MAE $\pi/2$ for $\varphi_c$ and $\pi/4$ for $\psi$.
+That is how a null result is recognized in the results.
+
+**Why a null is expected.** Both angles enter the strain doubled (§3.3), so in the face-on limit the likelihood constrains only $2\varphi_c \pm 2\psi$ and leaves the orthogonal direction flat; away from face-on the two angles separate only partially.
+The degeneracy is therefore exact only at face-on, not "for most of the population": about 29% of the dataset is near face-on (§4.2), and the preference ratio decays toward $1.04$–$1.07\times$ at edge-on rather than the orthogonal direction becoming unconstrained everywhere.
+
+**The alternative, and how it was tested.** Even if the individual angles are unrecoverable, the combinations $2\varphi_c + 2\psi$ and $2\varphi_c - 2\psi$ might be learnable, since one is always better constrained than the other (§3.5).
+The test is the combination-space parameterization (the `poc_b` heads) with a curriculum weight that favors a combination where the current inclination makes it informative.
+The idealized weight would follow the condition number of the local $(\varphi_c,\psi)\to(R,\delta)$ Jacobian, which diverges at face-on and is finite away from it; the measured curve is non-monotonic, so training uses $w(\iota)=\sin^2\iota$ instead (§3.8).
+The hope was that this recovers structure a per-angle head misses; the result is that it does not.
+
+### 2.5 The null baselines, and which units each lives in
+
+For a target uniform on its period $T$ and any fixed prediction, two baselines hold, and they are measured in different places.
+
+- **Circular loss $=1$.** $\mathbb{E}[1-\cos\Delta\theta]=1$ when $\Delta\theta$ is uniform on the circle. This applies only to the heads trained with the circular loss, $\varphi_c$ and $\psi$ (baseline mode), or $\text{combo}_A$/$\text{combo}_B$ (PoC mode).
+- **Wrap-aware $\text{ang\_MAE}=T/4$.** The residual is wrapped by the head's own period to $[-T/2,T/2)$ (`signed_error` in `transforms.py`), so $|\Delta|$ is uniform on $[0,T/2]$ with mean $T/4$: $\pi/2\approx1.5708$ for $\varphi_c$ and $\iota$ ($T=2\pi$), $\pi/4\approx0.7854$ for $\psi$ ($T=\pi$).
+
+Two details that are easy to miss:
+
+- **$\psi$ lives in two unit systems.** The $\psi$ head encodes $2\psi$ (§2.1, $T=\pi$), so its circular loss is $1-\cos(2\Delta\psi)$, a function of the *doubled* angle error. $\text{ang\_MAE}$, by contrast, is measured in $\psi$ itself, with residuals wrapped by $\pi$. Both give the stated baselines, but they are not the same quantity.
+- **$\iota$ has an $\text{ang\_MAE}$ baseline but no circular-loss baseline.** The inclination head keeps the periodic two-vector encoding yet trains with Huber loss on the raw output vector, with no normalization and no circular loss anywhere in its path. Its $\pi/2$ baseline is the right one for the metric; "circular loss $=1$" does not describe it.
+
+Checked numerically (400k uniform draws, a fixed arbitrary prediction): mean circular loss $1.0001$/$1.0011$/$0.9999$ and $\text{ang\_MAE}$ $1.5708$/$0.7859$/$1.5708$ for $\varphi_c$/$\psi$/$\iota$, against $T/4$ of $1.5708$/$0.7854$/$1.5708$; encode → decode round-trips to about $10^{-8}$, and the `(sin, cos)` complex products reproduce $\theta_1\pm\theta_2$ and $2\theta$ to about $10^{-15}$.
 
 ## 3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot
 
@@ -212,11 +246,13 @@ As of §P.1/§P.2, the figure is deliberately minimal: a bare two-panel scatter,
 ### 3.8 The curriculum weight $w(\iota)$: a measured Jacobian-condition-number curve exists, but training uses the simpler analytic fallback
 
 `curriculum.py`'s `derive_w_iota` computes $w(\iota)$ empirically, not by guessing.
-At a fixed reference $(\varphi_c,\psi)$, for 50 random sky-position $(a,b)$ draws, it sweeps $\iota$ across $[0,\pi/2]$ and at each point computes the **Jacobian condition number** of the map $(\varphi_c,\psi)\to(R,\delta)$ (`_jacobian_condition_number`: central finite differences, then the ratio of largest to smallest singular value of the resulting $2\times2$ Jacobian).
+At a fixed reference $(\varphi_c,\psi)$, for a set of random sky-position $(a,b)$ draws (50 by default in `derive_w_iota`; the prerequisite run that produced the numbers quoted below used 200 draws and a 200-point $\iota$ grid), it sweeps $\iota$ across $[0,\pi/2]$ and at each point computes the **Jacobian condition number** of the map $(\varphi_c,\psi)\to(R,\delta)$ (`_jacobian_condition_number`: central finite differences, then the ratio of largest to smallest singular value of the resulting $2\times2$ Jacobian).
 A high condition number means that map is nearly singular — two input directions are collapsing onto barely-distinguishable observables, i.e. genuinely degenerate at that $\iota$.
 Weight is set $\propto1/\text{cond}(J)$, averaged across the 50 sky draws, normalized to max $1$, then smoothed by linear interpolation on $\cos^2\iota$ — chosen specifically because an earlier unconstrained polynomial fit produced negative weights and residuals larger than the function's own range, an already-fixed, unrelated problem.
 Result: $w(\text{face-on})=0.0000$, rising to a peak $\approx0.9956$ near $\iota\approx0.789$, then *falling back down* to only $w(\text{edge-on})=0.1416$ — an intermediate-peak shape, not a monotonic one.
+The edge-on value is sampling-sensitive: the function's defaults (50 draws, 100 points, seed 42) give $w(\text{edge-on})=0.1174$, 200 draws give $0.1417$, and other seeds and sample sizes land between $0.117$ and $0.142$; the peak stays at $\approx1$ near $\iota\approx\pi/4$.
 
+In `trainer.py` the weight multiplies only the poorly-constrained combination; the well-constrained one keeps weight $1$, and the roles swap when $\cos\iota<0$ (`sign_dependent_combo`).
 Training instead uses `w_iota_default`, the simple closed-form $w(\iota)=1-\cos^2\iota=\sin^2\iota$: zero at face-on (matching the measured curve there), but monotonically increasing all the way to $1$ at edge-on, unlike the measured curve's dip.
 Reason for the choice: the measured curve's edge-on dip is ambiguous — it could be real physics (this quasi-linear map genuinely re-degrading near edge-on, for a reason the simple face-on/edge-on story doesn't capture), or a harness artifact (the fixed reference $(\varphi_c,\psi)$ point, the specific sky-position sampling, or the interpolation smoothing itself), and nobody had independently verified which.
 Baking an unverified dip directly into the training signal risks telling the network to under-weight edge-on samples — exactly the regime §3.5's own analytic sweep says is *least* degenerate — for no confirmed reason.
@@ -256,6 +292,39 @@ That result rests on four methods measured directly on $\varphi_c$/$\psi$'s own 
 Inclination's role is always secondary/interpretive, and `008_discussion.tex`'s threats-to-validity list already reads §6.7 as descriptive rather than a formal calibration, independent of this finding.
 
 The investigative trail behind §4.1–4.3 (the backwards over-representation claim, the wrong-support table, the pycbc verification steps, the Monte Carlo hypothesis that didn't survive contact with the actual scatter, and the discovery that the paper's prior "verified against scatter plots" claim had no artifact behind it) is recorded in `NOTES.md`'s 2026-09-23 "Paper-review correction pass" entry, not here — this section states what's currently true and why, not how it was found.
+
+## 5. The positive controls, and why the sky-position head is a weak one
+
+### 5.1 What the sky-position head is, and how it is counted
+
+`sky_position` is one head, not two: `heads_spec.py` declares it as a 3-dimensional unit-vector head (`SPHERICAL_UNIT_VECTOR`, `dim=3`, von Mises–Fisher loss) built from two dataset columns, declination and right ascension (`columns=(declination, ra)`).
+That is why `002_problem-formulation.tex` counts **eight parameters in seven heads**: the ten-parameter description minus mass ratio and injection time leaves eight, and declination and RA share the sky head.
+It sits in every redo config's `heads:` list and trains through the same trunk and uncertainty weighting as every other head, so "control head" is accurate as a description of the setup.
+Whether it works as a *positive* control is a separate question (§5.3).
+
+### 5.2 The metric: great-circle separation, and its null
+
+The meaningful sky error is the great-circle angle between the true and predicted directions, $\arccos(\hat{\mathbf{n}}_\text{true}\cdot\hat{\mathbf{n}}_\text{pred})$, not separate errors in declination and RA (per-axis RA error is misleading near the poles).
+The canonical implementation is `gwml.data.sky_transform.angular_separation`, fed by `radec_to_unit_vector(ra, dec)`.
+Its argument order is $(\text{ra},\text{dec})$, while the stored arrays are columns $(\text{dec},\text{ra})$, so callers index `[:, 1]` for RA and `[:, 0]` for declination.
+The null is $\approx90^\circ$: the mean separation between any fixed direction and a uniformly random one on the sphere.
+
+### 5.3 What the controls actually show
+
+The chirp-mass, merger-time and SNR heads are the healthy positive controls: validation $R^2$ of $0.921$–$0.961$, $0.901$–$0.921$ and $0.749$–$0.794$ across the four models.
+Sky position is weak: mean separations of $86.7^\circ$ (`poc_a`), $87.0^\circ$ (`poc_b`), $87.1^\circ$ (`tcn`) and $77.5^\circ$ (`cnn_attention`) against the $\approx90^\circ$ null.
+Only `cnn_attention` clears the materiality floor, which is the partial skill of `006_results.tex` §6.8; the other three are significant but sub-floor.
+So sky position cannot calibrate "what the network can extract from strain when information is present" the way the three scalar controls do, and the φc/ψ null does not lean on it.
+
+### 5.4 A shape pitfall in `analyse_predictions.py`
+
+After `transforms.inverse` and `physical_targets`, a sky array is `(N, 2)` in $(\text{dec},\text{ra})$ radians, not `(N, 3)` unit vectors.
+Taking `np.sum(true * pred, axis=-1)` on those arrays multiplies declination by declination and RA by RA, a number that is usually far above 1; after clipping to $[-1,1]$ and `arccos`, it reads as $0^\circ$.
+That produced a median error of exactly $0.0^\circ$ for every model and a "$4.4^\circ$–$10.3^\circ$ mean error" that no independent script reproduced.
+The script now converts to unit vectors first and uses `angular_separation`; the report run on all 5,000 validation samples agrees with `bootstrap_sky_separation.py` to two decimals.
+The general lesson is to be suspicious of a localization metric whose median is exactly zero, and to cross-check any control number against a second script that uses the shared helper.
+
+The investigation behind this (how the discrepancy was noticed, the original experiment's copy of the same bug, the 2,000- vs 5,000-sample reruns) is recorded in `NOTES.md`'s 2026-10-19 entries, not here.
 
 ---
 

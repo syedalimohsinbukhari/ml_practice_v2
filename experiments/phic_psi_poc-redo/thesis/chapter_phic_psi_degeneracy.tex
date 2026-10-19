@@ -110,7 +110,7 @@ Eight of these are used as supervised regression targets, in seven heads since d
 The scientific targets are $\varphi_c \in [0, 2\pi)$, period $2\pi$, and $\psi \in [0, \pi)$, period $\pi$.
 Inclination, chirp mass, merger time, SNR, and sky position are retained as \emph{control heads}: parameters trained through the identical pipeline whose success or failure calibrates what the network can extract from strain when information is present.
 
-The \textbf{degeneracy hypothesis} under test is: \emph{$\varphi_c$ and $\psi$ carry no strain-only recoverable signal for this population, in this architecture and loss family} --- a point-estimating network can do no better than the optimal constant prediction, because for most of the population the likelihood constrains only the combination $2\varphi_c \pm 2\psi$, and the remaining direction is unconstrained.
+The \textbf{degeneracy hypothesis} under test is: \emph{$\varphi_c$ and $\psi$ carry no strain-only recoverable signal for this population, in this architecture and loss family} --- a point-estimating network can do no better than the optimal constant prediction, because in the face-on limit the likelihood constrains only the combination $2\varphi_c \pm 2\psi$ and leaves the orthogonal direction unconstrained, and the two angles separate only partially away from face-on.
 The alternative hypothesis motivating the experimental design is that even if $\varphi_c$ and $\psi$ are individually unrecoverable, their \textbf{sum and difference combinations} may be well-conditioned: a network parameterized in $2\varphi_c \pm 2\psi$ combination space, with a curriculum that weights each combination according to how well the current inclination constrains it, might learn the recoverable structure that a naive per-angle parameterization misses.
 
 Conditioning on inclination $\iota$ --- tested as future work in \S\ref{sec:phicpsi:future} --- is treated throughout as a \emph{training-paradigm design choice}, motivated by the analytic structure of \S\ref{sec:phicpsi:prereq} showing that the well-constrained combination is recoverable given $\iota$, not as a forced move necessitated by a proof that $\iota$ itself is unrecoverable; \S\ref{sec:phicpsi:inclination} shows $\iota$'s own behavior is more complicated than clean noise --- partial mode collapse, not a real per-sample signal --- which still leaves this question open rather than resolving it.
@@ -122,7 +122,10 @@ No model in this chapter takes $\iota$, or any function of it, as an input at an
 Periodic targets are regressed on the unit circle~\cite{mardia2000circular}.
 An angle $\theta$ with period $T$ is encoded as the two-vector $\mathbf{u}(\theta) = (\sin(2\pi\theta/T), \cos(2\pi\theta/T))$, so the $\psi$ head, with $T=\pi$, physically encodes $2\psi$.
 Each periodic head outputs a raw two-vector $\mathbf{v}\in\mathbb{R}^2$, projected onto the unit circle by \texttt{tf\_normalize\_unit}, $\hat{\mathbf{u}} = \mathbf{v}/\sqrt{\max(\|\mathbf{v}\|^2,\varepsilon)}$ --- a clamp on the squared norm, for a stable gradient at $\mathbf{v}=\mathbf{0}$, rather than a floor on $\|\mathbf{v}\|$ itself --- and trained with the cosine (circular) loss $L_{\text{circ}} = 1 - \cos\Delta\theta$.
-For uniformly distributed targets and any fixed prediction, the expected circular loss is exactly 1; the null baselines are $\text{ang\_MAE} = \pi/2 \approx 1.5708$~rad for $\varphi_c$ and $\iota$, $\pi/4 \approx 0.7854$~rad for $\psi$.
+For uniformly distributed targets and any fixed prediction, the expected circular loss is exactly 1 for the heads trained with it ($\varphi_c$ and $\psi$).
+The null baselines are $\text{ang\_MAE} = \pi/2 \approx 1.5708$~rad for $\varphi_c$ and $\iota$, $\pi/4 \approx 0.7854$~rad for $\psi$.
+The $\psi$ head's circular loss is computed on the doubled angle $2\psi$, whereas $\text{ang\_MAE}$ is measured in $\psi$ itself, with residuals wrapped by the head's period $\pi$.
+The inclination head is not trained with the circular loss, so only its $\text{ang\_MAE}$ baseline applies.
 Two further diagnostic statistics recur throughout: the circular resultant $\text{circ}_r = \|\text{mean}(\hat{\mathbf{u}})\|$, which measures mode collapse ($\text{circ}_r \to 1$ means all predictions concentrate at one angle), and $\text{std\_ratio}$, the ratio of the standard deviation of a head's raw outputs to that of the encoded targets, a monitor of raw-magnitude health with a healthy band of $[0.5, 2.0]$.
 Non-periodic heads use a Huber loss on transformed targets, and the sky-position head uses a closed-form von Mises--Fisher negative log-likelihood on the unit sphere.
 The inclination head keeps an architecturally distinct path --- periodic two-vector encoding, but a Huber loss on the raw output, with no \texttt{tf\_normalize\_unit} projection and no circular loss anywhere in its path.
@@ -142,6 +145,7 @@ The 100-point inclination sweep (50 points per sign of $\cos\iota$, 200 sky posi
 \end{itemize}
 
 The curriculum weight derivation (\texttt{formulae\_reference.md} \S A.7) gives $w(\text{face-on}) = 0.0000$ and $w(\text{edge-on}) = 0.1416$, with an intermediate-peak shape; training uses the analytically motivated fallback $w(\iota) = 1 - \cos^2\iota = \sin^2\iota$ rather than the fitted empirical curve.
+The weight multiplies only the poorly-constrained combination; the well-constrained one keeps weight 1, and the two roles swap when $\cos\iota<0$.
 Population balance: 28.7\% face-on ($|\cos\iota| > 0.9$), 32.7\% edge-on ($|\cos\iota| < 0.5$).
 
 \begin{figure}[tbp]

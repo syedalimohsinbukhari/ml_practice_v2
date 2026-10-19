@@ -92,6 +92,7 @@ def _teardown_logging():
 
 from gwml.data.loader import load_arrays
 from gwml.data.transforms import TargetTransforms
+from gwml.data.sky_transform import angular_separation, radec_to_unit_vector
 from gwml.training.train import latest_run_dir, load_config
 
 CONFIGS = {
@@ -211,11 +212,11 @@ def analyse_run(label: str, config_path: Path) -> dict:
 
     # --- Sky position ---
     if "sky_position" in pred and "sky_position" in true:
-        tp = true["sky_position"]   # (N, 3) unit vectors
-        pp = pred["sky_position"]
-        dot = np.sum(tp * pp, axis=-1)
-        dot = np.clip(dot, -1.0, 1.0)
-        ang_error_rad = np.arccos(dot)
+        # Both arrays are (N, 2) = (dec, ra) in radians, not unit vectors;
+        # dotting them directly was a bug (clipped to 1 -> 0 deg error).
+        tp = radec_to_unit_vector(true["sky_position"][:, 1], true["sky_position"][:, 0])
+        pp = radec_to_unit_vector(pred["sky_position"][:, 1], pred["sky_position"][:, 0])
+        ang_error_rad = angular_separation(tp, pp)
         result["sky_position"] = {
             "angular_mae_deg": float(np.degrees(np.mean(np.abs(ang_error_rad)))),
             "angular_med_deg": float(np.degrees(np.median(np.abs(ang_error_rad)))),

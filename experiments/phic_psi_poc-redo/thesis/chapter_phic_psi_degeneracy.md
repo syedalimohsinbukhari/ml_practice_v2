@@ -27,7 +27,7 @@ This chapter asks:
 
 > **Can φ_c and ψ be recovered from strain alone by a deep neural network — individually, or through their better-conditioned sum/difference combinations — or is the degeneracy effectively exact for a realistic detection-scale population?**
 
-The answer is a **null result**: screened across five trunk architectures and established in full on four down-selected models drawn from two of them (`tcn` and `cnn_attention`), across two head parameterizations, three values of the magnitude-regularization coefficient (on the `tcn` models), and a comprehensive diagnostic battery, no model performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
+The answer is a **null result**: screened across five trunk architectures and established in full on four down-selected models drawn from two of them (`tcn` and `cnn_attention`), across two head parameterizations, three values of the magnitude-regularization coefficient (on the `tcn` models), and a comprehensive diagnostic battery, no model performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, and signal-to-noise ratio with high fidelity from the same shared features.
 No model here ever cleared the pre-registered metric-health gate that would have certified it as a clean test.
 The null defended here instead rests on convergence across four independent lines of evidence — direct inspection of the prediction distributions, a code-level gradient-health trace ruling out an implementation bug, a formal label-permutation bootstrap, and population stratification by inclination and signal-to-noise ratio — applied uniformly to all four down-selected models, without excluding any on interpretability grounds.
 This study additionally surfaced two findings: a genuine, SNR-monotonic partial sky-localization skill in one architecture (`cnn_attention`), unrelated to the φ_c/ψ question, and the inclination control head, which had been assumed to be clean noise, turned out to be partially mode-collapsed: neither clean noise nor a small recoverable signal.
@@ -46,7 +46,7 @@ Section 8 discusses interpretation, limitations, and future work; Section 9 conc
 ### 2.1 Targets and the degeneracy hypothesis
 
 We consider a ten-parameter description of a compact binary coalescence signal injected into two-detector noise: chirp mass M, mass ratio q, inclination ι, coalescence phase φ_c, polarization angle ψ, declination, right ascension, injection time, merger time within the analysis window, and network signal-to-noise ratio.
-Seven of these are used as supervised regression targets (mass ratio and injection time are excluded; §4.1).
+Eight of these are used as supervised regression targets, in seven heads since declination and right ascension share one sky-position head (mass ratio and injection time are excluded; §4.1).
 The scientific targets are φ_c ∈ [0, 2π), period 2π, and ψ ∈ [0, π), period π.
 Inclination, chirp mass, merger time, SNR, and sky position are retained as *control heads*: parameters trained through the identical pipeline whose success or failure calibrates what the network can extract from strain when information is present.
 
@@ -144,7 +144,8 @@ Confirming, on the Round-1 (λ = 0.01) checkpoints, that the machinery above is 
 **Gradients reach the periodic-head weights, end to end, through the corrected construction.** A full forward/backward trace on `poc_redo_b`'s real trained checkpoint shows healthy, non-vanishing gradient at every stage of the combination pipeline: dL/d(combo_A_pred) = 0.4245, dropping through the new `double_angle` stage (dL/d(z_2φc_norm) = 0.375) to dL/d(z_φc_raw) = 0.570 and dL/d(z_ψ_raw) = 0.514 — all comparable in order of magnitude to the healthy inclination-head baseline, 0.728 (`diagnostic_output/diagnostic_checks_20260916_113913.log`, lines 297–304).
 Prediction perturbation after one optimizer step shows the periodic heads moving far more than the converged scalar control (coa_phase mean|Δ| = 1.61×10⁻², polarization_angle 1.33×10⁻², against mchirp's 3.28×10⁻⁴), confirming the gradient path is live, not disconnected.
 
-**Positive controls recover well** (Fig. 5.4): chirp mass R² = 0.920–0.960 (poc_a 0.958, poc_b 0.958, tcn 0.960, cnn_attention 0.920), merger time R² = 0.906–0.928, SNR R² = 0.741–0.789, sky position 4.4°–10.3° mean angular error.
+**The chirp-mass, merger-time and SNR positive controls recover well** (Fig. 5.4): chirp mass R² = 0.920–0.960 (poc_a 0.958, poc_b 0.958, tcn 0.960, cnn_attention 0.920), merger time R² = 0.906–0.928, SNR R² = 0.741–0.789.
+Sky position is a weaker control: its mean great-circle separation is 77.5°–87.1° against ≈90° for chance, with only `cnn_attention` clearly better (§6.8).
 Inclination is deliberately excluded from this positive-control list for a documented, code-level reason — its Huber-loss, non-normalized path is architecturally distinct from φ_c/ψ's — not omitted quietly; its own, more nuanced result is presented on its own terms in §6.7.
 
 > **Figure 5.1.** True label distributions (Check 1) — `diagnostic_output/true_label_distributions.png`.
@@ -255,7 +256,7 @@ A companion check on a known-good, non-angular control (chirp mass, banded the s
 
 ### 6.8 A new finding: `cnn_attention`'s partial sky-localization skill
 
-`sky_position` was carried throughout as a positive control; here it is tested for significance directly.
+`sky_position` was carried throughout as a control head, though a weak one (mean separation 77.5°–87.1° against ≈90° for chance); here it is tested for significance directly.
 
 **Table 6.8 — Sky-position angular separation, bootstrap and SNR stratification.** Sources: `bootstrap_output/bootstrap_sky_separation_20260918_151359.md`, `snr_output/snr_stratification_sky_position_20260918_153412.md`.
 

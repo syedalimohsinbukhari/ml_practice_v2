@@ -27,7 +27,7 @@ We asked whether such a network can recover $\varphi_c$ and $\psi$ from two-dete
 
 The population is 25,000 training and 5,000 validation simulated events (IMRPhenomD, dominant mode only), each a 2 s window at 2048 Hz for H1 and L1.
 Periodic targets are regressed on the unit circle with a circular loss, so a random guess scores exactly 1 and the angular mean absolute error of a constant prediction is $\pi/2$ for $\varphi_c$ and $\pi/4$ for $\psi$.
-Chirp mass, merger time, SNR and sky position are trained through the same pipeline as positive controls.
+Chirp mass, merger time and SNR serve as positive controls; sky position is trained through the same pipeline but proves a weak control (see below).
 An analytic study first confirmed the corrected degeneracy structure: a self-check that $(R, \delta)$ stays constant along $2\varphi_c + 2\psi = \text{const}$ at face-on passed to machine precision (largest standard deviations $1.16\times10^{-14}$ and $5.87\times10^{-16}$), and the preference for the well-constrained combination falls from about $1.62$–$1.65\times$ face-on to $1.04$–$1.07\times$ edge-on.
 
 We screened five trunk architectures (temporal convolutional network, plain CNN, convolution-transformer, InceptionTime, ResNet) in seven configurations.

@@ -311,3 +311,9 @@ These are listed for the user to decide, not decided here, per the task brief.
 4. **The inclination anomaly (§3.5)** is investigated as far as this repo's own artifacts allow (dataset identity confirmed, shared-code changes ruled out) but not conclusively resolved — the leading remaining hypothesis (GPU/library nondeterminism or an unpinned environment difference between the two training campaigns) cannot be checked further without an environment manifest neither campaign recorded. If the user wants this pinned down precisely, the next step is checking whatever TF/CUDA/cuDNN versions were active on the lab GPU machine on 2026-07-20 vs. 2026-09-15, not a rerun of any analysis script in this repo.
 5. **The perturbation-trace procedural asymmetry (§3.4)** — whether the redo should adopt the original's paired-statistic salvage (which its own `early` data already partially supports for tcn/cnn_attention, per §2.12) or whether the original's provisional closure should itself be revisited given neither has ever run the fresh-holdout replication both investigations' own review cycles called for.
 6. **`cnn_attention`'s sky-position result (§4)** is flagged REAL-RECOVERY-CONSISTENT but not mechanistically confirmed as cross-detector amplitude-ratio recovery specifically (`closing_summary.md`) — worth a targeted follow-up if the user wants to pursue this secondary finding on its own merits, independent of the φc/ψ question.
+
+## Addendum (2026-10-19)
+
+The sky-position row in the numeric comparison (angular MAE 8.2° / 8.7° vs. 10.0° / 10.3° vs. 4.5° / 6.0° vs. 3.3° / 4.4°) comes from `analyse_predictions.py`'s sky block, which dotted (dec, ra) arrays as if they were unit vectors and so understated the error in both investigations.
+The corrected redo values are 77.5°-87.1° (see `NOTES.md`, "Sky-position control numbers corrected").
+The original experiment's numbers were not recomputed.

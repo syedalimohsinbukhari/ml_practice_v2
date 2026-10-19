@@ -374,3 +374,19 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
   §6.7 (paper and chapter) reframes inclination as partial mode collapse, "not a small real signal", but other passages still described a "small but statistically real sub-floor signal".
   Now aligned to §6.7: paper abstract, conclusion, future work (§8.5) and the sky-position comparative in §6.8; chapter §1 overview, §6.8 comparative, §8.3 threats bullet, §8.5 future work and conclusion (`.md` and `.tex` mirrored).
   The sky-position table verdicts ("small-but-real, sub-floor") are unchanged: they describe the sky effect, which is statistically significant but below the materiality floor.
+
+## Sky-position control numbers corrected (2026-10-19)
+
+- **Bug found.**
+  `analyse_predictions.py`'s sky block treated `true`/`pred["sky_position"]` as `(N, 3)` unit vectors and took `arccos` of their dot product.
+  After `transforms.inverse`/`physical_targets` they are `(N, 2)` (dec, ra) arrays, so the dot product was meaningless, clipped to 1, and gave a median error of exactly 0.0° for every model.
+  The report's "sky position 4.4°-10.3° mean angular error" (`analysis_output/analysis_report_20260916_113847.md`) is therefore wrong.
+  The same ported script in `experiments/phic_psi_poc/` carries the same bug (its sky numbers, e.g. 8.2°/8.7°, are affected); not edited, noted here.
+- **Correct values** are the great-circle separations in `bootstrap_output/bootstrap_sky_separation_20260918_151359.md`: 86.7° (poc_a), 87.0° (poc_b), 87.1° (tcn), 77.5° (cnn_attention) against a shuffled null of about 90°.
+  Sky position is therefore a weak control; only `cnn_attention` clears the materiality floor.
+- **Fix.** `analyse_predictions.py` now converts (dec, ra) to unit vectors (`radec_to_unit_vector`) and uses `angular_separation`.
+  Not rerun: the 2026-09-16 report is auto-generated and left unedited, and its sky table is superseded by the bootstrap artifact above.
+  A rerun is eval-only on the existing Round-1 checkpoints (`runs/phic_psi_poc_redo_a|b`, `phic_psi_redo_tcn`, `phic_psi_redo_cnn_attention`, weights and transforms present); it would regenerate the report and the mchirp scatter under a new timestamp, so every reference to `20260916_113847` would need repointing.
+- **Unaffected:** the phi_c/psi null and every other check (bootstrap, SNR and inclination stratification, gradient trace, collapse inspection) use other code paths; mchirp, merger_time and SNR remain healthy positive controls.
+- **Edited to match:** paper abstract, introduction, §2 (eight parameters in seven heads), §5, §6.8; thesis chapter (`.md`/`.tex`) overview, §2, §5, §6.8; `paper_summary.md`.
+- **Also open:** `analyse_predictions.py` loads 2,000 validation samples (`max_samples=2000`) while the paper's collapse figure says 5,000; not checked.

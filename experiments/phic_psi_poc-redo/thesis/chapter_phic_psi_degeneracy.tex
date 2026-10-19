@@ -84,7 +84,7 @@ This chapter asks:
 \itshape Can $\varphi_c$ and $\psi$ be recovered from strain alone by a deep neural network --- individually, or through their better-conditioned sum/difference combinations --- or is the degeneracy effectively exact for a realistic detection-scale population?
 \end{quote}
 
-The answer is a \textbf{null result}: screened across five trunk architectures and established in full on four down-selected models drawn from two of them (\texttt{tcn} and \texttt{cnn\_attention}), across two head parameterizations, three values of the magnitude-regularization coefficient (on the \texttt{tcn} models), and a comprehensive diagnostic battery, no model performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, signal-to-noise ratio, and sky position with high fidelity from the same shared features.
+The answer is a \textbf{null result}: screened across five trunk architectures and established in full on four down-selected models drawn from two of them (\texttt{tcn} and \texttt{cnn\_attention}), across two head parameterizations, three values of the magnitude-regularization coefficient (on the \texttt{tcn} models), and a comprehensive diagnostic battery, no model performed measurably better than random guessing on either angle, while the same networks simultaneously recovered chirp mass, merger time, and signal-to-noise ratio with high fidelity from the same shared features.
 No model here ever cleared the pre-registered metric-health gate that would have certified it as a clean test.
 The null defended here instead rests on convergence across four independent lines of evidence --- direct inspection of the prediction distributions, a code-level gradient-health trace ruling out an implementation bug, a formal label-permutation bootstrap, and population stratification by inclination and signal-to-noise ratio --- applied uniformly to all four down-selected models, without excluding any on interpretability grounds.
 This study additionally surfaced two findings: a genuine, SNR-monotonic partial sky-localization skill in one architecture (\texttt{cnn\_attention}), unrelated to the $\varphi_c/\psi$ question, and the inclination control head, which had been assumed to be clean noise, turned out to be partially mode-collapsed: neither clean noise nor a small recoverable signal.
@@ -106,7 +106,7 @@ Section~\ref{sec:phicpsi:discussion} discusses interpretation, limitations, and 
 \label{sec:phicpsi:targets}
 
 We consider a ten-parameter description of a compact binary coalescence signal injected into two-detector noise: chirp mass $\mathcal{M}$, mass ratio $q$, inclination $\iota$, coalescence phase $\varphi_c$, polarization angle $\psi$, declination, right ascension, injection time, merger time within the analysis window, and network signal-to-noise ratio.
-Seven of these are used as supervised regression targets (mass ratio and injection time are excluded; \S\ref{sec:phicpsi:dataset}).
+Eight of these are used as supervised regression targets, in seven heads since declination and right ascension share one sky-position head (mass ratio and injection time are excluded; \S\ref{sec:phicpsi:dataset}).
 The scientific targets are $\varphi_c \in [0, 2\pi)$, period $2\pi$, and $\psi \in [0, \pi)$, period $\pi$.
 Inclination, chirp mass, merger time, SNR, and sky position are retained as \emph{control heads}: parameters trained through the identical pipeline whose success or failure calibrates what the network can extract from strain when information is present.
 
@@ -227,7 +227,8 @@ True $\varphi_c/\psi/\iota/$right-ascension are uniform to circular resultant $\
 A full forward/backward trace on \texttt{poc\_redo\_b}'s real trained checkpoint shows healthy, non-vanishing gradient at every stage of the combination pipeline: $dL/d(\text{combo\_A\_pred}) = 0.4245$, dropping through the new \texttt{double\_angle} stage ($dL/d(\mathbf{z}_{2\varphi_c,\text{norm}}) = 0.375$) to $dL/d(\mathbf{z}_{\varphi_c,\text{raw}}) = 0.570$ and $dL/d(\mathbf{z}_{\psi,\text{raw}}) = 0.514$ --- all comparable in order of magnitude to the healthy inclination-head baseline, 0.728 (\texttt{diagnostic\_output/diagnostic\_checks\_20260916\_113913.log}, lines 297--304).
 Prediction perturbation after one optimizer step shows the periodic heads moving far more than the converged scalar control ($\text{coa\_phase}$ mean$|\Delta| = 1.61\times10^{-2}$, $\text{polarization\_angle}$ $1.33\times10^{-2}$, against mchirp's $3.28\times10^{-4}$), confirming the gradient path is live, not disconnected.
 
-\textbf{Positive controls recover well} (Fig.~\ref{fig:phicpsi:redo:controls}): chirp mass R\textsuperscript{2} $= 0.920$--$0.960$ (\texttt{poc\_a} 0.958, \texttt{poc\_b} 0.958, \texttt{tcn} 0.960, \texttt{cnn\_attention} 0.920), merger time R\textsuperscript{2} $= 0.906$--$0.928$, SNR R\textsuperscript{2} $= 0.741$--$0.789$, sky position $4.4^\circ$--$10.3^\circ$ mean angular error.
+\textbf{The chirp-mass, merger-time and SNR positive controls recover well} (Fig.~\ref{fig:phicpsi:redo:controls}): chirp mass R\textsuperscript{2} $= 0.920$--$0.960$ (\texttt{poc\_a} 0.958, \texttt{poc\_b} 0.958, \texttt{tcn} 0.960, \texttt{cnn\_attention} 0.920), merger time R\textsuperscript{2} $= 0.906$--$0.928$, SNR R\textsuperscript{2} $= 0.741$--$0.789$.
+Sky position is a weaker control: its mean great-circle separation is $77.5^\circ$--$87.1^\circ$ against $\approx 90^\circ$ for chance, with only \texttt{cnn\_attention} clearly better (\S\ref{sec:phicpsi:sky}).
 Inclination is deliberately excluded from this positive-control list for a documented, code-level reason --- its Huber-loss, non-normalized path is architecturally distinct from $\varphi_c/\psi$'s --- not omitted quietly; its own, more nuanced result is presented on its own terms in \S\ref{sec:phicpsi:inclination}.
 
 \begin{figure}[tbp]
@@ -402,7 +403,7 @@ A companion check on a known-good, non-angular control (chirp mass, banded the s
 \subsection{A new finding: \texttt{cnn\_attention}'s partial sky-localization skill}
 \label{sec:phicpsi:sky}
 
-\texttt{sky\_position} was carried throughout as a positive control; here it is tested for significance directly.
+\texttt{sky\_position} was carried throughout as a control head, though a weak one (mean separation $77.5^\circ$--$87.1^\circ$ against $\approx 90^\circ$ for chance); here it is tested for significance directly.
 
 \begin{table}[tbp]
     \centering

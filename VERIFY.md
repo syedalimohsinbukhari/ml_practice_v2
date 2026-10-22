@@ -18,7 +18,8 @@ Triage: an entry untouched after three sessions goes to the top of the next hand
 | BUG-002 | `resnet1d` follow-up run with q-head regularization and `q: 1.0` clamp | user, lab GPU machine (config change first) | PENDING |
 | OBS-001 | `cnn_attention` clamp-only ablation | user, lab GPU machine | PENDING |
 | OBS-009 | `sky_position` with/without test across seeds | user, lab GPU machine | PENDING |
-| BUG-008 | `columns` attribute of a generated file equals the first nine `heads_spec` names | user or agent, on the first generated file, off `thinkpad-t530` | PENDING |
+| OBS-025 | A full shard (5,000 injections + 5,000 noise-only) generated twice in fresh processes with the pinned `numpy` FFT backend is identical in `noises`, `waveforms`, `waveform_params` | user, workstation or lab machine, with the user's go-ahead | PENDING |
+| BUG-008 | `columns` attribute of a generated file equals the first nine `heads_spec` names | user or agent, on the first generated file, off `thinkpad-t530` | CONFIRMED |
 
 ## Entries
 
@@ -94,10 +95,20 @@ Status: `PENDING`. Closer: user, on the lab GPU machine.
 
 ### BUG-008 — `columns` attribute of a generated file
 
-Status: `PENDING`. Opened 2026-10-19T21:36Z. Closer: the first generated file, produced on a machine other than `thinkpad-t530` with the user's go-ahead.
+Status: `CONFIRMED` (2026-10-22T06:04Z, agent, a 10-injection shard written on `sarlws5-Precision-7820-Tower`). Opened 2026-10-19T21:36Z. Closer: the first generated file, produced on a machine other than `thinkpad-t530` with the user's go-ahead.
 
 - **What changed:** the `PARAM_COLUMNS` list in the sibling's `mlgwsc-1/train.py` (uncommitted in the sibling).
 - **What to check:** in a file written by `Dataset.save` (or by the shard driver), `f['training']['waveform_params'].attrs['columns']` equals `mchirp, q, inclination, coa_phase, polarization_angle, declination, ra, injection_time, merger_time`, in that order, and matches the first nine keys of `heads_spec.PARAM_COLUMNS`.
 - **Falsified by:** a missing attribute, a different name, or a different order.
 - **Why:** the comparison so far read the source of the list, not a written file; the list is only metadata, so a mismatch would go unnoticed until someone relies on the label.
 - **Lighter check already done (2026-10-19T21:36Z):** the list compared with `heads_spec.py` by an AST read; the old list does not match, the new one does.
+
+### OBS-025 — Waveform reproducibility at shard scale
+
+Status: `PENDING`. Opened 2026-10-22T06:04Z. Closer: a full-size run on the workstation or the lab machine, with the user's go-ahead.
+
+- **What changed:** `gen_seeded.py` pins pycbc's `numpy` FFT backend (uncommitted in the sibling at the time of writing).
+- **What to check:** generate one full shard (`--counts 5000 5000`) twice in fresh processes and compare `noises`, `waveforms`, and `waveform_params` for exact equality, as step 1 of `check_determinism.py` does (it takes `--counts`).
+- **Falsified by:** any differing element, however small.
+- **Why:** under the FFTW default about 3 of 5 comparisons differed at 10 injections; the pinned backend was clean in 8 comparisons at that size, which does not cover 5,000 injections.
+  The time per full shard is unknown and has not been measured.

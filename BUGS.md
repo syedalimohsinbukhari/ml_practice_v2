@@ -32,7 +32,7 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-012 | "ThinkPad T530, CPU-only" statements may not match the machine(s) in use                                                      | CLOSED: T530 confirmed in use; machines now tracked in `CLAUDE.md` |
 | OBS-013 | The test suite has no recorded run (`pytest -m "not slow"`, then full)                                                        | OPEN                                                               |
 | BUG-007 | `ml-gw-search` data generation is unseeded, so the dataset cannot be regenerated bit-for-bit                                  | OPEN                                                               |
-| BUG-008 | `PARAM_COLUMNS` in `ml-gw-search` `train.py` mislabels the columns `gen.py` writes (`mass1`/`mass2` versus `mchirp`/`q`)      | FIXED |
+| BUG-008 | `PARAM_COLUMNS` in `ml-gw-search` `train.py` mislabels the columns `gen.py` writes (`mass1`/`mass2` versus `mchirp`/`q`)      | VERIFIED |
 | BUG-009 | `injection_time` is stored as float32, which resolves only 128 s at GPS ≈ 1.2e9                                               | OPEN                                                               |
 | OBS-014 | The repackaged dataset drops the noise-only samples and carries no column labels or file attributes                           | OPEN                                                               |
 | OBS-015 | With `--real-noise-file`, `gen.py` pairs whitened waveforms with unwhitened real noise                                        | OPEN                                                               |
@@ -45,6 +45,7 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-022 | The generator writes no held-out test split, and how the q_value test set is formed is unknown                                | OPEN                                                               |
 | OBS-023 | Training uses one `42` literal for weight init and data order, `make_dataset` defaults to `seed=0`, and a run does not record its seed | OPEN |
 | OBS-024 | The tests seed their randomness with 11 scattered literals (`0` to `3`) | OPEN |
+| OBS-025 | The seeded driver reproduces noises and params bit-for-bit across processes, but `waveforms` differ in about 1 element per 10 injections (about 1e-13) under pycbc's default FFTW backend | FIXED |
 
 ## Entries
 
@@ -255,7 +256,7 @@ Origin: read of `ml-gw-search/mlgwsc-1/gen.py`.
 
 ### BUG-008 — `PARAM_COLUMNS` mislabels the written columns
 
-Opened 2026-10-19T20:40Z. Status: `FIXED` (2026-10-19T21:36Z); not yet verified in a written file.
+Opened 2026-10-19T20:40Z. Status: `VERIFIED` (2026-10-22T06:04Z); fixed 2026-10-19T21:36Z.
 Origin: read of `ml-gw-search/mlgwsc-1/train.py` and `gen.py`.
 
 - **Resolution (2026-10-19T21:36Z, user's decision):** the list in the sibling's `mlgwsc-1/train.py` was edited (uncommitted in the sibling) to `mchirp, q, inclination, coa_phase, polarization_angle, declination, ra, injection_time, merger_time`, the first nine keys of `heads_spec.PARAM_COLUMNS`.
@@ -263,6 +264,7 @@ Origin: read of `ml-gw-search/mlgwsc-1/train.py` and `gen.py`.
   Behavior is unaffected: `PARAM_COLUMNS` is used only for log messages, the `columns` attribute written by `Dataset.save`, and `NUM_PARAMS = len(...)` (verified, grep).
   The docstring and help text in `train.py` that still describe the regressed columns (for example "3 → mass1, mass2, merger_time_in_window") were already inconsistent with the column order and were left untouched.
   The sibling has no test suite, so this is covered only by the ad-hoc comparison; the attribute in a written file is queued in `VERIFY.md`.
+  **Verified 2026-10-22T06:04Z:** in a shard written by `gen_seeded.py` (10 injections, `sarlws5-Precision-7820-Tower`), the `columns` attribute of `waveform_params` equals the first nine names of `heads_spec.PARAM_COLUMNS` in order, and the file-level `columns` attribute equals it too; the control is the earlier AST comparison, where the old list did not match.
 - **Original diagnosis:**
 - **Evidence (verified, code read):**
   - `train.py:24-34` defines `PARAM_COLUMNS = ['mass1', 'mass2', 'inclination', 'coa_phase', 'pol_angle', 'declination', 'right_ascension', 'merger_time_gps', 'merger_time_in_window']`, and `Dataset.save()` writes it as the `columns` attribute of `waveform_params`.
@@ -417,3 +419,28 @@ Origin: `SEEDING.md` D-10.
 - **Decision 2026-10-19T21:53Z (user):** the tests are seeded with the same methodology, keyed by test name (`SEEDING.md`, "Test seeds").
 - **Risk:** reseeding changes each test's data, and tolerance-based and overfit tests may be sensitive to it; a failure after reseeding is a decision point for the user, not a reason to search for a seed that passes.
 - **Next:** implement a `conftest.py` fixture, then run the suite on the lab machine (to be queued in `VERIFY.md` with the change); no code change made.
+
+### OBS-025 — Waveforms are not bit-reproducible across processes under FFTW
+
+Opened 2026-10-22T06:02Z. Status: `FIXED` (2026-10-22T06:04Z); verified only on a shrunken workload, the at-scale check is queued in `VERIFY.md`.
+Origin: first run of `ml-gw-search/mlgwsc-1/check_determinism.py` (2026-10-22, `sarlws5-Precision-7820-Tower`).
+
+- **Resolution (2026-10-22T06:04Z, user's decision):** `gen_seeded.py` now sets pycbc's `numpy` FFT backend before generating (`pin_fft_backend`), checks that `pycbc.fft.npfft` is the active module, and records it in the `fft_backend` attribute.
+  Reran `check_determinism.py` three times with 10 injections and 5 noise-only samples per shard: 9 of 9 checks passed each time (steps 1 to 4; steps 5 and 6 are not implemented).
+  Weak power: under the FFTW default about 3 of 5 comparisons failed at this size, so 8 clean comparisons (3 here, 5 in the probe) are unlikely by chance but do not cover a 5,000-injection shard.
+  The `numpy` backend is a run-time pycbc setting, not an edit to the frozen backend, and it shifts the arithmetic by about 1e-13 relative to the FFTW default the paper used.
+- **Original diagnosis:**
+- **Evidence (verified, check output and array comparison):**
+  - Step 1 and the in-process-versus-file check failed: two fresh processes with the same key (3 injections + 3 noise-only) differ in 1 element of 24,576 of `waveforms`, by 5.68e-14.
+  - `noises` and `waveform_params` were bit-identical, and the provenance attributes matched.
+  - Steps 2 to 4 passed, and A, B, C, then A again in one process gave identical copies of A.
+- **Probe (verified; scratch script `fft_probe.py` in the session scratchpad, not in a repository; 10 injections, 6 fresh processes per variant, each compared with the variant's first run):**
+  - Default pycbc backend (FFTW): 3 of 5 runs differ from run 0 in 1 waveform element, by up to 2.3e-13; noises and params identical.
+  - `numpy` FFT backend: 0 of 5 runs differ.
+  - FFTW at measure level 0 (`ESTIMATE`): 3 of 5 runs differ, in 1 to 2 elements.
+  - Control: the default and `numpy` backends differ from each other in 2 of 81,920 waveform elements, by 2.3e-13, so the variant did change the arithmetic.
+- **Inferred, not tested:** the cause is FFTW choosing different plans in different processes, and since `ESTIMATE` did not remove it the cause is more likely memory alignment than timing-based `MEASURE` planning.
+  Whether `set_measure_level(0)` took effect was not checked.
+- **Size:** the largest difference is far below the noise (noise values reach 131), and the parameters are identical.
+- **Decision (user, 2026-10-22T06:04Z):** pin the `numpy` FFT backend in the driver; the alternatives were a tolerance on `waveforms` (noises and params stay bitwise) or a test of the alignment guess.
+- **Also found in the same run (fixed):** the driver crashed writing attributes because `torch.__version__` is a `str` subclass that h5py cannot store; `write_provenance` now coerces strings to `str`.

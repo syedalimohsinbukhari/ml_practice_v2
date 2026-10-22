@@ -1,6 +1,6 @@
 # Handoff
 
-Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had grown by appending and contradicted itself).
+Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had grown by appending and contradicted itself); environment, generator status, decisions, next steps, and working tree updated 2026-10-22T06:27Z.
 
 ## Read first
 
@@ -19,8 +19,8 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 ## Environment
 
 - At least three machines work on this repository; their hosts and working-tree paths are in the "Machines" table in `CLAUDE.md`.
-- Last session: `thinkpad-t530`, working tree `/home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2`, `.venv` active, 8 CPUs, no GPU; training, evaluation, and data generation do not run here.
-- Earlier session: `sarlws5-Precision-7820-Tower` (`/mnt/DRIVE1/PycharmProjects/ml_practice_v2`, Quadro P620, 40 CPUs).
+- Last session (2026-10-22): `sarlws5-Precision-7820-Tower`, working tree `/mnt/DRIVE1/PycharmProjects/ml_practice_v2` (Quadro P620, 40 CPUs); the sibling is at `/mnt/DRIVE1/PycharmProjects/ml-gw-search`, with its own `.venv` (Python 3.10, pycbc 2.9.0, numpy 2.2.6).
+- Earlier session (2026-10-19): `thinkpad-t530`, working tree `/home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2`, 8 CPUs, no GPU; training, evaluation, and data generation do not run there.
 - In scope beside this tree on `thinkpad-t530`: `/home/syedalimohsinbukhari/PycharmProjects/ml-gw-search` (data generation, branch `dev`) and `/home/syedalimohsinbukhari/PycharmProjects/gw_research_paper` (the Overleaf paper repository, branch `main`).
 - The third machine's host and path, and which machine is the "lab GPU machine", are still unrecorded.
 - Re-derive host and path each session rather than trusting this; record the path of any machine not yet in the table.
@@ -38,7 +38,10 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 - The target dataset: `IMRPhenomD`, spinless, legacy priors, Gaussian aLIGO design-PSD noise, H1 and L1, 4096-sample windows at 2048 Hz.
 - Counts: training 100,000, validation 20,000, test 10,000, half of each noise-only, in 13 shards of 10,000, then a merge step.
 - Layout: the injection rows keep `h1`, `l1`, `params` so the loader here works unchanged, and the noise-only rows go in `noise_h1`, `noise_l1`; the SNR is baked per sample in (7, 15), and the strain plus the unit-SNR waveform are stored.
-- Nothing is implemented yet: no generator code has been written, and the generator itself is unchanged except for the `PARAM_COLUMNS` label list in `train.py`.
+- Landed in `ml-gw-search` (2026-10-22, `[dev-minor-6]`): the seeded shard driver `mlgwsc-1/gen_seeded.py` and the determinism check `mlgwsc-1/check_determinism.py` (steps 1 to 4 of `SEEDING.md`); the backend files are unchanged.
+- Determinism: 9 of 9 checks passed in three runs at 10 injections + 5 noise-only per shard, after pinning pycbc's `numpy` FFT backend; under the FFTW default the waveforms differed by about 1e-13 in a few elements between processes (OBS-025). The check at shard scale is queued in `VERIFY.md`.
+- Not built: `re_package_hdf_with_noise.py`, the merge step, steps 5 and 6 of the check, and the contract check.
+- No full shard has been generated, and the time per shard is unknown.
 
 **Seeding.**
 - Each repository has its own, unrelated master seed and its own `SEEDING.md`; no code implements either scheme yet.
@@ -66,6 +69,11 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 | 21:56Z | The config key replacing `train.seed` is `seed_index` | `SEEDING.md` |
 | 22:06Z | Each repository has its own master seed; M = 10, N = 8, K = all five trunks; the floors are delegated to Claude | both `SEEDING.md`, `BUGS.md` OBS-008 |
 
+| When (2026-10-22) | Decision | Recorded in |
+|-------------------|----------|-------------|
+| 05:42Z to 05:47Z | The fork `syedalimohsinbukhari/ml-gw-search` becomes `origin` of the sibling (`dev` and `main` track it), the author's repository becomes the fetch-only `upstream`, and the diverged `dev` histories are merged | `CLAUDE.md`, sibling `HANDOFF.md` |
+| 06:02Z | Pin pycbc's `numpy` FFT backend in the driver, because of the FFTW difference of about 1e-13 between processes | `BUGS.md` OBS-025 |
+
 ## Open decisions
 
 - **Confirm the OBS-008 floors, and settle K = all against BUG-001:** the InceptionTime `merger_time` head is dead (R² ≈ 0 in all five recorded runs), so that trunk's positive control fails and, under the rule, no head can clear it.
@@ -79,16 +87,16 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 ## Next
 
 1. Settle the open decisions above, starting with K against BUG-001.
-2. Implement the generator wrap-around in `ml-gw-search`, one step at a time with the user's go-ahead: the seeded driver, `re_package_hdf_with_noise.py`, the merge step, backend hash pinning, provenance attributes; then run the generator's determinism check on a shrunken workload on a machine other than `thinkpad-t530`.
+2. Continue the generator wrap-around in `ml-gw-search`, one step at a time with the user's go-ahead: `re_package_hdf_with_noise.py` and the merge step (the driver, hash pinning, provenance attributes, and steps 1 to 4 of the determinism check are done); then steps 5 and 6 of the check, and the shard-scale reproducibility check in `VERIFY.md` (OBS-025).
 3. Implement the training and test seeding here: a `seeding` module, the `seed_index` config key, removal of the `make_dataset` default seed, run metadata (seed index, derived seeds, master seed), and a `conftest.py` fixture; then run the suite on the lab machine (to be queued in `VERIFY.md` with the change).
 4. After the first generated file: write the contract check against `heads_spec.py` (this closes BUG-005 and the `VERIFY.md` BUG-008 check), and review the loader's memory use (the strain array grows from about 0.8 GB to about 1.6 GB for the 50,000 injection rows).
 5. Work the remaining `PENDING` items in `VERIFY.md`, and re-measure the q results (OBS-006).
 
 ## Working tree
 
-- Committed here as `[q_value-minor-5]` to `[q_value-minor-12]`; `git log` shows them (their hashes changed when messages were reworded in the IDE, the labels did not).
-- Uncommitted here: none of the tracked files; `[q_value-minor-12]` carries `SEEDING.md` (rewritten for training and tests), `CLAUDE.md`, `BUGS.md`, `GENERATOR_OVERHAUL.md`, `README.md`, and this rewrite.
+- Committed here as `[q_value-minor-5]` to `[q_value-minor-14]`; `git log` shows them (hashes changed when messages were reworded in the IDE, the labels did not). `[q_value-minor-13]` is the `CLAUDE.md` remote-layout update; `[q_value-minor-14]` carries `BUGS.md` (OBS-025, BUG-008 `VERIFIED`), `VERIFY.md`, and this file.
+- Uncommitted here: none of the tracked files, once `[q_value-minor-14]` is made.
 - Untracked and deliberately not staged: `deeplearning_models/`, `experiments/paper/`, `experiments/phic_psi_poc-redo/`.
-- `ml-gw-search`: the `PARAM_COLUMNS` edit is committed on `dev` as `[dev-minor-2]`, unpushed (its only remote is the upstream author's, so nothing there is backed up); the new `SEEDING.md` and `HANDOFF.md` are committed on `dev` as `[dev-minor-3]`, also unpushed, and `re_package_hdf.py`, `mlgwsc-1/gen_py_data_pipeline.md`, `mlgwsc-1/__pycache__/`, and `combined_repackaged.hdf` stay untracked.
+- `ml-gw-search` (on `sarlws5-Precision-7820-Tower`): `dev` tracks `origin` (the user's fork); `[dev-minor-6]` adds the driver and the check and is pushed with this update; `upstream` is the author's repository, fetch-only. The history there is described in its own `HANDOFF.md`.
 - `gw_research_paper` has an uncommitted `main.tex` that these sessions did not touch.
 - The user must run `git push --force-with-lease origin q_value` (history was rewritten to fix commit messages); another machine holding the old commits needs `git fetch` then `git reset --hard origin/q_value`.

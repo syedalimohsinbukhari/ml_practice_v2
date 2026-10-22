@@ -113,7 +113,11 @@ They are separate git repositories: a commit in one never covers the others, and
 - Paths for these two on the other machines are unrecorded; add them to this table when a session runs there.
 - `ml-gw-search` has its own `HANDOFF.md` and `SEEDING.md` (with its own master seed, separate from this repository's); read them before working there.
 - `ml-gw-search`:
-  - `origin` is the upstream author's GitHub repository, so never push to it.
+  - Remotes, set up on `sarlws5-Precision-7820-Tower` at 2026-10-22T05:47Z: `origin` is the user's fork (`syedalimohsinbukhari/ml-gw-search`), and `dev` and `main` track it.
+  - `upstream` is the original author's repository (`ondrzel/ml-gw-search`); it is fetch-only (its push URL is set to `DISABLED`), so never push to it.
+  - A push to `origin` is still outward-facing, so ask before pushing; a yes covers that push only.
+  - `thinkpad-t530` was not reconfigured and may still have the old layout (`origin` = the author's repository); check `git remote -v` there before pushing.
+  - The working tree on `sarlws5-Precision-7820-Tower` is `/mnt/DRIVE1/PycharmProjects/ml-gw-search`.
   - It holds the 1.9 GB `combined_repackaged.hdf`, which is untracked; read its structure with `h5py` metadata only and never load it wholesale.
   - Generation is CPU-heavy pycbc work; do not run it without the user's go-ahead, and not on `thinkpad-t530`.
 - `gw_research_paper`:

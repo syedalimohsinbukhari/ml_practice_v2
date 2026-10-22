@@ -28,6 +28,7 @@ Usage (on GPU machine):
 
 from __future__ import annotations
 
+import gc
 import sys
 from pathlib import Path
 
@@ -181,6 +182,7 @@ def scalar_stats(true_vals: np.ndarray, pred_vals: np.ndarray):
 # ======================================================================
 
 def analyse_run(label: str, config_path: Path) -> dict:
+    import tensorflow as tf
     from train_poc import build_sumdiff_trainer
 
     cfg = load_config(str(config_path))
@@ -201,6 +203,11 @@ def analyse_run(label: str, config_path: Path) -> dict:
     raw_pred = trainer.predict(strain, batch_size=256, verbose=0)
     pred = transforms.inverse(raw_pred)
     true = transforms.physical_targets(params)
+
+    # Free the model before the next run: callers loop over several models on one GPU.
+    del trainer, raw_pred
+    tf.keras.backend.clear_session()
+    gc.collect()
 
     heads = transforms.heads
     result = {"label": label, "run_dir": str(run_dir), "heads": heads}

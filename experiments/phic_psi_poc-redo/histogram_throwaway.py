@@ -101,6 +101,7 @@ def plot(head: str) -> None:
             text += f"\npeaks at {peaks}"
         ax.text(0.99, 0.95, text, transform=ax.transAxes, ha="right", va="top", fontsize=8,
                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.85))
+        ax.set_ylim(top=ax.get_ylim()[1] * 1.3)  # headroom so the annotation box clears the tallest bar
         ax.set_title(MODEL_NAMES[m], fontsize=11)
         ax.set_ylabel("Count")
         ax.yaxis.set_major_locator(MaxNLocator(3))

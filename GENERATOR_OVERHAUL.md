@@ -9,7 +9,7 @@ Seeding of the generator is specified separately in `ml-gw-search/SEEDING.md` (i
 Claim labels follow `CLAUDE.md`: **verified** (name the check), **inferred**, **assumed**, **unknown**.
 Gap IDs (`G-nn`) are local to this file; the project-wide log is `BUGS.md`, and each gap cites its entry where one exists.
 
-## Status summary (2026-10-19T22:12Z)
+## Status summary (2026-10-19T22:12Z; the Done, Not built, and Next bullets updated 2026-10-22T06:55Z)
 
 - **Settled:**
   - The generator backend is frozen; all new work wraps it (section 0, section 7).
@@ -17,9 +17,10 @@ Gap IDs (`G-nn`) are local to this file; the project-wide log is `BUGS.md`, and 
   - The layout: injection rows in `h1`, `l1`, `params` so the loader is unchanged, noise-only rows in separate datasets, the strain plus the unit-SNR waveform stored, one SNR per sample baked in (D-05, D-12).
   - Seeding: a separate master seed per repository, `dataset_id` in the generation key, training seeds from `seed_index` (D-09, D-10; `ml-gw-search/SEEDING.md` and this repository's `SEEDING.md`).
 - **Done:** the `PARAM_COLUMNS` label list in the sibling's `train.py` (BUG-008, committed there as `[dev-minor-2]`).
-- **Not built:** the seeded driver, `re_package_hdf_with_noise.py`, the merge step, the backend hash pinning, the provenance attributes, the contract check; no generator code has run.
+- **Built, checked on tiny workloads only (2026-10-22):** the seeded driver with the backend hash pins and the provenance attributes (`gen_seeded.py`), `re_package_hdf_with_noise.py`, the merge step (`merge_hdf_shards.py`), and the contract check (`src/gwml/contract.py`, `scripts/check_contract.py`, `tests/test_contract.py`); the pycbc `numpy` FFT backend is pinned because of OBS-025.
+- **Not built or not run:** steps 5 and 6 of the determinism check, any full-size shard, the 13-shard generation, and the full merge.
 - **Open:** the head-inclusion floors and K = all against BUG-001 (`BUGS.md` OBS-008, which concerns the later training campaign, not the generation); the decisions are listed in `HANDOFF.md`.
-- **Next:** build the wrap-around one step at a time with the user's go-ahead (`HANDOFF.md`, "Next").
+- **Next:** steps 5 and 6 of the determinism check and the full-shard reproducibility check, then the real generation, with the user's go-ahead (`HANDOFF.md`, "Next").
 
 ## 0. Constraint: the generator internals are frozen (user, 2026-10-19T21:20Z)
 

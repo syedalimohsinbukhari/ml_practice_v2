@@ -1,6 +1,6 @@
 # Handoff
 
-Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had grown by appending and contradicted itself); environment, generator status, decisions, next steps, and working tree updated 2026-10-22T06:27Z.
+Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had grown by appending and contradicted itself); environment, generator status, decisions, next steps, and working tree updated 2026-10-22T06:52Z.
 
 ## Read first
 
@@ -38,10 +38,14 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 - The target dataset: `IMRPhenomD`, spinless, legacy priors, Gaussian aLIGO design-PSD noise, H1 and L1, 4096-sample windows at 2048 Hz.
 - Counts: training 100,000, validation 20,000, test 10,000, half of each noise-only, in 13 shards of 10,000, then a merge step.
 - Layout: the injection rows keep `h1`, `l1`, `params` so the loader here works unchanged, and the noise-only rows go in `noise_h1`, `noise_l1`; the SNR is baked per sample in (7, 15), and the strain plus the unit-SNR waveform are stored.
-- Landed in `ml-gw-search` (2026-10-22, `[dev-minor-6]`): the seeded shard driver `mlgwsc-1/gen_seeded.py` and the determinism check `mlgwsc-1/check_determinism.py` (steps 1 to 4 of `SEEDING.md`); the backend files are unchanged.
+- Landed in `ml-gw-search` (2026-10-22; the backend files are unchanged): `[dev-minor-6]` the seeded shard driver `mlgwsc-1/gen_seeded.py` and the determinism check `mlgwsc-1/check_determinism.py` (steps 1 to 4 of `SEEDING.md`); `[dev-minor-7]` `re_package_hdf_with_noise.py`; `[dev-minor-8]` `merge_hdf_shards.py`. Details and what was checked are in the sibling's `HANDOFF.md`.
 - Determinism: 9 of 9 checks passed in three runs at 10 injections + 5 noise-only per shard, after pinning pycbc's `numpy` FFT backend; under the FFTW default the waveforms differed by about 1e-13 in a few elements between processes (OBS-025). The check at shard scale is queued in `VERIFY.md`.
-- Not built: `re_package_hdf_with_noise.py`, the merge step, steps 5 and 6 of the check, and the contract check.
-- No full shard has been generated, and the time per shard is unknown.
+- Checked only on a 10-injection shard and on synthetic shards copied from it (repackaging and merge); nothing at full size.
+- Landed here (uncommitted): the contract check, `src/gwml/contract.py` (imports only `gwml.heads_spec`), `scripts/check_contract.py FILE [--full] [--max-rows N]`, and `tests/test_contract.py` (42 tests, all passed on this machine; only that file was run, not the suite).
+  Known-good: a real repackaged shard (40 of 40) and a merged file of real data (44 of 44) pass; the legacy `combined_repackaged.hdf` fails, as a known-bad control; `--full` fails a small shard on the D-03 counts.
+  Not yet run on a full-size merged file, and `structure.md` is still not written (BUG-005 stays `OPEN`).
+- Not built: steps 5 and 6 of the determinism check in `check_determinism.py`.
+- No full shard has been generated, and the time per shard or per merge is unknown.
 
 **Seeding.**
 - Each repository has its own, unrelated master seed and its own `SEEDING.md`; no code implements either scheme yet.
@@ -87,16 +91,16 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 ## Next
 
 1. Settle the open decisions above, starting with K against BUG-001.
-2. Continue the generator wrap-around in `ml-gw-search`, one step at a time with the user's go-ahead: `re_package_hdf_with_noise.py` and the merge step (the driver, hash pinning, provenance attributes, and steps 1 to 4 of the determinism check are done); then steps 5 and 6 of the check, and the shard-scale reproducibility check in `VERIFY.md` (OBS-025).
+2. Finish the generator wrap-around in `ml-gw-search` with the user's go-ahead: steps 5 and 6 of the determinism check (needs small real shards, so a small generation), the shard-scale reproducibility check in `VERIFY.md` (OBS-025), then the real generation of the 13 shards and the merge.
 3. Implement the training and test seeding here: a `seeding` module, the `seed_index` config key, removal of the `make_dataset` default seed, run metadata (seed index, derived seeds, master seed), and a `conftest.py` fixture; then run the suite on the lab machine (to be queued in `VERIFY.md` with the change).
-4. After the first generated file: write the contract check against `heads_spec.py` (this closes BUG-005 and the `VERIFY.md` BUG-008 check), and review the loader's memory use (the strain array grows from about 0.8 GB to about 1.6 GB for the 50,000 injection rows).
+4. After the first full merged file: run `scripts/check_contract.py --full` on it, decide whether to write `structure.md` or drop its stale references (BUG-005), and review the loader's memory use (the strain array grows from about 0.8 GB to about 1.6 GB for the 50,000 injection rows).
 5. Work the remaining `PENDING` items in `VERIFY.md`, and re-measure the q results (OBS-006).
 
 ## Working tree
 
-- Committed here as `[q_value-minor-5]` to `[q_value-minor-14]`; `git log` shows them (hashes changed when messages were reworded in the IDE, the labels did not). `[q_value-minor-13]` is the `CLAUDE.md` remote-layout update; `[q_value-minor-14]` carries `BUGS.md` (OBS-025, BUG-008 `VERIFIED`), `VERIFY.md`, and this file.
-- Uncommitted here: none of the tracked files, once `[q_value-minor-14]` is made.
+- Committed here as `[q_value-minor-5]` to `[q_value-minor-14]`; `git log` shows them (hashes changed when messages were reworded in the IDE, the labels did not). `[q_value-minor-13]` is the `CLAUDE.md` remote-layout update; `[q_value-minor-14]` carries `BUGS.md` (OBS-025, BUG-008 `VERIFIED`), `VERIFY.md`, and the previous version of this file.
+- Uncommitted here: this file's 2026-10-22T06:52Z update, and whatever the contract check adds (listed at the end of the session).
 - Untracked and deliberately not staged: `deeplearning_models/`, `experiments/paper/`, `experiments/phic_psi_poc-redo/`.
-- `ml-gw-search` (on `sarlws5-Precision-7820-Tower`): `dev` tracks `origin` (the user's fork); `[dev-minor-6]` adds the driver and the check and is pushed with this update; `upstream` is the author's repository, fetch-only. The history there is described in its own `HANDOFF.md`.
+- `ml-gw-search` (on `sarlws5-Precision-7820-Tower`): `dev` tracks `origin` (the user's fork); `[dev-minor-6]` is pushed, `[dev-minor-7]` and `[dev-minor-8]` are committed and not yet pushed; `upstream` is the author's repository, fetch-only. The history there is described in its own `HANDOFF.md`.
 - `gw_research_paper` has an uncommitted `main.tex` that these sessions did not touch.
 - The user must run `git push --force-with-lease origin q_value` (history was rewritten to fix commit messages); another machine holding the old commits needs `git fetch` then `git reset --hard origin/q_value`.

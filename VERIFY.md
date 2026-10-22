@@ -19,6 +19,7 @@ Triage: an entry untouched after three sessions goes to the top of the next hand
 | OBS-001 | `cnn_attention` clamp-only ablation | user, lab GPU machine | PENDING |
 | OBS-009 | `sky_position` with/without test across seeds | user, lab GPU machine | PENDING |
 | OBS-025 | A full shard (5,000 injections + 5,000 noise-only) generated twice in fresh processes with the pinned `numpy` FFT backend is identical in `noises`, `waveforms`, `waveform_params` | user, workstation or lab machine, with the user's go-ahead | PENDING |
+| BUG-005 | `scripts/check_contract.py --full` passes on the first full merged file | user or agent, on the first full merged file | PENDING |
 | BUG-008 | `columns` attribute of a generated file equals the first nine `heads_spec` names | user or agent, on the first generated file, off `thinkpad-t530` | CONFIRMED |
 
 ## Entries
@@ -112,3 +113,13 @@ Status: `PENDING`. Opened 2026-10-22T06:04Z. Closer: a full-size run on the work
 - **Falsified by:** any differing element, however small.
 - **Why:** under the FFTW default about 3 of 5 comparisons differed at 10 injections; the pinned backend was clean in 8 comparisons at that size, which does not cover 5,000 injections.
   The time per full shard is unknown and has not been measured.
+
+### BUG-005 — Contract check on a full merged file
+
+Status: `PENDING`. Opened 2026-10-22T06:55Z. Closer: the first full merged dataset file (13 shards), with the user's go-ahead for generating it.
+
+- **What changed:** `src/gwml/contract.py`, `scripts/check_contract.py`, and `tests/test_contract.py` were added (uncommitted at the time of writing).
+- **What to check:** `python scripts/check_contract.py <merged file> --full` reports every check passed, including the D-03 counts and 10 + 2 + 1 shards; then run `pytest tests/test_contract.py`.
+- **Falsified by:** any failed check.
+  A failure may mean the file or the contract is wrong; that is a decision for the user, not something to adjust until it passes.
+- **Why:** the check has been exercised only on a 10-injection shard, a merge of two copies of it, and synthetic mutations; nothing at full size, and its prior bounds (`PARAM_BOUNDS`) come from the frozen generator's priors by reading, not from a full file.

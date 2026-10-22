@@ -99,6 +99,7 @@ Opened 2026-10-19T11:37Z. Status: `OPEN`.
 - Referenced (verified by grep) by `README.md` (marked "not present" since 2026-10-19), `docs/pipeline/data.md`, `docs/pipeline/testing.md`, `tests/test_data_integrity.py` (docstring and `test_shapes_match_structure_md`), `tests/test_heads_spec.py` (`test_every_spec_column_matches_structure_md`), and a comment in `src/gwml/heads_spec.py`.
 - `git log --all` shows it has never been in the repository (verified).
 - Next: restore it from wherever it lives, or write the HDF5 layout down from `combined_repackaged.hdf` and drop the stale references.
+- **Update 2026-10-22T06:55Z:** the contract of the regenerated file now exists as code, `src/gwml/contract.py`, with `scripts/check_contract.py` and `tests/test_contract.py`; the references to `structure.md` in `README.md`, `docs/pipeline/`, `heads_spec.py`, and the two tests are unchanged, so this stays `OPEN` until the file is written or the references are dropped.
 
 ### BUG-006 — `PeriodicCheckpoint` is untested
 

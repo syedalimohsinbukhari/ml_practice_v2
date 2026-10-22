@@ -44,7 +44,7 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 - Landed here (uncommitted): the contract check, `src/gwml/contract.py` (imports only `gwml.heads_spec`), `scripts/check_contract.py FILE [--full] [--max-rows N]`, and `tests/test_contract.py` (42 tests, all passed on this machine; only that file was run, not the suite).
   Known-good: a real repackaged shard (40 of 40) and a merged file of real data (44 of 44) pass; the legacy `combined_repackaged.hdf` fails, as a known-bad control; `--full` fails a small shard on the D-03 counts.
   Not yet run on a full-size merged file, and `structure.md` is still not written (BUG-005 stays `OPEN`).
-- Not built: steps 5 and 6 of the determinism check in `check_determinism.py`.
+- Determinism check, all six steps (2026-10-22T07:26Z): 17 of 17 passed in three runs on real small shards from separate processes; the contract check passed 68 of 68 on a merged file of them.
 - No full shard has been generated, and the time per shard or per merge is unknown.
 
 **Seeding.**
@@ -91,7 +91,7 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 ## Next
 
 1. Settle the open decisions above, starting with K against BUG-001.
-2. Finish the generator wrap-around in `ml-gw-search` with the user's go-ahead: steps 5 and 6 of the determinism check (needs small real shards, so a small generation), the shard-scale reproducibility check in `VERIFY.md` (OBS-025), then the real generation of the 13 shards and the merge.
+2. Finish the generator wrap-around in `ml-gw-search` with the user's go-ahead: the shard-scale reproducibility check in `VERIFY.md` (OBS-025), then the real generation of the 13 shards and the merge.
 3. Implement the training and test seeding here: a `seeding` module, the `seed_index` config key, removal of the `make_dataset` default seed, run metadata (seed index, derived seeds, master seed), and a `conftest.py` fixture; then run the suite on the lab machine (to be queued in `VERIFY.md` with the change).
 4. After the first full merged file: run `scripts/check_contract.py --full` on it, decide whether to write `structure.md` or drop its stale references (BUG-005), and review the loader's memory use (the strain array grows from about 0.8 GB to about 1.6 GB for the 50,000 injection rows).
 5. Work the remaining `PENDING` items in `VERIFY.md`, and re-measure the q results (OBS-006).

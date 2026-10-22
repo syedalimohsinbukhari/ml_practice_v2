@@ -427,7 +427,7 @@ Opened 2026-10-22T06:02Z. Status: `FIXED` (2026-10-22T06:04Z); verified only on 
 Origin: first run of `ml-gw-search/mlgwsc-1/check_determinism.py` (2026-10-22, `sarlws5-Precision-7820-Tower`).
 
 - **Resolution (2026-10-22T06:04Z, user's decision):** `gen_seeded.py` now sets pycbc's `numpy` FFT backend before generating (`pin_fft_backend`), checks that `pycbc.fft.npfft` is the active module, and records it in the `fft_backend` attribute.
-  Reran `check_determinism.py` three times with 10 injections and 5 noise-only samples per shard: 9 of 9 checks passed each time (steps 1 to 4; steps 5 and 6 are not implemented).
+  Reran `check_determinism.py` three times with 10 injections and 5 noise-only samples per shard: 9 of 9 checks passed each time (steps 1 to 4); steps 5 and 6 were added and the whole check passed 17 of 17 in three runs on 2026-10-22.
   Weak power: under the FFTW default about 3 of 5 comparisons failed at this size, so 8 clean comparisons (3 here, 5 in the probe) are unlikely by chance but do not cover a 5,000-injection shard.
   The `numpy` backend is a run-time pycbc setting, not an edit to the frozen backend, and it shifts the arithmetic by about 1e-13 relative to the FFTW default the paper used.
 - **Original diagnosis:**

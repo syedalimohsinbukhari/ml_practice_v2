@@ -18,9 +18,10 @@ Gap IDs (`G-nn`) are local to this file; the project-wide log is `BUGS.md`, and 
   - Seeding: a separate master seed per repository, `dataset_id` in the generation key, training seeds from `seed_index` (D-09, D-10; `ml-gw-search/SEEDING.md` and this repository's `SEEDING.md`).
 - **Done:** the `PARAM_COLUMNS` label list in the sibling's `train.py` (BUG-008, committed there as `[dev-minor-2]`).
 - **Built, checked on tiny workloads only (2026-10-22):** the seeded driver with the backend hash pins and the provenance attributes (`gen_seeded.py`), `re_package_hdf_with_noise.py`, the merge step (`merge_hdf_shards.py`), and the contract check (`src/gwml/contract.py`, `scripts/check_contract.py`, `tests/test_contract.py`); the pycbc `numpy` FFT backend is pinned because of OBS-025.
-- **Not built or not run:** steps 5 and 6 of the determinism check, any full-size shard, the 13-shard generation, and the full merge.
+- **Determinism check, steps 1 to 6 (2026-10-22T07:26Z):** passed in three runs at 10 injections + 5 noise-only per shard; the contract check passed 68 of 68 on a merged file of real shards.
+- **Not run:** any full-size shard, the 13-shard generation, and the full merge.
 - **Open:** the head-inclusion floors and K = all against BUG-001 (`BUGS.md` OBS-008, which concerns the later training campaign, not the generation); the decisions are listed in `HANDOFF.md`.
-- **Next:** steps 5 and 6 of the determinism check and the full-shard reproducibility check, then the real generation, with the user's go-ahead (`HANDOFF.md`, "Next").
+- **Next:** the full-shard reproducibility check (and timing), then the real generation, with the user's go-ahead (`HANDOFF.md`, "Next").
 
 ## 0. Constraint: the generator internals are frozen (user, 2026-10-19T21:20Z)
 

@@ -122,4 +122,5 @@ Status: `PENDING`. Opened 2026-10-22T06:55Z. Closer: the first full merged datas
 - **What to check:** `python scripts/check_contract.py <merged file> --full` reports every check passed, including the D-03 counts and 10 + 2 + 1 shards; then run `pytest tests/test_contract.py`.
 - **Falsified by:** any failed check.
   A failure may mean the file or the contract is wrong; that is a decision for the user, not something to adjust until it passes.
-- **Why:** the check has been exercised only on a 10-injection shard, a merge of two copies of it, and synthetic mutations; nothing at full size, and its prior bounds (`PARAM_BOUNDS`) come from the frozen generator's priors by reading, not from a full file.
+- **Done so far (2026-10-22T07:26Z):** it passed 68 of 68 on a merged file of three real 10-injection shards (training 0 and 1, validation 0) and 40 of 40 on a repackaged shard.
+- **Why:** the check has been exercised only on tiny real shards and synthetic mutations; nothing at full size, and its prior bounds (`PARAM_BOUNDS`) come from the frozen generator's priors by reading, not from a full file.

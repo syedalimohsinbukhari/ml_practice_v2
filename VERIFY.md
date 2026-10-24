@@ -18,7 +18,7 @@ Triage: an entry untouched after three sessions goes to the top of the next hand
 | BUG-002 | `resnet1d` follow-up run with q-head regularization and `q: 1.0` clamp | user, lab GPU machine (config change first) | PENDING |
 | OBS-001 | `cnn_attention` clamp-only ablation | user, lab GPU machine | PENDING |
 | OBS-009 | `sky_position` with/without test across seeds | user, lab GPU machine | PENDING |
-| OBS-025 | A full shard (5,000 injections + 5,000 noise-only) generated twice in fresh processes with the pinned `numpy` FFT backend is identical in `noises`, `waveforms`, `waveform_params` | user, workstation or lab machine, with the user's go-ahead | PENDING |
+| OBS-025 | A full shard (5,000 injections + 5,000 noise-only) generated twice in fresh processes with the pinned `numpy` FFT backend is identical in `noises`, `waveforms`, `waveform_params` | user, workstation or lab machine, with the user's go-ahead | CONFIRMED |
 | BUG-005 | `scripts/check_contract.py --full` passes on the first full merged file | user or agent, on the first full merged file | PENDING |
 | BUG-008 | `columns` attribute of a generated file equals the first nine `heads_spec` names | user or agent, on the first generated file, off `thinkpad-t530` | CONFIRMED |
 
@@ -106,13 +106,17 @@ Status: `CONFIRMED` (2026-10-22T06:04Z, agent, a 10-injection shard written on `
 
 ### OBS-025 — Waveform reproducibility at shard scale
 
-Status: `PENDING`. Opened 2026-10-22T06:04Z. Closer: a full-size run on the workstation or the lab machine, with the user's go-ahead.
+Status: `CONFIRMED` (2026-10-24T21:55Z, for training shard 0 only). Opened 2026-10-22T06:04Z. Closer: a full-size run on the workstation or the lab machine, with the user's go-ahead.
 
 - **What changed:** `gen_seeded.py` pins pycbc's `numpy` FFT backend (uncommitted in the sibling at the time of writing).
 - **What to check:** generate one full shard (`--counts 5000 5000`) twice in fresh processes and compare `noises`, `waveforms`, and `waveform_params` for exact equality, as step 1 of `check_determinism.py` does (it takes `--counts`).
 - **Falsified by:** any differing element, however small.
 - **Why:** under the FFTW default about 3 of 5 comparisons differed at 10 injections; the pinned backend was clean in 8 comparisons at that size, which does not cover 5,000 injections.
   The time per full shard is unknown and has not been measured.
+- **Result (2026-10-24T21:55Z, verified; workstation, with the user's go-ahead):** training shard 0 (`--counts 5000 5000`, dataset 0) was generated twice in fresh processes, into `/mnt/DRIVE1/gen_out/fullsize_test/` and `/mnt/DRIVE1/gen_out/fullsize_repeat/`.
+  `noises` (10000, 2, 4096), `waveforms` (5000, 2, 4096), and `waveform_params` (5000, 9) are bit-identical by `np.array_equal`, and all provenance attributes match apart from time and argv.
+  Each run took about 202 s (real 202.23 s and 201.72 s) at about 50 samples per second, on about one core.
+  Scope: one shard; the other 12 are covered by the small-scale checks only, and both files record `git_dirty = True` at `cdcc102` (the uncommitted `verbose` pass-through, since committed as `[dev-minor-12]` in `ml-gw-search`, which leaves the arrays unchanged in a 10 + 5 test).
 
 ### BUG-005 — Contract check on a full merged file
 

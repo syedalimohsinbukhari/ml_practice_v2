@@ -45,7 +45,7 @@ Claim labels follow `CLAUDE.md`: verified / inferred / assumed / unknown.
 | OBS-022 | The generator writes no held-out test split, and how the q_value test set is formed is unknown                                | OPEN                                                               |
 | OBS-023 | Training uses one `42` literal for weight init and data order, `make_dataset` defaults to `seed=0`, and a run does not record its seed | OPEN |
 | OBS-024 | The tests seed their randomness with 11 scattered literals (`0` to `3`) | OPEN |
-| OBS-025 | The seeded driver reproduces noises and params bit-for-bit across processes, but `waveforms` differ in about 1 element per 10 injections (about 1e-13) under pycbc's default FFTW backend | FIXED |
+| OBS-025 | The seeded driver reproduces noises and params bit-for-bit across processes, but `waveforms` differ in about 1 element per 10 injections (about 1e-13) under pycbc's default FFTW backend | VERIFIED |
 
 ## Entries
 
@@ -423,13 +423,14 @@ Origin: `SEEDING.md` D-10.
 
 ### OBS-025 — Waveforms are not bit-reproducible across processes under FFTW
 
-Opened 2026-10-22T06:02Z. Status: `FIXED` (2026-10-22T06:04Z); verified only on a shrunken workload, the at-scale check is queued in `VERIFY.md`.
+Opened 2026-10-22T06:02Z. Status: `VERIFIED` (2026-10-24T21:55Z); fixed 2026-10-22T06:04Z, and bit-identical across two processes at full shard size (5,000 injections + 5,000 noise-only) for training shard 0 only, see `VERIFY.md`.
 Origin: first run of `ml-gw-search/mlgwsc-1/check_determinism.py` (2026-10-22, `sarlws5-Precision-7820-Tower`).
 
 - **Resolution (2026-10-22T06:04Z, user's decision):** `gen_seeded.py` now sets pycbc's `numpy` FFT backend before generating (`pin_fft_backend`), checks that `pycbc.fft.npfft` is the active module, and records it in the `fft_backend` attribute.
   Reran `check_determinism.py` three times with 10 injections and 5 noise-only samples per shard: 9 of 9 checks passed each time (steps 1 to 4); steps 5 and 6 were added and the whole check passed 17 of 17 in three runs on 2026-10-22.
   Weak power: under the FFTW default about 3 of 5 comparisons failed at this size, so 8 clean comparisons (3 here, 5 in the probe) are unlikely by chance but do not cover a 5,000-injection shard.
   The `numpy` backend is a run-time pycbc setting, not an edit to the frozen backend, and it shifts the arithmetic by about 1e-13 relative to the FFTW default the paper used.
+  At shard scale (2026-10-24T21:55Z, verified): training shard 0 generated twice in fresh processes (about 202 s each) is bit-identical in `noises`, `waveforms`, and `waveform_params`; the other 12 shards were not regenerated.
 - **Original diagnosis:**
 - **Evidence (verified, check output and array comparison):**
   - Step 1 and the in-process-versus-file check failed: two fresh processes with the same key (3 injections + 3 noise-only) differ in 1 element of 24,576 of `waveforms`, by 5.68e-14.

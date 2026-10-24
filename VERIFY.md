@@ -19,7 +19,7 @@ Triage: an entry untouched after three sessions goes to the top of the next hand
 | OBS-001 | `cnn_attention` clamp-only ablation | user, lab GPU machine | PENDING |
 | OBS-009 | `sky_position` with/without test across seeds | user, lab GPU machine | PENDING |
 | OBS-025 | A full shard (5,000 injections + 5,000 noise-only) generated twice in fresh processes with the pinned `numpy` FFT backend is identical in `noises`, `waveforms`, `waveform_params` | user, workstation or lab machine, with the user's go-ahead | CONFIRMED |
-| BUG-005 | `scripts/check_contract.py --full` passes on the first full merged file | user or agent, on the first full merged file | PENDING |
+| BUG-005 | `scripts/check_contract.py --full` passes on the first full merged file | user or agent, on the first full merged file | CONFIRMED |
 | BUG-008 | `columns` attribute of a generated file equals the first nine `heads_spec` names | user or agent, on the first generated file, off `thinkpad-t530` | CONFIRMED |
 
 ## Entries
@@ -120,7 +120,7 @@ Status: `CONFIRMED` (2026-10-24T21:55Z, for training shard 0 only). Opened 2026-
 
 ### BUG-005 — Contract check on a full merged file
 
-Status: `PENDING`. Opened 2026-10-22T06:55Z. Closer: the first full merged dataset file (13 shards), with the user's go-ahead for generating it.
+Status: `CONFIRMED` (2026-10-24T23:08Z). Opened 2026-10-22T06:55Z. Closer: the first full merged dataset file (13 shards), with the user's go-ahead for generating it.
 
 - **What changed:** `src/gwml/contract.py`, `scripts/check_contract.py`, and `tests/test_contract.py` were added (uncommitted at the time of writing).
 - **What to check:** `python scripts/check_contract.py <merged file> --full` reports every check passed, including the D-03 counts and 10 + 2 + 1 shards; then run `pytest tests/test_contract.py`.
@@ -129,4 +129,7 @@ Status: `PENDING`. Opened 2026-10-22T06:55Z. Closer: the first full merged datas
 - **Done so far (2026-10-22T07:26Z):** it passed 68 of 68 on a merged file of three real 10-injection shards (training 0 and 1, validation 0) and 40 of 40 on a repackaged shard.
 - **Also done (2026-10-24T22:38Z):** it passed 40 of 40 on the repackaged full-size shard 0 (5,000 injection rows + 5,000 noise-only rows), without `--full`, which still needs the merged 13-shard file.
 - **Also done (2026-10-24T23:01Z):** it passed 40 of 40 on each of the 13 repackaged full-size shards, again without `--full`.
+- **Result (2026-10-24T23:08Z, verified):** `python scripts/check_contract.py /mnt/DRIVE1/gen_out/merged/d0_merged.hdf --full` reported 99 of 99 checks passed (the D-03 counts and 10 + 2 + 1 shards included), and `pytest tests/test_contract.py` passed 42 of 42.
+  The merged file (6.4 GB, from the 13 full-size shards) was also compared with the shard-order concatenation row by row in every dataset, with 0 mismatches.
+  The check took 1.7 s although its default reads all rows; how much of the file it touches is unknown, which is why the row-by-row comparison was run separately.
 - **Why:** the check has been exercised only on tiny real shards and synthetic mutations; nothing at full size, and its prior bounds (`PARAM_BOUNDS`) come from the frozen generator's priors by reading, not from a full file.

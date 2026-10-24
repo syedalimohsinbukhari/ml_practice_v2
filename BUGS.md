@@ -100,6 +100,7 @@ Opened 2026-10-19T11:37Z. Status: `OPEN`.
 - `git log --all` shows it has never been in the repository (verified).
 - Next: restore it from wherever it lives, or write the HDF5 layout down from `combined_repackaged.hdf` and drop the stale references.
 - **Update 2026-10-22T06:55Z:** the contract of the regenerated file now exists as code, `src/gwml/contract.py`, with `scripts/check_contract.py` and `tests/test_contract.py`; the references to `structure.md` in `README.md`, `docs/pipeline/`, `heads_spec.py`, and the two tests are unchanged, so this stays `OPEN` until the file is written or the references are dropped.
+- **Update 2026-10-24T23:08Z:** the contract check (`scripts/check_contract.py --full`) passed 99 of 99 on the first full merged file, which closes its `VERIFY.md` item; this entry stays `OPEN` because `structure.md` is still missing and the stale references are unchanged.
 
 ### BUG-006 — `PeriodicCheckpoint` is untested
 

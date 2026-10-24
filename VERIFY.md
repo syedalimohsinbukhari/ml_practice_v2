@@ -128,4 +128,5 @@ Status: `PENDING`. Opened 2026-10-22T06:55Z. Closer: the first full merged datas
   A failure may mean the file or the contract is wrong; that is a decision for the user, not something to adjust until it passes.
 - **Done so far (2026-10-22T07:26Z):** it passed 68 of 68 on a merged file of three real 10-injection shards (training 0 and 1, validation 0) and 40 of 40 on a repackaged shard.
 - **Also done (2026-10-24T22:38Z):** it passed 40 of 40 on the repackaged full-size shard 0 (5,000 injection rows + 5,000 noise-only rows), without `--full`, which still needs the merged 13-shard file.
+- **Also done (2026-10-24T23:01Z):** it passed 40 of 40 on each of the 13 repackaged full-size shards, again without `--full`.
 - **Why:** the check has been exercised only on tiny real shards and synthetic mutations; nothing at full size, and its prior bounds (`PARAM_BOUNDS`) come from the frozen generator's priors by reading, not from a full file.

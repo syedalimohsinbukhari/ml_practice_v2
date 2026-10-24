@@ -48,7 +48,8 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 - Determinism check, step 7 added (2026-10-25 02:23 +05:00): the lag-aware cross-correlation of all noise series across H1 and L1, injected and noise-only rows, three shards, and two splits passed with a shifted-copy positive control; 19 of 19 checks passed (steps 1 to 7).
 - One full-size shard has been generated (2026-10-25 02:29 +05:00, training shard 0, 5,000 injections + 5,000 noise-only, real 202.23 s, 492 MB), and a second generation in a fresh process is bit-identical in `noises`, `waveforms`, and `waveform_params` (OBS-025 `VERIFIED`, `VERIFY.md` `CONFIRMED`).
   The files are in `/mnt/DRIVE1/gen_out/fullsize_test/` and `/mnt/DRIVE1/gen_out/fullsize_repeat/`, outside both repositories.
-  Not yet done: repackaging a full-size shard, the other 12 shards, the full merge (about 6.4 GB; time and memory unknown), and `scripts/check_contract.py --full` on a merged file.
+- The full-size shard 0 was repackaged (2026-10-24T22:38Z, 4.80 s, 1.97 GB peak): strain = noise + snr × unit waveform to 7.6e-06, SNR in (7.002, 14.999), noise-only rows and parameters equal to the source, and `scripts/check_contract.py` passed 40 of 40 (details in `../ml-gw-search/HANDOFF.md`).
+  Not yet done: the other 12 shards, the full merge (about 6.4 GB; time and memory unknown), and `scripts/check_contract.py --full` on a merged file.
 
 **Seeding.**
 - Each repository has its own, unrelated master seed and its own `SEEDING.md`; no code implements either scheme yet.
@@ -94,7 +95,7 @@ Written 2026-10-19T10:36Z; rewritten 2026-10-19T22:14Z (the earlier version had 
 ## Next
 
 1. Settle the open decisions above, starting with K against BUG-001.
-2. Finish the generator wrap-around in `ml-gw-search` with the user's go-ahead: repackage the full-size shard 0 and check it, then generate the 13 shards (about 202 s each; one process per shard) and merge them.
+2. Finish the generator wrap-around in `ml-gw-search` with the user's go-ahead: generate the 13 shards (the full-size shard 0 is already repackaged and checked) (about 202 s each; one process per shard) and merge them.
 3. Implement the training and test seeding here: a `seeding` module, the `seed_index` config key, removal of the `make_dataset` default seed, run metadata (seed index, derived seeds, master seed), and a `conftest.py` fixture; then run the suite on the lab machine (to be queued in `VERIFY.md` with the change).
 4. After the first full merged file: run `scripts/check_contract.py --full` on it, decide whether to write `structure.md` or drop its stale references (BUG-005), and review the loader's memory use (the strain array grows from about 0.8 GB to about 1.6 GB for the 50,000 injection rows).
 5. Work the remaining `PENDING` items in `VERIFY.md`, and re-measure the q results (OBS-006).

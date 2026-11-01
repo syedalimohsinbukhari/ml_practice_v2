@@ -1,0 +1,29 @@
+====================================================================================================
+Curriculum-weight edge-on dip: real or unit artifact?
+Run: 2026-11-01 11:32 +05:00   n_sky=50  n_iota=40  seeds=(42, 1, 2)
+====================================================================================================
+
+[Control 1] raw-R variant vs curriculum.derive_w_iota (n_sky=50, n_iota=100, seed=42)
+  max |w_mine - w_raw(derive_w_iota)| = 2.220e-16  ->  PASS
+  w(edge-on): mine=0.1174  derive_w_iota=0.1174
+
+[Sweep] w(ι), normalised to max 1
+variant / seed                      0.00   0.40   0.81   1.21   1.57
+raw R (as shipped) seed=42         0.000  0.128  0.962  0.294  0.118
+raw R (as shipped) seed=1          0.000  0.151  0.927  0.277  0.123
+raw R (as shipped) seed=2          0.000  0.080  0.967  0.495  0.149
+R x0.01 seed=42                    0.000  0.004  0.061  0.258  1.000
+R x0.01 seed=1                     0.000  0.004  0.060  0.251  1.000
+R x0.01 seed=2                     0.000  0.016  0.229  0.877  0.060
+R x100 seed=42                     0.000  0.200  0.729  0.171  0.067
+R x100 seed=1                      0.000  0.250  0.668  0.161  0.070
+R x100 seed=2                      0.000  0.110  0.966  0.285  0.115
+log R (dimensionless) seed=42      0.000  0.003  0.061  0.404  1.000
+log R (dimensionless) seed=1       0.000  0.003  0.060  0.399  1.000
+log R (dimensionless) seed=2       0.000  0.003  0.064  0.421  1.000
+
+[Control 2] w(face-on) < 1e-3 in every variant/seed: max = 6.66e-11  ->  PASS
+
+Controls: both pass — verdicts below are trusted
+
+Summary written: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/curriculum_dip_output/curriculum_dip_20261101_113235.md

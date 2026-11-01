@@ -171,6 +171,7 @@ structure.md
 !**/perturbation_*.log
 !**/inclination_*.log
 !**/prereq_checks_*.log
+!**/curriculum_dip_*.log
 
 # LaTeX build artifacts
 *.aux

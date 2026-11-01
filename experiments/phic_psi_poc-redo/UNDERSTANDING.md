@@ -350,6 +350,16 @@ Baking an unverified dip directly into the training signal risks telling the net
 The fallback is the conservative choice for a first training pass: it encodes only the one certain fact (exact degeneracy at face-on) and adds no unverified assumption beyond that.
 `build_w_iota_from_fit` exists to swap in the measured curve later, if its edge-on behavior is ever independently confirmed as real rather than artifact — not done as of this writing.
 
+**Change (2026-11-01 11:35 +05:00):** the edge-on dip has since been checked, and it is a unit artifact of the metric.
+The Jacobian's R row is a raw 200-sample projection sum while its δ row is in radians, and a condition number is not invariant to rescaling one row.
+Rescaling R by a constant changes the edge-on weight (0.118 as shipped, 0.067 for R×100, 1.000 for R×0.01 at seed 42) and moves the peak.
+With a dimensionless row (log R) the curve rises monotonically to 1 at edge-on at all three seeds tried.
+The original reasoning above ("could be real physics or a harness artifact") is kept as the reason sin²ι was chosen.
+What the check does not show is that the true weight is monotonic: the log-R curve is much more edge-concentrated than sin²ι, and no other dimensionless normalisation was compared.
+Toy model and fixed reference $(\varphi_c,\psi)$ only.
+The fitted curve still should not be adopted as shipped, because its shape depends on an arbitrary scale.
+Script and numbers: `curriculum_dip_check.py`, `curriculum_dip_output/curriculum_dip_20261101_113235.md`; the investigation is in `NOTES.md`'s 2026-11-01 11:35 entry.
+
 ## 4. The dataset's inclination prior, and the inclination control head's behavior
 
 ### 4.1 $\iota$ is drawn uniform over $[0,2\pi)$; only $\cos\iota$ ever matters physically

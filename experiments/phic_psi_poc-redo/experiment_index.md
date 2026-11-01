@@ -1,7 +1,7 @@
 # φc/ψ Degeneracy PoC — Redo — Experiment Index
 
 **Branch**: `poc/phic-psi-degeneracy-redo`
-**Last updated**: 2026-10-19
+**Last updated**: 2026-11-01 11:35 +05:00
 
 ---
 
@@ -27,6 +27,7 @@
 | File | Description |
 |---|---|
 | [`curriculum.py`](curriculum.py) | Step 1.2 toy antenna-pattern model + Jacobian-condition-number sweep + `derive_w_iota`, copied from `experiments/phic_psi_poc/curriculum.py` with `h_plus`/`h_cross` corrected to `2*phi_c` (A.5). |
+| [`curriculum_dip_check.py`](curriculum_dip_check.py) | **(2026-11-01 11:35 +05:00)** CPU-only toy check of whether the fitted weight's edge-on dip is real or a unit artifact: recomputes `derive_w_iota`'s curve while changing only how R enters the Jacobian (raw R, R×0.01, R×100, log R), over seeds 42/1/2. Positive controls: reproduces `derive_w_iota` to 2e-16; w=0 at face-on in every variant. Result → [`curriculum_dip_output/`](curriculum_dip_output/) (`curriculum_dip_20261101_113235.{log,md}`): the dip's depth and peak position move with the R scale and vanish for a dimensionless R, so the dip is a metric artifact. Does not show the true weight is monotonic; training still uses sin²ι. See `UNDERSTANDING.md` §3.8 and `NOTES.md`. |
 | [`combo_labels.py`](combo_labels.py) | Shared `COMBO_LABELS` name→LaTeX-label dict (`"combo_A" → 2φc+2ψ`, `"combo_B" → 2φc−2ψ`) — single source of truth for combo-space plot labels, imported flat (`from combo_labels import COMBO_LABELS`) by any script in this directory. Currently consumed by `plot_certified_memorization.py`. Extend by adding entries, not by `**`-unpacking into unrelated label dicts. |
 | [`transform_utils.py`](transform_utils.py) | Vector algebra primitives, copied from `experiments/phic_psi_poc/transform_utils.py` with `double_angle`/`tf_double_angle` added (A.1.5) and `reconstruct_phic_psi` corrected for the `2φc±2ψ` combo (A.8) — brute-force only, no parity shortcut (see below). |
 | [`trainer.py`](trainer.py) | `SumDiffTrainer`, copied from the original with one change: `_build_combo_vectors` doubles `z_phic` before combining, per A.2. Verified against synthetic TF tensors. |

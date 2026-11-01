@@ -440,3 +440,33 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
 - Main repo: `poc/phic-psi-degeneracy-redo` at `07285de`, in sync with its remote tracking ref; `q_value` at `0ace363`, in sync with its remote.
 - Uncommitted: `WORKING_CONVENTIONS.md` (untracked here, committed on `q_value`), `deeplearning_models/` (never staged), and `summary_paper.pdf` (untracked, not indexed).
 - Paper repo: `main` at `89b451a`, in sync with `origin/main`; uncommitted `main.tex` (in-progress section comments, deliberately left out of commits).
+
+## Edge-on dip in the fitted curriculum weight checked: a unit artifact (2026-11-01 11:35 +05:00)
+
+- **Question.**
+  `UNDERSTANDING.md` §3.8 and the paper say the fitted weight's edge-on dip "could be real or a measurement artifact" and that nobody had checked which.
+  Reading `curriculum._jacobian_condition_number` suggested a candidate: the (R, δ) Jacobian has one row in raw-R units (a 200-sample projection sum) and one in radians, and a condition number changes when one row is rescaled.
+- **Check.**
+  New script `curriculum_dip_check.py` recomputes the curve, changing only how R enters the Jacobian: raw R (as shipped), R×0.01, R×100, and log R (dimensionless).
+  50 sky draws, 40-point ι grid, seeds 42, 1 and 2, fixed reference (φc, ψ) = (0.5, 0.3).
+  Output: `curriculum_dip_output/curriculum_dip_20261101_113235.{log,md}`.
+- **Controls (both passed).**
+  The raw-R variant reproduces `derive_w_iota`'s `w_raw` to 2e-16 (n_sky=50, n_iota=100, seed 42).
+  w = 0 at face-on in every variant and seed.
+- **Result (verified, toy model).**
+  The shape of the shipped curve depends on the unit choice for R.
+  At seed 42 the edge-on weight is 0.118 as shipped, 0.067 for R×100 and 1.000 for R×0.01, and the peak ι moves from 0.77 to 0.68 to 1.57.
+  With log R the edge-on weight is 1.000 and the curve is monotone at all three seeds.
+  The R×0.01 variant is not dip-free at every seed (seed 2 gives edge-on 0.060), because the scale only moves where the crossover sits; only the dimensionless row removes it.
+- **Reading.**
+  Inferred: the dip is an artifact of the metric, not a real re-degradation near edge-on.
+  Not shown: that the true weight is monotonic.
+  The log-R curve is far more edge-concentrated than sin²ι (about 0.06 against 0.53 at ι≈0.8), and other dimensionless normalisations were not compared.
+  Limits: toy detector model, one fixed reference point, no check against the real generator.
+- **Consequences.**
+  No trained model changes, since training used sin²ι throughout.
+  The reason given for not using the fitted curve ("the dip may be real") no longer holds, but the fitted curve still cannot be adopted as shipped, because its shape is set by an arbitrary scale.
+- **Not done.**
+  The paper's "we could not tell which" in `003_prereq_study.tex` and the chapter's matching text were left unchanged.
+  `UNDERSTANDING.md` §3.8 carries a dated change note; its original text was kept.
+  No scale-free replacement weight was chosen or tested.

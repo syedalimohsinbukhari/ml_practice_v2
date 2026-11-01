@@ -1,0 +1,57 @@
+====================================================================================================
+Curriculum-weight edge-on dip: real or unit artifact?
+Run: 2026-11-01 11:59 +05:00   n_sky=200  n_iota=200  seeds=(42, 1, 2)
+====================================================================================================
+
+[Control 1] raw-R variant vs curriculum.derive_w_iota (n_sky=50, n_iota=100, seed=42)
+  max |w_mine - w_raw(derive_w_iota)| = 2.220e-16  ->  PASS
+  w(edge-on): mine=0.1174  derive_w_iota=0.1174
+
+[Control 3] closed-form κ vs numerical κ (600 draws x 3 row scales, iota in [0.05, pi/2-0.05])
+  periodic grid : median=3.24e-10  p99=1.84e-06  max=1.26e-05  ->  PASS (tolerance 0.001)
+  shipped grid  : median=3.68e-02  p99=1.00e+00  max=1.18e+00  (duplicated endpoint; informational)
+  done: raw R (as shipped), seed 42
+  done: raw R (as shipped), seed 1
+  done: raw R (as shipped), seed 2
+  done: R x0.01, seed 42
+  done: R x0.01, seed 1
+  done: R x0.01, seed 2
+  done: R x100, seed 42
+  done: R x100, seed 1
+  done: R x100, seed 2
+  done: log R (dimensionless), seed 42
+  done: log R (dimensionless), seed 1
+  done: log R (dimensionless), seed 2
+  done: raw R, periodic grid, seed 42
+  done: raw R, periodic grid, seed 1
+  done: raw R, periodic grid, seed 2
+  done: log R, periodic grid, seed 42
+  done: log R, periodic grid, seed 1
+  done: log R, periodic grid, seed 2
+
+[Sweep] w(ι), normalised to max 1
+variant / seed                        0.00   0.40   0.79   1.18   1.57   decreases (n, max, at ι)
+raw R (as shipped) seed=42           0.000  0.111  0.996  0.363  0.142   101, 0.976, 0.742
+raw R (as shipped) seed=1            0.000  0.122  0.976  0.317  0.118   102, 0.251, 1.207
+raw R (as shipped) seed=2            0.000  0.112  0.993  0.356  0.132   101, 0.644, 0.971
+R x0.01 seed=42                      0.000  0.007  0.101  0.435  1.000   19, 0.088, 1.554
+R x0.01 seed=1                       0.000  0.006  0.081  0.325  1.000   25, 0.349, 1.207
+R x0.01 seed=2                       0.000  0.012  0.181  0.742  0.097   26, 0.388, 0.971
+R x100 seed=42                       0.000  0.169  0.824  0.213  0.081   113, 0.027, 0.742
+R x100 seed=1                        0.000  0.189  0.753  0.183  0.067   115, 0.021, 0.774
+R x100 seed=2                        0.000  0.168  0.811  0.206  0.082   113, 0.021, 0.797
+log R (dimensionless) seed=42        0.000  0.003  0.057  0.359  1.000   1, 0.043, 0.742
+log R (dimensionless) seed=1         0.000  0.003  0.056  0.355  1.000   1, 0.401, 1.207
+log R (dimensionless) seed=2         0.000  0.003  0.056  0.358  1.000   1, 0.144, 0.971
+raw R, periodic grid seed=42         0.000  0.160  0.961  0.326  0.128   104, 0.991, 0.742
+raw R, periodic grid seed=1          0.000  0.177  0.925  0.291  0.110   106, 0.230, 1.207
+raw R, periodic grid seed=2          0.000  0.164  0.956  0.323  0.121   105, 0.580, 0.971
+log R, periodic grid seed=42         0.000  0.003  0.057  0.359  1.000   1, 0.043, 0.742
+log R, periodic grid seed=1          0.000  0.003  0.056  0.354  1.000   1, 0.401, 1.207
+log R, periodic grid seed=2          0.000  0.003  0.056  0.358  1.000   1, 0.144, 0.971
+
+[Control 2] w(face-on) < 1e-3 in every variant/seed: max = 2.81e-11  ->  PASS
+
+Controls: all pass — verdicts below are trusted
+
+Summary written: /home/syedalimohsinbukhari/PycharmProjects/ml_practice_v2/experiments/phic_psi_poc-redo/curriculum_dip_output/curriculum_dip_20261101_115902.md

@@ -65,12 +65,21 @@ For uniformly distributed targets and any fixed prediction, the expected circula
 The null baselines are ang_MAE = π/2 ≈ 1.5708 rad for φ_c and ι, π/4 ≈ 0.7854 rad for ψ.
 The ψ head's circular loss is computed on the doubled angle 2ψ, whereas ang_MAE is measured in ψ itself, with residuals wrapped by the head's period π.
 The inclination head is not trained with the circular loss, so only its ang_MAE baseline applies.
-Two further diagnostic statistics recur throughout.
-The circular resultant circ_r = ‖mean(û)‖ measures mode collapse: circ_r → 1 means all predictions concentrate at one angle, while a value near 0 does not rule out a multi-modal or antipodal collapse.
-std_ratio is the ratio of the standard deviation of a head's raw outputs to that of the encoded targets, pooled over both vector components.
-For angularly spread predictions it equals the mean raw norm, so it monitors raw-magnitude health with a healthy band of [0.5, 2.0].
-Non-periodic heads use a Huber loss on transformed targets, and the sky-position head uses a closed-form von Mises–Fisher negative log-likelihood on the unit sphere.
-The inclination head keeps an architecturally distinct path — periodic two-vector encoding, but a Huber loss on the raw output, with no `tf_normalize_unit` projection and no circular loss anywhere in its path.
+Two diagnostic statistics recur throughout.
+
+The first, circ_r, detects mode collapse in a periodic head.
+It is the length of the average of the predicted unit vectors, circ_r = ‖mean(û)‖, and lies between 0 and 1.
+A value near 1 means the head predicts almost the same angle for every input.
+A value near 0 is weaker evidence: it occurs when predictions are spread evenly around the circle, but also when they cluster at two opposite angles, so a low circ_r does not rule out collapse.
+
+The second, std_ratio, checks the size of a head's raw outputs.
+It is the standard deviation of the raw outputs divided by the standard deviation of the encoded targets, with both vector components pooled together.
+When the predictions are spread around the circle it equals their raw vector length, so a healthy head lies in the band [0.5, 2.0], and values far outside it mean the raw output has shrunk or grown too large.
+
+The remaining heads use other losses.
+The scalar heads (chirp mass, merger time and SNR) use a Huber loss on transformed targets, and the sky-position head uses a closed-form von Mises–Fisher negative log-likelihood on the unit sphere.
+The inclination head is an exception to this split.
+It keeps the periodic two-vector encoding, but is trained with a Huber loss on the raw output vector, with no `tf_normalize_unit` projection and no circular loss anywhere in its path.
 
 ## 3. Analytic Prerequisite Study
 
@@ -80,10 +89,12 @@ A required self-check — sweeping ψ at fixed `2φ_c + 2ψ`, confirming (R, δ)
 The 100-point inclination sweep (50 points per sign of cos ι, 200 sky positions, 5,000-draw bootstrap) confirms the expected combination structure:
 
 - for cos ι > 0, combo **B** (`2φ_c − 2ψ`) is the better-constrained combination throughout; for cos ι < 0, combo **A** (`2φ_c + 2ψ`) wins — a clean sign flip driven by the sign of cos ι;
-- the preference ratio is strongest face-on, ≈ **1.62–1.65×**, decaying monotonically toward ≈ **1.04–1.07×** at edge-on, never crossing 1.0;
+- the preference ratio is strongest face-on, ≈ **1.62–1.65×**, and falls toward edge-on, where the sweep points lie between ≈ **1.0×** and ≈ **1.1×**;
 - population-bootstrapped mean ratios are **1.17× (95% CI [1.11, 1.24])** for cos ι > 0 and **1.19× (95% CI [1.12, 1.26])** for cos ι < 0, with the simple two-point reference check clearing statistical significance directly.
 
 The curriculum weight derivation (`formulae_reference.md` §A.7) gives w(face-on) = 0.0000 and w(edge-on) = 0.1416, with an intermediate-peak shape; training uses the analytically motivated fallback w(ι) = 1 − cos²ι = sin²ι rather than the fitted empirical curve.
+The fitted curve's edge-on dip is an artifact of the condition number, not a physical feature: the Jacobian mixes an amplitude row in raw units with a phase row in radians, rescaling the amplitude changes the size of the dip and the position of the peak, and with a dimensionless amplitude the weight peaks at edge-on instead (`curriculum_dip_output/curriculum_dip_20261101_115902.md`).
+The edge-on value 0.1416 should therefore not be read as a physical property, and the check does not show what the true weight is.
 The weight multiplies only the poorly-constrained combination; the well-constrained one keeps weight 1, and the two roles swap when cos ι < 0.
 Population balance: 28.7% face-on (|cos ι| > 0.9), 32.7% edge-on (|cos ι| < 0.5).
 
@@ -93,8 +104,6 @@ The prerequisite study's verdict is GO: the combination structure exists in the 
 Whatever the networks below fail to learn, they do not fail for want of an analytically real target.
 
 ## 4. Methods
-The fitted curve's edge-on dip is an artifact of the condition number, not a physical feature: the Jacobian mixes an amplitude row in raw units with a phase row in radians, rescaling the amplitude changes the size of the dip and the position of the peak, and with a dimensionless amplitude the weight peaks at edge-on instead (`curriculum_dip_output/curriculum_dip_20261101_115902.md`).
-The edge-on value 0.1416 should therefore not be read as a physical property, and the check does not show what the true weight is.
 
 ### 4.1 Dataset
 
@@ -410,6 +419,7 @@ All paths relative to `experiments/phic_psi_poc-redo/`.
 |---|---|
 | Round-1 screen and down-selection (§4.2) | `NOTES.md`, "Round 1" and "Down-select re-validation" |
 | Analytic prerequisite sweep (§3, Fig. 3.1) | `sweep_1_1_ratio_vs_iota.{csv,png}`, `prereq_checks_output/prereq_checks_20260914_160834.log`, `formulae_reference.md` §A.5/A.7 |
+| Curriculum-weight edge-on dip is a unit artifact (§3) | `curriculum_dip_check.py`, `curriculum_dip_output/curriculum_dip_20261101_115902.{log,md}` |
 | Combination construction (§4.3) | `formulae_reference.md` §A.1.5/A.2; `trainer.py` |
 | Label-distribution audit (Fig. 5.1) | `diagnostic_output/true_label_distributions.png` |
 | Combo-loss trajectories (Fig. 5.2) | `diagnostic_output/combo_loss_trajectories.png` |
@@ -419,7 +429,6 @@ All paths relative to `experiments/phic_psi_poc-redo/`.
 | Table 6.1 | `analysis_output/analysis_report_20261019_125442.md` |
 | Table 6.3, Bonferroni correction (§6.3) | `bootstrap_output/bootstrap_ang_mae_20260916_113955.md` |
 | Table 6.4 | `snr_output/snr_stratification_20260916_113730.md` |
-| Curriculum-weight edge-on dip is a unit artifact (§3) | `curriculum_dip_check.py`, `curriculum_dip_output/curriculum_dip_20261101_115902.{log,md}` |
 | §6.6 (perturbation trace, parked) | `perturbation_trace_output/perturbation_trace_early_20260916_114129.md`, `closing_summary.md` |
 | Table 6.7, inclination reframing (§6.7) | `inclination_output/inclination_stratification_20260916_113601.md`, `inclination_control_stratification_20260916_113639.md`; partial-collapse finding: `inclination_output/inclination_stratification_20260923_132228.md`, scatter `inclination_output/inclination_scatter_20260923_132228.{png,pdf}` |
 | Table 6.8, sky-position finding (§6.8) | `bootstrap_output/bootstrap_sky_separation_20260918_151359.md`, `snr_output/snr_stratification_sky_position_20260918_153412.md` |

@@ -441,6 +441,76 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
 - Uncommitted: `WORKING_CONVENTIONS.md` (untracked here, committed on `q_value`), `deeplearning_models/` (never staged), and `summary_paper.pdf` (untracked, not indexed).
 - Paper repo: `main` at `89b451a`, in sync with `origin/main`; uncommitted `main.tex` (in-progress section comments, deliberately left out of commits).
 
+## `UNDERSTANDING.md` list numbering and index row (2026-10-30 13:26 +05:00)
+
+- **Numbering mismatch fixed.**
+  The "Topics so far" list in `UNDERSTANDING.md` numbered the Active topics 1–4, but the body headings are §2–§5 (there is no §1), and the header says `N` follows the paper's section-file number.
+  The list now reads 2–5.
+  Verified by reading the list against the body headings after the edit; the body numbering was not changed.
+- **Cross-references checked.**
+  Every pointer into `UNDERSTANDING.md` found by grep already used body numbering: `NOTES.md` (§4, §2.4–2.9, §3.8), `qvalue_carryover.md` (§2.5–2.9, §4, §5), `../gw_research_paper/000_preamble.tex` (§3.4) and the `transform_utils.py` docstring ("Topic 2", which is §2.1).
+  Only the `experiment_index.md` row was stale ("Active Topic 1" for the Step 1.1 material, now §3).
+  The grep covered `*.md`, `*.tex` and `*.py` in this repo and the sibling paper repo; it would miss pointers phrased without "UNDERSTANDING", which were not searched for.
+- **Index row rewritten.**
+  The `experiment_index.md` row for `UNDERSTANDING.md` described only the §3 material and P.1.
+  It now summarizes §2–§5, P.1, P.2 and T.1, with the `.tex` file each Active section documents.
+  The index's "Last updated" line now carries the time and offset.
+- **Not done.**
+  No section content in `UNDERSTANDING.md` was reviewed or changed in this pass.
+  The chapter and paper were not touched, so there is nothing to mirror.
+
+## Diagnostic-statistics passage reworded in the paper, mirrored in the chapter (2026-11-01 05:50 +05:00)
+
+- **Paper (`../gw_research_paper/002_problem-formulation.tex`, from "Two diagnostic statistics" onward).**
+  Rewritten in simpler terms: `circ_r` and `std_ratio` each get their own short paragraph with a plain definition, the loss description for the other heads is its own paragraph, and the inclination exception is two sentences.
+  "Detection head" corrected to "periodic head", and "non-periodic heads" to "the scalar heads (chirp mass, merger time and SNR)", since the sky head has its own loss.
+  A test `pdflatex` run of the paper finished with no errors; the rendered PDF was not read.
+- **Chapter mirrored (`thesis/chapter_phic_psi_degeneracy.{md,tex}`, §2).**
+  Same rewrite in both formats, 21 lines changed in each.
+  Differences from the paper are deliberate: the chapter names the statistic `std_ratio` throughout and never uses $\sigma_\text{head,target}$, and it keeps the `tf_normalize_unit` detail in the inclination sentence.
+  The chapter `.tex` was not compiled on its own, because it is a fragment; the two files were checked only by diff.
+- **Left as is.**
+  The chapter still says "The inclination head is not trained with the circular loss, so only its ang_MAE baseline applies", while the paper has commented that clause out.
+  No number or claim changed, so no claim-to-artifact appendix entry is affected.
+
+## Prerequisite-study wording: two claims about the preference ratio corrected, seed-dependent numbers softened (2026-11-01 06:23 +05:00)
+
+- **Two claims about the preference ratio did not hold.**
+  The chapter (§3) said the ratio is "decaying monotonically toward ≈1.04–1.07× at edge-on, never crossing 1.0".
+  Verified against `sweep_1_1_ratio_vs_iota.csv` (a single seed-42 run): on the cos ι > 0 side the ratio rises at 18 of 49 steps, so it is not monotonic.
+  Sweep points within about 0.15 rad of ι = π/2 lie between 1.008 and 1.132 across both signs, so "1.04–1.07" described only some of them.
+  The winning combination is consistent: combo B at all 50 points for cos ι > 0 and combo A at all 50 for cos ι < 0.
+  "Never crossing 1.0" is true by construction (the ratio is max/min of the two correlations, `UNDERSTANDING.md` §3.5), so it carried no information and was dropped.
+- **Paper (`../gw_research_paper/003_prereq_study.tex`, lines 1 to the curriculum paragraph).**
+  Reworded in simpler sentences.
+  The machine-precision std values, the "100-point" and "5,000-draw" sweep details and the $w(\text{edge-on})=0.1416$ figure were replaced by words, because the edge-on weight is sampling-sensitive (0.117 to 0.142 across seeds and draw counts, `UNDERSTANDING.md` §3.8) and no seed replication exists.
+  The vague phrase "the simple two-point reference check clearing significance directly" was removed; the bullet now names the reference points ι = π/4 and 3π/4.
+  The next paragraph's "this particular figure — so $0.1416$" was changed to refer to "the fitted edge-on value", since the number no longer appears.
+  Not compiled: `main.tex` has this section commented out.
+- **Chapter (`thesis/chapter_phic_psi_degeneracy.{md,tex}`, §3).**
+  Only the preference-ratio bullet was changed, in both formats: the ratio "falls toward edge-on, where the sweep points lie between ≈1.0× and ≈1.1×".
+  The chapter keeps its fuller numbers (std values with their log pointer, the sweep settings, $w(\text{edge-on})=0.1416$) as the detailed record.
+- **Other docs.**
+  `paper_summary.md` (std values removed; edge-on range softened) and `UNDERSTANDING.md` §2.4 (edge-on range softened) were updated in place.
+- **Left as is, on purpose.**
+  `original_vs_redo_comparison.md` lines 51–52 still read "≈1.04–1.07×" at edge-on; it is a dated comparison snapshot, so a dated addendum would be the only allowed change, and none was written.
+  The chapter bullet's "clearing statistical significance directly" was not changed.
+  The `.pptx` deck and the original experiment's documents were not checked.
+- **Open.**
+  The face-on range 1.62–1.65× and the bootstrap CIs also come from the single seed-42 run; they were kept in the paper and not reworded.
+  `003_prereq_study.tex` from the curriculum paragraph onward has not been reworded.
+
+## Paper §3 curriculum-weight paragraph reworded (2026-11-01 06:23 +05:00)
+
+- **Paper (`../gw_research_paper/003_prereq_study.tex`, the curriculum paragraph after the figure).**
+  The two long sentences explaining why the fitted weight is not used were split into seven short ones, with the same argument: the physics does not predict the edge-on drop, so it may be a real feature or a measurement artifact, and training therefore uses the analytic $\sin^2\iota$ weight, which commits only to zero weight at face-on.
+  "Monotonically" was changed to "steadily toward edge-on", since $\sin^2\iota$ rises only on the face-on to edge-on half-range.
+  The argument is the same as in `UNDERSTANDING.md` §3.8; no new claim and no number was added.
+  Not compiled: `main.tex` has this section commented out.
+- **Chapter not changed.**
+  The chapter's §3 has no matching explanation paragraph, only the one-sentence summary already present, so there is nothing to mirror.
+- **The commented-out population-balance line** (28.7% face-on, 32.7% edge-on) at the end of the paper's file was left commented, as it was.
+
 ## Edge-on dip in the fitted curriculum weight checked: a unit artifact (2026-11-01 11:35 +05:00)
 
 - **Question.**
@@ -457,6 +527,7 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
   The shape of the shipped curve depends on the unit choice for R.
   At seed 42 the edge-on weight is 0.118 as shipped, 0.067 for R×100 and 1.000 for R×0.01, and the peak ι moves from 0.77 to 0.68 to 1.57.
   With log R the edge-on weight is 1.000 and the curve is monotone at all three seeds.
+  **[Corrected 2026-11-01 12:05 +05:00: "monotone at all three seeds" is wrong. At 200 points the log-R curve peaks at edge-on but has one isolated decrease per seed; the numbers above came from the 40-point grid. See the 12:05 entry below.]**
   The R×0.01 variant is not dip-free at every seed (seed 2 gives edge-on 0.060), because the scale only moves where the crossover sits; only the dimensionless row removes it.
 - **Reading.**
   Inferred: the dip is an artifact of the metric, not a real re-degradation near edge-on.
@@ -470,7 +541,6 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
   The paper's "we could not tell which" in `003_prereq_study.tex` and the chapter's matching text were left unchanged.
   `UNDERSTANDING.md` §3.8 carries a dated change note; its original text was kept.
   No scale-free replacement weight was chosen or tested.
-  **[Corrected 2026-11-01 12:05 +05:00: "monotone at all three seeds" is wrong. At 200 points the log-R curve peaks at edge-on but has one isolated decrease per seed; the numbers above came from the 40-point grid. See the 12:05 entry below.]**
   **[Superseded 2026-11-01 12:05 +05:00: the paper paragraph, the chapter clause and `UNDERSTANDING.md` §3.9 were written afterwards; see the entry below.]**
 
 ## Edge-on dip check rerun at full resolution, with corrections to the 11:35 entry (2026-11-01 12:05 +05:00)

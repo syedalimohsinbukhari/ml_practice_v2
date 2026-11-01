@@ -15,10 +15,10 @@ Tag any such in-place change note with a `date: time` stamp (`YYYY-MM-DD HH:MM`,
 ## Topics so far
 
 **Active**
-1. The degeneracy hypothesis under test, the circular (cosine) loss and unit-circle normalization, the von Mises–Fisher sky head, why inclination uses Huber loss, and homoscedastic uncertainty weighting (`transform_utils.py`, `trainer.py`, `losses.py`, `heads_spec.py`, `002_problem-formulation.tex`)
-2. Step 1.1 prerequisite-check math and the $\iota$-sweep plot, the curriculum weight, and why its edge-on dip is a unit artifact (§3.8–3.9) (`prereq_checks.py`, `curriculum.py`, `curriculum_dip_check.py`, `003_prereq_study.tex`)
-3. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
-4. The positive controls, and why the sky-position head is a weak one (`005_diagnostics.tex`, `002_problem-formulation.tex`, `heads_spec.py`, `analyse_predictions.py`, `bootstrap_sky_separation.py`)
+2. The degeneracy hypothesis under test, the circular (cosine) loss and unit-circle normalization, the von Mises–Fisher sky head, why inclination uses Huber loss, and homoscedastic uncertainty weighting (`transform_utils.py`, `trainer.py`, `losses.py`, `heads_spec.py`, `002_problem-formulation.tex`)
+3. Step 1.1 prerequisite-check math and the $\iota$-sweep plot, the curriculum weight, and why its edge-on dip is a unit artifact (§3.8–3.9) (`prereq_checks.py`, `curriculum.py`, `curriculum_dip_check.py`, `003_prereq_study.tex`)
+4. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
+5. The positive controls, and why the sky-position head is a weak one (`005_diagnostics.tex`, `002_problem-formulation.tex`, `heads_spec.py`, `analyse_predictions.py`, `bootstrap_sky_separation.py`)
 
 **Deferred**
 - P.1. $\pi/4$ / $3\pi/4$ reference-point plot annotations (removed from the figure 2026-09-22 11:20)
@@ -100,7 +100,7 @@ So the learned per-head uncertainty $s_A$/$s_B$ cannot distinguish "this combo i
 That is how a null result is recognized in the results.
 
 **Why a null is expected.** Both angles enter the strain doubled (§3.3), so in the face-on limit the likelihood constrains only $2\varphi_c \pm 2\psi$ and leaves the orthogonal direction flat; away from face-on the two angles separate only partially.
-The degeneracy is therefore exact only at face-on, not "for most of the population": about 29% of the dataset is near face-on (§4.2), and the preference ratio decays toward $1.04$–$1.07\times$ at edge-on rather than the orthogonal direction becoming unconstrained everywhere.
+The degeneracy is therefore exact only at face-on, not "for most of the population": about 29% of the dataset is near face-on (§4.2), and the preference ratio falls to roughly $1.0$–$1.1\times$ near edge-on rather than the orthogonal direction becoming unconstrained everywhere.
 
 **The alternative, and how it was tested.** Even if the individual angles are unrecoverable, the combinations $2\varphi_c + 2\psi$ and $2\varphi_c - 2\psi$ might be learnable, since one is always better constrained than the other (§3.5).
 The test is the combination-space parameterization (the `poc_b` heads) with a curriculum weight that favors a combination where the current inclination makes it informative.

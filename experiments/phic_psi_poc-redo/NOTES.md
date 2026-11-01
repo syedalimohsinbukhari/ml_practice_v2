@@ -470,3 +470,44 @@ Also simplified, not a bug: `\comboA` was originally `\ensuremath{\combo{A}}`, d
   The paper's "we could not tell which" in `003_prereq_study.tex` and the chapter's matching text were left unchanged.
   `UNDERSTANDING.md` §3.8 carries a dated change note; its original text was kept.
   No scale-free replacement weight was chosen or tested.
+  **[Corrected 2026-11-01 12:05 +05:00: "monotone at all three seeds" is wrong. At 200 points the log-R curve peaks at edge-on but has one isolated decrease per seed; the numbers above came from the 40-point grid. See the 12:05 entry below.]**
+  **[Superseded 2026-11-01 12:05 +05:00: the paper paragraph, the chapter clause and `UNDERSTANDING.md` §3.9 were written afterwards; see the entry below.]**
+
+## Edge-on dip check rerun at full resolution, with corrections to the 11:35 entry (2026-11-01 12:05 +05:00)
+
+- **Why rerun.**
+  The 11:35 run used 50 sky draws and a 40-point ι grid, below the prerequisite run's 200 and 200, so a claim in the paper should cite a run at the paper's own resolution.
+  `curriculum_dip_check.py` now defaults to 200 and 200 and takes `--n-sky` and `--n-iota` for quick runs.
+  Output: `curriculum_dip_output/curriculum_dip_20261101_115902.{log,md}`.
+  The quick run (`..._113235`, already committed) is kept and superseded.
+- **Controls (all three pass).**
+  The raw-R variant reproduces `derive_w_iota`'s `w_raw` to 2.2e-16.
+  w(face-on) is at most 2.8e-11 in every variant and seed.
+  New Control 3: a hand-derived closed form for κ matches the numerical κ on an exactly periodic phase grid, with median relative error 3.2e-10 and max 1.3e-05 over 600 draws and 3 row scales.
+- **Result at full resolution (verified, toy model).**
+  Seed 42, shipped grid: edge-on w is 0.142 as shipped, 0.081 for R×100 and 1.000 for R×0.01, with the peak ι at 0.77, 0.68 and 1.57.
+  With log R the edge-on weight is 1.000 and the peak is at edge-on in all three seeds, on both phase grids.
+  R×0.01 is not clean at every seed: seed 2 has edge-on 0.097 and the peak at ι = 1.37.
+- **Corrections to the 11:35 entry.**
+  "Monotone at all three seeds" was wrong.
+  At 200 points the log-R curve has exactly one isolated decrease per seed, at ι = 0.74, 1.21 and 0.97 (sizes 0.043, 0.40 and 0.14), identical on both phase grids; the 40-point grid had hidden them.
+  A likely cause is a near-singular sky draw dominating the mean κ at that ι (inferred, not checked).
+  The edge-on values 0.118, 0.067 and 0.060 quoted there came from the 40-point grid; the 200-point values are 0.142, 0.081 and 0.097.
+  "About 0.06 against 0.53 at ι≈0.8" should read 0.50, since sin²(0.79) = 0.50.
+- **New findings.**
+  The closed form is κ + 1/κ = (p² + q² + 4)/(2|p|), where the raw-R factor N r / 2 sits in p; this is why the R scale sets the curve's shape.
+  The shipped phase grid `np.linspace(0, 2π, n_Phi)` includes both endpoints, so the projections are not exactly orthogonal; against the closed form its κ is off by a median 3.7% (99th percentile about 100%), against 3e-10 on `endpoint=False`.
+  Its effect on the fitted curve is modest (raw R, seed 42: edge-on 0.128 and peak 0.73 on the periodic grid, against 0.142 and 0.77 shipped), and the unit conclusion holds on both grids.
+- **Edits this round.**
+  `UNDERSTANDING.md`: §2.4 and §3.8 pointers, new §3.9 with the mechanism, numbers and limits.
+  Paper `003_prereq_study.tex`: last paragraph reworded (the drop is an artifact; the check came after the training choice).
+  Chapter (`.md` and `.tex`): one clause after the curriculum-weight sentence, plus a claim-to-artifact row.
+  `experiment_index.md`: script row updated to the full-resolution output.
+- **Not changed.**
+  No trained model, and no code outside `curriculum_dip_check.py`.
+  `curriculum.py` still has both flaws (mixed-unit Jacobian, duplicated phase endpoint); they are recorded, not fixed.
+  No scale-free replacement weight was chosen.
+- **Open.**
+  Whether the log-R decreases come from near-singular sky draws.
+  Whether any other dimensionless normalisation gives a different shape from log R.
+  Whether `prereq_checks.py` shares the duplicated-endpoint grid; not checked.

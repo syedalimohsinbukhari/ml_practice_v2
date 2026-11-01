@@ -157,6 +157,8 @@ Population balance: 28.7\% face-on ($|\cos\iota| > 0.9$), 32.7\% edge-on ($|\cos
     \caption[Analytic check of the corrected $2\varphi_c$--$2\psi$ degeneracy structure]{Analytic check of the corrected $2\varphi_c$--$2\psi$ degeneracy structure, ratio of the strain correlation with the well-constrained combination to the poorly-constrained one, as a function of inclination.}
     \label{fig:phicpsi:redo:sweep}
 \end{figure}
+The fitted curve's edge-on dip is an artifact of the condition number, not a physical feature: the Jacobian mixes an amplitude row in raw units with a phase row in radians, rescaling the amplitude changes the size of the dip and the position of the peak, and with a dimensionless amplitude the weight peaks at edge-on instead (\texttt{curriculum\_dip\_output/curriculum\_dip\_20261101\_115902.md}).
+The edge-on value $0.1416$ should therefore not be read as a physical property, and the check does not show what the true weight is.
 
 The prerequisite study's verdict is GO: the combination structure exists in the data, with the predicted sign behavior.
 Whatever the networks below fail to learn, they do not fail for want of an analytically real target.
@@ -613,6 +615,7 @@ All paths relative to \texttt{experiments/phic\_psi\_poc-redo/}.
         \S6.6 (perturbation trace, parked) & \texttt{perturbation\_trace\_output/perturbation\_trace\_early\_20260916\_114129.md} \\
         Table~\ref{tab:phicpsi:redo:inclination}; partial-collapse finding (\S\ref{sec:phicpsi:inclination}) & \texttt{inclination\_output/inclination\_stratification\_20260923\_132228.md}, scatter \texttt{inclination\_output/inclination\_scatter\_20260923\_132228.\{png,pdf\}} \\
         Table~\ref{tab:phicpsi:redo:sky} & \texttt{bootstrap\_output/bootstrap\_sky\_separation\_20260918\_151359.md}, \texttt{snr\_output/snr\_stratification\_sky\_position\_20260918\_153412.md} \\
+        Curriculum-weight edge-on dip is a unit artifact (\S3) & \texttt{curriculum\_dip\_check.py}, \texttt{curriculum\_dip\_output/curriculum\_dip\_20261101\_115902.\{log,md\}} \\
         Table~\ref{tab:phicpsi:redo:gate}, false-positive story & \texttt{diagnostic\_output/diagnostic\_logvar\_gate\_20260916\_085902.md}; scatter PNGs \\
         Fig.~\ref{fig:phicpsi:redo:memorization} & \texttt{diagnostic\_output/redo\_models\_train\_val\_loss.\{png,pdf\}} \\
         Undisclosed \texttt{poc\_b} reconstruction property (\S8.3) & \texttt{bootstrap\_ang\_mae.py}, \texttt{formulae\_reference.md} \S A.8 \\

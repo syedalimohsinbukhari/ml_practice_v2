@@ -16,7 +16,7 @@ Tag any such in-place change note with a `date: time` stamp (`YYYY-MM-DD HH:MM`,
 
 **Active**
 1. The degeneracy hypothesis under test, the circular (cosine) loss and unit-circle normalization, the von Mises–Fisher sky head, why inclination uses Huber loss, and homoscedastic uncertainty weighting (`transform_utils.py`, `trainer.py`, `losses.py`, `heads_spec.py`, `002_problem-formulation.tex`)
-2. Step 1.1 prerequisite-check math and the $\iota$-sweep plot (`prereq_checks.py`, `curriculum.py`, `003_prereq_study.tex`)
+2. Step 1.1 prerequisite-check math and the $\iota$-sweep plot, the curriculum weight, and why its edge-on dip is a unit artifact (§3.8–3.9) (`prereq_checks.py`, `curriculum.py`, `curriculum_dip_check.py`, `003_prereq_study.tex`)
 3. The dataset's inclination prior: $\iota$'s true $[0,2\pi)$ support, the face-on/edge-on over-representation direction, and the inclination control head's partial mode collapse (`004_methods.tex`, `003_prereq_study.tex`, `thesis/chapter_phic_psi_degeneracy.{md,tex}`, `inclination_stratification.py`, `ml-gw-search/mlgwsc-1/gen.py`)
 4. The positive controls, and why the sky-position head is a weak one (`005_diagnostics.tex`, `002_problem-formulation.tex`, `heads_spec.py`, `analyse_predictions.py`, `bootstrap_sky_separation.py`)
 
@@ -104,7 +104,7 @@ The degeneracy is therefore exact only at face-on, not "for most of the populati
 
 **The alternative, and how it was tested.** Even if the individual angles are unrecoverable, the combinations $2\varphi_c + 2\psi$ and $2\varphi_c - 2\psi$ might be learnable, since one is always better constrained than the other (§3.5).
 The test is the combination-space parameterization (the `poc_b` heads) with a curriculum weight that favors a combination where the current inclination makes it informative.
-The idealized weight would follow the condition number of the local $(\varphi_c,\psi)\to(R,\delta)$ Jacobian, which diverges at face-on and is finite away from it; the measured curve is non-monotonic, so training uses $w(\iota)=\sin^2\iota$ instead (§3.8).
+The idealized weight would follow the condition number of the local $(\varphi_c,\psi)\to(R,\delta)$ Jacobian, which diverges at face-on and is finite away from it; the measured curve is non-monotonic, but its edge-on dip is a unit artifact of that condition number (§3.9) and no scale-free replacement has been derived, so training uses $w(\iota)=\sin^2\iota$ instead (§3.8).
 The hope was that this recovers structure a per-angle head misses; the result is that it does not.
 
 ### 2.5 The null baselines, and which units each lives in
@@ -340,25 +340,70 @@ As of §P.1/§P.2, the figure is deliberately minimal: a bare two-panel scatter,
 At a fixed reference $(\varphi_c,\psi)$, for a set of random sky-position $(a,b)$ draws (50 by default in `derive_w_iota`; the prerequisite run that produced the numbers quoted below used 200 draws and a 200-point $\iota$ grid), it sweeps $\iota$ across $[0,\pi/2]$ and at each point computes the **Jacobian condition number** of the map $(\varphi_c,\psi)\to(R,\delta)$ (`_jacobian_condition_number`: central finite differences, then the ratio of largest to smallest singular value of the resulting $2\times2$ Jacobian).
 A high condition number means that map is nearly singular — two input directions are collapsing onto barely-distinguishable observables, i.e. genuinely degenerate at that $\iota$.
 Weight is set $\propto1/\text{cond}(J)$, averaged across the 50 sky draws, normalized to max $1$, then smoothed by linear interpolation on $\cos^2\iota$ — chosen specifically because an earlier unconstrained polynomial fit produced negative weights and residuals larger than the function's own range, an already-fixed, unrelated problem.
-Result: $w(\text{face-on})=0.0000$, rising to a peak $\approx0.9956$ near $\iota\approx0.789$, then *falling back down* to only $w(\text{edge-on})=0.1416$ — an intermediate-peak shape, not a monotonic one.
+Result: $w(\text{face-on})=0.0000$, rising to a peak $\approx0.9956$ near $\iota\approx0.789$, then *falling back down* to only $w(\text{edge-on})=0.1416$ — an intermediate-peak shape, not a monotonic one (the dip is a unit artifact, §3.9).
 The edge-on value is sampling-sensitive: the function's defaults (50 draws, 100 points, seed 42) give $w(\text{edge-on})=0.1174$, 200 draws give $0.1417$, and other seeds and sample sizes land between $0.117$ and $0.142$; the peak stays at $\approx1$ near $\iota\approx\pi/4$.
 
 In `trainer.py` the weight multiplies only the poorly-constrained combination; the well-constrained one keeps weight $1$, and the roles swap when $\cos\iota<0$ (`sign_dependent_combo`).
 Training instead uses `w_iota_default`, the simple closed-form $w(\iota)=1-\cos^2\iota=\sin^2\iota$: zero at face-on (matching the measured curve there), but monotonically increasing all the way to $1$ at edge-on, unlike the measured curve's dip.
-Reason for the choice: the measured curve's edge-on dip is ambiguous — it could be real physics (this quasi-linear map genuinely re-degrading near edge-on, for a reason the simple face-on/edge-on story doesn't capture), or a harness artifact (the fixed reference $(\varphi_c,\psi)$ point, the specific sky-position sampling, or the interpolation smoothing itself), and nobody had independently verified which.
+Reason for the choice: the measured curve's edge-on dip is ambiguous — it could be real physics (this quasi-linear map genuinely re-degrading near edge-on, for a reason the simple face-on/edge-on story doesn't capture), or a harness artifact (the fixed reference $(\varphi_c,\psi)$ point, the specific sky-position sampling, or the interpolation smoothing itself), and at the time nobody had independently verified which (it has since been checked, §3.9).
 Baking an unverified dip directly into the training signal risks telling the network to under-weight edge-on samples — exactly the regime §3.5's own analytic sweep says is *least* degenerate — for no confirmed reason.
 The fallback is the conservative choice for a first training pass: it encodes only the one certain fact (exact degeneracy at face-on) and adds no unverified assumption beyond that.
-`build_w_iota_from_fit` exists to swap in the measured curve later, if its edge-on behavior is ever independently confirmed as real rather than artifact — not done as of this writing.
+`build_w_iota_from_fit` exists to swap in the measured curve later; §3.9 found its edge-on dip to be a unit artifact, so it should not be used with the curve as shipped.
 
-**Change (2026-11-01 11:35 +05:00):** the edge-on dip has since been checked, and it is a unit artifact of the metric.
-The Jacobian's R row is a raw 200-sample projection sum while its δ row is in radians, and a condition number is not invariant to rescaling one row.
-Rescaling R by a constant changes the edge-on weight (0.118 as shipped, 0.067 for R×100, 1.000 for R×0.01 at seed 42) and moves the peak.
-With a dimensionless row (log R) the curve rises monotonically to 1 at edge-on at all three seeds tried.
-The original reasoning above ("could be real physics or a harness artifact") is kept as the reason sin²ι was chosen.
-What the check does not show is that the true weight is monotonic: the log-R curve is much more edge-concentrated than sin²ι, and no other dimensionless normalisation was compared.
-Toy model and fixed reference $(\varphi_c,\psi)$ only.
-The fitted curve still should not be adopted as shipped, because its shape depends on an arbitrary scale.
-Script and numbers: `curriculum_dip_check.py`, `curriculum_dip_output/curriculum_dip_20261101_113235.md`; the investigation is in `NOTES.md`'s 2026-11-01 11:35 entry.
+**Change (2026-11-01 12:05 +05:00):** the edge-on dip has been checked and is a unit artifact of the metric; the settled result is §3.9.
+The reasoning above ("could be real physics or a harness artifact") is kept because it is why `sin²ι` was chosen at the time.
+
+### 3.9 The edge-on dip in the fitted weight is a unit artifact of the condition number
+
+**What was checked.** `curriculum_dip_check.py` recomputes the `derive_w_iota` curve while changing only how $R$ enters the Jacobian, at the prerequisite run's resolution (200 sky draws, 200-point $\iota$ grid, seeds 42, 1, 2, fixed reference $(\varphi_c,\psi)=(0.5,0.3)$).
+Variants: $R$ as shipped, $R\times0.01$, $R\times100$ (pure unit changes), and $\log R$ (a dimensionless row).
+Two further variants repeat raw $R$ and $\log R$ on an exactly periodic phase grid (see "A second flaw" below).
+Controls, all passing: the raw variant reproduces `derive_w_iota`'s `w_raw` to $2\times10^{-16}$; $w=0$ at face-on in every variant; the closed form below matches the numerical $\kappa$ (max relative error $1.3\times10^{-5}$ over 600 draws and 3 row scales).
+Output: `curriculum_dip_output/curriculum_dip_20261101_115902.{log,md}`.
+
+**Why the condition number depends on units.** The Jacobian has one row in raw-$R$ units (a projection sum, $R=\tfrac N2\,r\,g(\beta)$) and one in radians.
+A condition number is not invariant to rescaling one row, so $\kappa$, and therefore $w\propto1/\kappa$, depends on how $R$ is normalised.
+On an exactly periodic phase grid, with $a=r\cos\alpha$, $b=r\sin\alpha$, $\beta=2\psi-\alpha$ and $g=\sqrt{k_1^2\cos^2\beta+k_2^2\sin^2\beta}$:
+$$
+R=\tfrac N2\,r\,g(\beta),\qquad \delta=2\varphi_c+\operatorname{atan2}(k_2\sin\beta,\,k_1\cos\beta),\qquad
+J=\begin{pmatrix}0&p\\2&q\end{pmatrix},
+$$
+$$
+p=2\cdot\tfrac N2\,r\,g'(\beta),\qquad q=\frac{2k_1k_2}{k_1^2\cos^2\beta+k_2^2\sin^2\beta},\qquad
+\kappa+\frac1\kappa=\frac{p^2+q^2+4}{2|p|}.
+$$
+At face-on $k_1=|k_2|$, so $g$ is constant, $p=0$ and $\kappa$ diverges: this is the exact degeneracy, and the reason $w(\text{face-on})=0$.
+Away from face-on, $p$ carries the raw-$R$ factor $N\,r/2$ (about $100$ for $N=200$), so rescaling $R$ moves the crossover between the regime where $p$ is small (the weight tracks the degeneracy) and the regime where $p$ is large and $\kappa\approx|p|/2$ (the weight tracks how sensitive the raw amplitude is, which is not a degeneracy measure).
+The formula is verified; the reading of the two regimes is inferred from it.
+
+**What the numbers show** (seed 42 unless stated; shipped grid):
+
+| variant | edge-on $w$ | peak $\iota$ |
+|---|---|---|
+| $R\times100$ | $0.081$ | $0.68$ |
+| $R$ as shipped | $0.142$ | $0.77$ |
+| $R\times0.01$ | $1.000$ | $1.57$ |
+| $\log R$ | $1.000$ | $1.57$ |
+
+A feature whose size and position move under a pure unit change is not a property of the physics.
+With the dimensionless $\log R$ row the weight peaks at edge-on ($w=1.000$) in all three seeds, on both phase grids.
+$R\times0.01$ is not a clean fix: at seed 2 its edge-on weight is $0.097$ with the peak at $\iota=1.37$, because a rescaling only moves the crossover.
+
+**A second flaw: the phase grid.** The shipped grid is `np.linspace(0, 2π, n_Phi)`, which includes both endpoints, so phase $0$ and $2\pi$ are sampled twice and the cos/sin projections are not exactly orthogonal.
+Against the closed form, $\kappa$ on the shipped grid is off by a median $3.7\%$ (99th percentile $\approx100\%$), while on `endpoint=False` it agrees to a median $3\times10^{-10}$.
+This is a separate flaw from the unit dependence and it affects every Jacobian `curriculum.py` computes as shipped; its effect on the fitted curve is modest (raw $R$, seed 42: edge-on $0.128$ and peak $0.73$ on the periodic grid against $0.142$ and $0.77$ shipped).
+The unit conclusion holds on both grids.
+
+**What is not shown.**
+- *The log-$R$ curve is not strictly monotone.* It peaks at edge-on in every seed but has exactly one isolated decrease per seed, at a seed-dependent $\iota$ ($0.74$, $1.21$, $0.97$; sizes $0.043$, $0.40$, $0.14$), identical on both grids.
+  A likely cause is a near-singular sky draw dominating the mean $\kappa$ at that $\iota$ (inferred, not checked); the same tail-dominated mean would also explain the sampling sensitivity of the edge-on value in §3.8.
+- *The true weight is not known to be monotonic.* The $\log R$ curve is far more edge-concentrated than $\sin^2\iota$ ($w\approx0.06$ against $0.50$ at $\iota\approx0.8$), and no other dimensionless normalisation was compared, so no replacement weight was derived.
+- *Scope.* Toy detector model and one fixed reference $(\varphi_c,\psi)$ only; the real generator was not used.
+
+**Consequence.** Training used $\sin^2\iota$ throughout, so no trained model changes.
+Its justification changes from "the dip may be real" to "the fitted curve's shape is set by an arbitrary scale and no scale-free replacement has been derived".
+The earlier quick run (`curriculum_dip_20261101_113235`, 50 draws, 40 points) is superseded by the full-resolution run above.
+The investigation is in `NOTES.md`'s 2026-11-01 11:35 and 12:05 entries.
 
 ## 4. The dataset's inclination prior, and the inclination control head's behavior
 

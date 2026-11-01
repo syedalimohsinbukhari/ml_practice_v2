@@ -93,6 +93,8 @@ The prerequisite study's verdict is GO: the combination structure exists in the 
 Whatever the networks below fail to learn, they do not fail for want of an analytically real target.
 
 ## 4. Methods
+The fitted curve's edge-on dip is an artifact of the condition number, not a physical feature: the Jacobian mixes an amplitude row in raw units with a phase row in radians, rescaling the amplitude changes the size of the dip and the position of the peak, and with a dimensionless amplitude the weight peaks at edge-on instead (`curriculum_dip_output/curriculum_dip_20261101_115902.md`).
+The edge-on value 0.1416 should therefore not be read as a physical property, and the check does not show what the true weight is.
 
 ### 4.1 Dataset
 
@@ -417,6 +419,7 @@ All paths relative to `experiments/phic_psi_poc-redo/`.
 | Table 6.1 | `analysis_output/analysis_report_20261019_125442.md` |
 | Table 6.3, Bonferroni correction (§6.3) | `bootstrap_output/bootstrap_ang_mae_20260916_113955.md` |
 | Table 6.4 | `snr_output/snr_stratification_20260916_113730.md` |
+| Curriculum-weight edge-on dip is a unit artifact (§3) | `curriculum_dip_check.py`, `curriculum_dip_output/curriculum_dip_20261101_115902.{log,md}` |
 | §6.6 (perturbation trace, parked) | `perturbation_trace_output/perturbation_trace_early_20260916_114129.md`, `closing_summary.md` |
 | Table 6.7, inclination reframing (§6.7) | `inclination_output/inclination_stratification_20260916_113601.md`, `inclination_control_stratification_20260916_113639.md`; partial-collapse finding: `inclination_output/inclination_stratification_20260923_132228.md`, scatter `inclination_output/inclination_scatter_20260923_132228.{png,pdf}` |
 | Table 6.8, sky-position finding (§6.8) | `bootstrap_output/bootstrap_sky_separation_20260918_151359.md`, `snr_output/snr_stratification_sky_position_20260918_153412.md` |
